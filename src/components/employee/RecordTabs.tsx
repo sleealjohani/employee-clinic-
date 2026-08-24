@@ -133,7 +133,7 @@ export async function RecordTabs({
       tone: "accent",
     });
   }
-  if (lastLab) {
+  if (lastLab?.collectedAt) {
     timeline.push({
       key: `lab-${lastLab.id}`,
       date: lastLab.collectedAt,
