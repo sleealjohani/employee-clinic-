@@ -1,4 +1,4 @@
-:global(.app-page) > [data-master-active="true"] + * {
+:global(.app-page):has(.workspace) > [data-master-active="true"] + * {
   display: none !important;
 }
 
