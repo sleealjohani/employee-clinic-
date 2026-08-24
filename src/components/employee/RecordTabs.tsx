@@ -4,6 +4,8 @@ import { getT } from "@/lib/i18n";
 import { ageFrom, formatDate } from "@/lib/format";
 import { hbvStatus, hbvTone } from "@/lib/clinical/hbv";
 import { Chip, Meter } from "@/components/ui";
+import { EmployeeVisitWorkspace } from "./EmployeeVisitWorkspace";
+import { EmployeeLabWorkspace } from "./EmployeeLabWorkspace";
 import styles from "./RecordTabs.module.css";
 
 export type TabKey =
@@ -37,10 +39,8 @@ export async function RecordTabs({
   const t = await getT();
   const ar = t.locale === "ar";
   const tabs: TabKey[] = ["overview", "visits", "labs", "allergies", "vaccines", "education", "notes"];
+  const masterActive = active === "visits" || active === "labs";
 
-  // A deliberately small second query powers the persistent 360° side panel.
-  // The record page already owns the detailed clinical payload; this query only
-  // selects the handful of fields needed while the user moves between sections.
   const snapshot = await db.employee.findUnique({
     where: { id: employeeId },
     select: {
@@ -50,6 +50,7 @@ export async function RecordTabs({
       nationalId: true,
       employeeNo: true,
       dob: true,
+      gender: true,
       bloodType: true,
       chronicConditions: true,
       currentMedications: true,
@@ -163,8 +164,8 @@ export async function RecordTabs({
   timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
-    <div className={`${styles.anchors} no-print`}>
-      <nav className={`${styles.navigator} glass`} aria-label={ar ? "أقسام ملف الموظف" : "Employee record sections"}>
+    <div className={styles.anchors} data-master-active={masterActive ? "true" : "false"}>
+      <nav className={`${styles.navigator} glass no-print`} aria-label={ar ? "أقسام ملف الموظف" : "Employee record sections"}>
         <div className={styles.identity}>
           <span className={styles.avatar} aria-hidden>
             {snapshot?.name.trim().charAt(0) || "•"}
@@ -203,7 +204,7 @@ export async function RecordTabs({
         </div>
       </nav>
 
-      <aside className={`${styles.snapshot} glass-strong`} aria-label={ar ? "الملخص السريري" : "Clinical snapshot"}>
+      <aside className={`${styles.snapshot} glass-strong no-print`} aria-label={ar ? "الملخص السريري" : "Clinical snapshot"}>
         <div className={styles.snapshotHeader}>
           <div>
             <p className={styles.kicker}>{ar ? "نظرة ثابتة" : "Persistent view"}</p>
@@ -329,6 +330,16 @@ export async function RecordTabs({
           {snapshot?.employeeNo && <small className="num">#{snapshot.employeeNo}</small>}
         </div>
       </aside>
+
+      {masterActive && (
+        <div className={styles.masterSlot}>
+          {active === "visits" ? (
+            <EmployeeVisitWorkspace employeeId={employeeId} />
+          ) : (
+            <EmployeeLabWorkspace employeeId={employeeId} sex={snapshot?.gender ?? null} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
