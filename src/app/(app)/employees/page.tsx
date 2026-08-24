@@ -6,25 +6,25 @@ import { can } from "@/lib/auth/rbac";
 import { getT } from "@/lib/i18n";
 import { ageFrom, formatDate } from "@/lib/format";
 import { completeness } from "@/lib/clinical/rules";
-import { Card, Chip, Empty, LinkButton, Meter, PageHeader } from "@/components/ui";
-import { IconAllergy, IconPlus, IconSearch } from "@/components/layout/icons";
+import { LinkButton } from "@/components/ui";
+import { IconEmployees, IconImport, IconPlus, IconSearch } from "@/components/layout/icons";
+import { EmployeeDirectoryWorkspace, type DirectoryEmployee } from "@/components/employee/EmployeeDirectoryWorkspace";
 
 export const metadata = { title: "الموظفون" };
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 36;
 
 export default async function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; view?: string; archived?: string; page?: string; dept?: string }>;
+  searchParams: Promise<{ q?: string; archived?: string; page?: string; dept?: string }>;
 }) {
   const user = await requirePath("/employees");
   const t = await getT();
   const params = await searchParams;
 
   const q = (params.q ?? "").trim();
-  const view = params.view === "list" ? "list" : "grid";
   const showArchived = params.archived === "1";
   const page = Math.max(1, Number(params.page ?? 1) || 1);
   const dept = (params.dept ?? "").trim();
@@ -70,214 +70,141 @@ export default async function EmployeesPage({
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const canWrite = can(user.role, "employee.write");
+  const ar = t.locale === "ar";
+
+  const directoryEmployees: DirectoryEmployee[] = employees.map((employee) => {
+    const recordCompleteness = completeness(employee).score;
+    const severeAllergy = employee.allergies.some(
+      (allergy) => allergy.severity === "SEVERE" || allergy.severity === "LIFE_THREATENING",
+    );
+
+    return {
+      id: employee.id,
+      name: employee.name,
+      nameEn: employee.nameEn,
+      nationalId: employee.nationalId,
+      employeeNo: employee.employeeNo,
+      department: employee.department,
+      jobTitle: employee.jobTitle,
+      bloodType: employee.bloodType,
+      age: ageFrom(employee.dob),
+      isArchived: employee.isArchived,
+      completeness: recordCompleteness,
+      visitsCount: employee._count.visits,
+      labsCount: employee._count.labResults,
+      allergyCount: employee.allergies.length,
+      severeAllergy,
+      lastVisit: employee.visits[0] ? formatDate(employee.visits[0].visitDate, t.locale) : null,
+    };
+  });
+
+  const visibleAttention = directoryEmployees.filter((employee) => employee.severeAllergy).length;
+  const visibleIncomplete = directoryEmployees.filter((employee) => employee.completeness < 100).length;
 
   const linkWith = (patch: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
-    const merged = { q, view, archived: showArchived ? "1" : undefined, dept: dept || undefined, ...patch };
-    for (const [k, v] of Object.entries(merged)) if (v) sp.set(k, v);
-    return `/employees?${sp.toString()}`;
+    const merged = { q, archived: showArchived ? "1" : undefined, dept: dept || undefined, ...patch };
+    for (const [key, value] of Object.entries(merged)) if (value) sp.set(key, value);
+    const query = sp.toString();
+    return query ? `/employees?${query}` : "/employees";
   };
 
   return (
     <>
-      <PageHeader
-        title={t("emp.title")}
-        subtitle={t("emp.subtitle")}
-        badge={
-          <Chip tone="neutral">
-            {total} {t("emp.count")}
-          </Chip>
-        }
-        actions={
-          canWrite ? (
-            <>
-              <LinkButton href="/employees/import">Excel</LinkButton>
+      <section className="glass-strong mb-4 overflow-hidden rounded-[1.6rem] border p-4 sm:p-5" style={{ borderColor: "var(--glass-border)" }}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ color: "var(--accent-text)", background: "var(--accent-soft)" }}>
+              <IconEmployees size={22} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em]" style={{ color: "var(--accent-text)" }}>
+                EMPLOYEE DIRECTORY
+              </p>
+              <h1 className="mt-1 text-xl font-black sm:text-2xl">{ar ? "مركز ملفات الموظفين" : "Employee record center"}</h1>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed" style={{ color: "var(--text-faint)" }}>
+                {ar
+                  ? "ابحث عن الموظف، راجع حالة ملفه سريعًا، ثم انتقل إلى سجل 360° دون المرور بقوائم وجداول تقليدية."
+                  : "Find an employee, preview record readiness and clinical signals, then move directly into the 360° record."}
+              </p>
+            </div>
+          </div>
+
+          {canWrite && (
+            <div className="flex flex-wrap gap-2 no-print">
+              <LinkButton href="/employees/import">
+                <IconImport size={15} /> Excel
+              </LinkButton>
               <LinkButton href="/employees/new" variant="primary">
                 <IconPlus /> {t("emp.new")}
               </LinkButton>
-            </>
-          ) : null
-        }
-      />
-
-      <Card className="mb-4">
-        <form method="get" className="flex flex-wrap items-end gap-2.5">
-          <div className="min-w-[15rem] flex-1">
-            <label className="label" htmlFor="q">
-              {t("action.search")}
-            </label>
-            <div className="relative">
-              <span
-                className="pointer-events-none absolute top-1/2 -translate-y-1/2"
-                style={{ insetInlineStart: "0.7rem", color: "var(--text-faint)" }}
-              >
-                <IconSearch size={16} />
-              </span>
-              <input
-                id="q"
-                className="input"
-                name="q"
-                defaultValue={q}
-                placeholder={t("emp.searchPlaceholder")}
-                style={{ paddingInlineStart: "2.1rem" }}
-              />
             </div>
+          )}
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl border px-3 py-2.5" style={{ background: "color-mix(in srgb, var(--surface) 72%, transparent)", borderColor: "var(--border)" }}>
+            <span className="text-[0.61rem] font-bold" style={{ color: "var(--text-faint)" }}>{ar ? "النتائج" : "Results"}</span>
+            <strong className="num mt-1 block text-lg">{total}</strong>
           </div>
-          <div className="w-44">
-            <label className="label" htmlFor="dept">
-              {t("emp.department")}
-            </label>
-            <select id="dept" className="select" name="dept" defaultValue={dept}>
-              <option value="">{t("common.all")}</option>
-              {departments.map((d) => (
-                <option key={d.department} value={d.department ?? ""}>
-                  {d.department}
-                </option>
-              ))}
-            </select>
+          <div className="rounded-2xl border px-3 py-2.5" style={{ background: "color-mix(in srgb, var(--surface) 72%, transparent)", borderColor: "var(--border)" }}>
+            <span className="text-[0.61rem] font-bold" style={{ color: "var(--text-faint)" }}>{ar ? "تنبيهات حساسية بالصفحة" : "Allergy alerts on page"}</span>
+            <strong className="num mt-1 block text-lg" style={{ color: visibleAttention ? "var(--danger)" : "var(--text)" }}>{visibleAttention}</strong>
           </div>
-          <input type="hidden" name="view" value={view} />
-          <label className="flex items-center gap-1.5 pb-2 text-xs font-semibold">
-            <input type="checkbox" name="archived" value="1" defaultChecked={showArchived} />
-            {t("emp.showArchived")}
-          </label>
-          <button type="submit" className="btn btn-ghost">
-            {t("action.filter")}
-          </button>
-          <div className="ms-auto flex gap-1">
-            <Link
-              href={linkWith({ view: "grid", page: undefined })}
-              className={`btn btn-sm ${view === "grid" ? "btn-primary" : "btn-ghost"}`}
-            >
-              {t("emp.grid")}
-            </Link>
-            <Link
-              href={linkWith({ view: "list", page: undefined })}
-              className={`btn btn-sm ${view === "list" ? "btn-primary" : "btn-ghost"}`}
-            >
-              {t("emp.list")}
-            </Link>
+          <div className="rounded-2xl border px-3 py-2.5" style={{ background: "color-mix(in srgb, var(--surface) 72%, transparent)", borderColor: "var(--border)" }}>
+            <span className="text-[0.61rem] font-bold" style={{ color: "var(--text-faint)" }}>{ar ? "ملفات تحتاج استكمال" : "Records needing completion"}</span>
+            <strong className="num mt-1 block text-lg" style={{ color: visibleIncomplete ? "var(--warn)" : "var(--text)" }}>{visibleIncomplete}</strong>
           </div>
-        </form>
-      </Card>
+        </div>
+      </section>
 
-      {employees.length === 0 ? (
-        <Card>
-          <Empty
-            title={t("common.empty")}
-            hint={t("common.emptyHint")}
-            action={canWrite ? <LinkButton href="/employees/new">{t("emp.new")}</LinkButton> : null}
-          />
-        </Card>
-      ) : view === "grid" ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {employees.map((emp) => {
-            const c = completeness(emp);
-            const severe = emp.allergies.some(
-              (a) => a.severity === "SEVERE" || a.severity === "LIFE_THREATENING",
-            );
-            return (
-              <Link key={emp.id} href={`/employees/${emp.id}`} className="card card-pad block transition-shadow hover:shadow-md">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">{emp.name}</p>
-                    <p className="num mt-0.5 text-xs" style={{ color: "var(--text-faint)" }} dir="ltr">
-                      {emp.nationalId}
-                    </p>
-                  </div>
-                  {emp.isArchived && <Chip tone="neutral">{t("emp.archived")}</Chip>}
-                </div>
+      <form method="get" className="glass mb-3 flex flex-wrap items-end gap-2.5 rounded-[1.25rem] p-3 no-print">
+        <div className="min-w-[16rem] flex-1">
+          <label className="label" htmlFor="q">{t("action.search")}</label>
+          <div className="relative">
+            <span className="pointer-events-none absolute top-1/2 -translate-y-1/2" style={{ insetInlineStart: "0.72rem", color: "var(--text-faint)" }}>
+              <IconSearch size={16} />
+            </span>
+            <input
+              id="q"
+              className="input"
+              name="q"
+              defaultValue={q}
+              placeholder={t("emp.searchPlaceholder")}
+              style={{ paddingInlineStart: "2.2rem" }}
+            />
+          </div>
+        </div>
 
-                <p className="mt-2 truncate text-xs" style={{ color: "var(--text-muted)" }}>
-                  {emp.jobTitle ?? "—"}
-                  {emp.department ? ` · ${emp.department}` : ""}
-                </p>
+        <div className="w-48 max-w-full">
+          <label className="label" htmlFor="dept">{t("emp.department")}</label>
+          <select id="dept" className="select" name="dept" defaultValue={dept}>
+            <option value="">{t("common.all")}</option>
+            {departments.map((department) => (
+              <option key={department.department} value={department.department ?? ""}>
+                {department.department}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  {emp.allergies.length > 0 && (
-                    <Chip tone={severe ? "danger" : "warn"}>
-                      <IconAllergy size={12} /> {emp.allergies.length}
-                    </Chip>
-                  )}
-                  {emp.bloodType && (
-                    <Chip tone="neutral">
-                      <span dir="ltr">{emp.bloodType}</span>
-                    </Chip>
-                  )}
-                  {emp.visits[0] && (
-                    <Chip tone="neutral">
-                      {t("emp.lastVisit")}: {formatDate(emp.visits[0].visitDate, t.locale)}
-                    </Chip>
-                  )}
-                </div>
+        <label className="flex items-center gap-1.5 pb-2 text-xs font-semibold">
+          <input type="checkbox" name="archived" value="1" defaultChecked={showArchived} />
+          {t("emp.showArchived")}
+        </label>
 
-                <div className="mt-3">
-                  <div className="mb-1 flex items-center justify-between text-[0.68rem]" style={{ color: "var(--text-faint)" }}>
-                    <span>{t("emp.completeness")}</span>
-                    <span className="num">{c.score}%</span>
-                  </div>
-                  <Meter value={c.score} tone={c.score === 100 ? "ok" : c.score >= 70 ? "accent" : "warn"} />
-                </div>
-              </Link>
-            );
-          })}
+        <button type="submit" className="btn btn-primary">{t("action.filter")}</button>
+        {(q || dept || showArchived) && <Link href="/employees" className="btn btn-ghost">{ar ? "مسح" : "Clear"}</Link>}
+      </form>
+
+      {directoryEmployees.length === 0 ? (
+        <div className="glass rounded-[1.25rem] p-8 text-center">
+          <p className="text-sm font-bold">{t("common.empty")}</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>{t("common.emptyHint")}</p>
+          {canWrite && <div className="mt-3"><LinkButton href="/employees/new">{t("emp.new")}</LinkButton></div>}
         </div>
       ) : (
-        <Card pad={false}>
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>{t("emp.name")}</th>
-                  <th>{t("emp.nationalId")}</th>
-                  <th>{t("emp.employeeNo")}</th>
-                  <th>{t("emp.department")}</th>
-                  <th>{t("emp.jobTitle")}</th>
-                  <th>{t("emp.age")}</th>
-                  <th>{t("emp.completeness")}</th>
-                  <th>{t("emp.lastVisit")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((emp) => {
-                  const c = completeness(emp);
-                  return (
-                    <tr key={emp.id}>
-                      <td>
-                        <Link href={`/employees/${emp.id}`} className="font-semibold" style={{ color: "var(--accent-text)" }}>
-                          {emp.name}
-                        </Link>
-                        {emp.isArchived && (
-                          <span className="ms-2">
-                            <Chip tone="neutral">{t("emp.archived")}</Chip>
-                          </span>
-                        )}
-                      </td>
-                      <td className="num" dir="ltr">
-                        {emp.nationalId}
-                      </td>
-                      <td className="num" dir="ltr">
-                        {emp.employeeNo ?? "—"}
-                      </td>
-                      <td>{emp.department ?? "—"}</td>
-                      <td>{emp.jobTitle ?? "—"}</td>
-                      <td className="num">{ageFrom(emp.dob) ?? "—"}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <span className="num text-xs">{c.score}%</span>
-                          <span className="w-16">
-                            <Meter value={c.score} tone={c.score === 100 ? "ok" : "warn"} />
-                          </span>
-                        </div>
-                      </td>
-                      <td>{emp.visits[0] ? formatDate(emp.visits[0].visitDate, t.locale) : "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <EmployeeDirectoryWorkspace employees={directoryEmployees} locale={t.locale} />
       )}
 
       {pages > 1 && (
