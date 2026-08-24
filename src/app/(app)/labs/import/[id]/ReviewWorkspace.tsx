@@ -50,13 +50,25 @@ export function ReviewWorkspace({
           </div>
           <div className="border-t" style={{ height: "70vh", background: "var(--surface-2)" }}>
             {isPdf ? (
-              <iframe
-                key={page}
-                src={src}
-                title={filename}
-                className="h-full w-full"
-                style={{ border: 0 }}
-              />
+              // <object> rather than <iframe>: browsers without an inline PDF
+              // viewer render the fallback instead of a blank pane, and seeing
+              // the source is the whole point of this screen.
+              <object key={page} data={src} type="application/pdf" className="h-full w-full">
+                <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+                  <p className="text-sm font-semibold">{filename}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {t("imp.source")}
+                  </p>
+                  <a
+                    href={`/api/attachments/${attachmentId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-primary btn-sm"
+                  >
+                    {t("action.open")}
+                  </a>
+                </div>
+              </object>
             ) : (
               <div className="h-full overflow-auto p-2">
                 <img src={src} alt={filename} className="mx-auto max-w-full" />

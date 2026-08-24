@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
-import { importEnabled, EXTRACTION_MODEL } from "@/lib/ai/extract";
+import { importAvailability, EXTRACTION_MODEL } from "@/lib/ai/extract";
 import { Alert, Card, Chip, Empty, PageHeader, SectionTitle } from "@/components/ui";
 import { UploadForm } from "./UploadForm";
 
@@ -23,7 +23,7 @@ const STATUS_TONE = {
 export default async function ImportPage() {
   await requirePermission("import.run");
   const t = await getT();
-  const enabled = importEnabled();
+  const availability = importAvailability();
 
   const [batches, unmatched] = await Promise.all([
     db.labImportBatch.findMany({
@@ -42,12 +42,21 @@ export default async function ImportPage() {
       <PageHeader
         title={t("imp.title")}
         subtitle={t("imp.subtitle")}
-        badge={enabled ? <Chip tone="accent">{EXTRACTION_MODEL}</Chip> : <Chip tone="neutral">—</Chip>}
+        badge={
+          availability.enabled ? (
+            <Chip tone="accent">{EXTRACTION_MODEL}</Chip>
+          ) : (
+            <Chip tone="neutral">—</Chip>
+          )
+        }
       />
 
-      {!enabled ? (
-        <Alert tone="neutral" title={t("imp.disabled")}>
-          {t("imp.disabledHint")}
+      {!availability.enabled ? (
+        <Alert
+          tone={availability.reason === "NO_KEY" ? "warn" : "neutral"}
+          title={availability.reason === "NO_KEY" ? t("imp.noKey") : t("imp.disabled")}
+        >
+          {availability.reason === "NO_KEY" ? t("imp.noKeyHint") : t("imp.disabledHint")}
         </Alert>
       ) : (
         <div className="mb-4 space-y-3">

@@ -198,8 +198,26 @@ function client(): Anthropic {
   return new Anthropic({ apiKey });
 }
 
+export type ImportAvailability =
+  | { enabled: true }
+  /** Switched off deliberately — e.g. external processing is not approved. */
+  | { enabled: false; reason: "DISABLED" }
+  /** Switched on, but the deployment has no API key configured. */
+  | { enabled: false; reason: "NO_KEY" };
+
+/**
+ * On unless someone turns it off. ENABLE_AI_IMPORT="false" is the single switch
+ * that disables assisted import across the whole system; anything else leaves it
+ * on, provided a key is configured.
+ */
+export function importAvailability(): ImportAvailability {
+  if (process.env.ENABLE_AI_IMPORT === "false") return { enabled: false, reason: "DISABLED" };
+  if (!process.env.ANTHROPIC_API_KEY) return { enabled: false, reason: "NO_KEY" };
+  return { enabled: true };
+}
+
 export function importEnabled(): boolean {
-  return process.env.ENABLE_AI_IMPORT === "true" && Boolean(process.env.ANTHROPIC_API_KEY);
+  return importAvailability().enabled;
 }
 
 export async function extractLabReport(
