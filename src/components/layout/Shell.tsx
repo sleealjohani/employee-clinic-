@@ -95,6 +95,7 @@ export function Shell({
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  prefetch={false}
                   className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                   style={{
                     background: active ? "var(--accent-soft)" : "transparent",
@@ -122,7 +123,7 @@ export function Shell({
   const sidebar = (
     <>
       <div className="mb-6 px-2 pt-1">
-        <Link href="/dashboard" className="block">
+        <Link href="/dashboard" prefetch={false} className="block">
           <Logo height={44} />
         </Link>
         <p className="mt-2.5 px-1 text-[0.72rem] font-semibold" style={{ color: "var(--text-faint)" }}>
@@ -136,6 +137,7 @@ export function Shell({
       <div className="mt-auto space-y-2 border-t pt-3">
         <Link
           href="/account"
+          prefetch={false}
           className="flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-[var(--surface-3)]"
         >
           <span
@@ -177,7 +179,7 @@ export function Shell({
         className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 py-2.5 lg:hidden no-print"
         style={{ background: "var(--surface)" }}
       >
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" prefetch={false} className="flex items-center gap-2">
           <LogoMark size={28} />
           <span className="text-sm font-bold">{t("app.name")}</span>
         </Link>
