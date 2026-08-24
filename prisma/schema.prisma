@@ -1,0 +1,521 @@
+// Employee Clinic — data model
+// Design rules encoded here:
+//  - Nothing is ever hard-deleted. Records are archived or marked ENTERED_IN_ERROR.
+//  - Person identity (nationalId) is separate from employment facts, which are historised.
+//  - Lab results are structured observations (value + unit + reference range), never free text.
+//  - Interpretation (flags, immunity, due dates) is computed by src/lib/clinical, never stored blindly.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------- access control
+
+enum Role {
+  ADMIN // clinic manager: everything, including imports and user management
+  STAFF // nurse / technician: clinical data entry, no deletion, no imports
+  VIEWER // HR: aggregate indicators only, no clinical detail
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  name         String
+  email        String?
+  role         Role     @default(STAFF)
+  passwordHash String
+  isActive     Boolean  @default(true)
+  mustChangePassword Boolean @default(false)
+
+  totpSecret  String?
+  totpEnabled Boolean @default(false)
+
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastLoginAt    DateTime?
+  tokenVersion   Int       @default(0) // bump to revoke every existing session
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdEmployees Employee[]     @relation("EmployeeCreatedBy")
+  createdVisits    Visit[]
+  createdLabs      LabResult[]    @relation("LabCreatedBy")
+  reviewedLabs     LabResult[]    @relation("LabReviewedBy")
+  allergies        Allergy[]
+  vaccinations     Vaccination[]
+  educations       HealthEducation[]
+  notes            ClinicalNote[]
+  attachments      Attachment[]
+  importBatches    LabImportBatch[]
+
+  @@index([role])
+}
+
+/// Append-only. Never updated, never deleted — not even by an administrator.
+model AuditLog {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  userId    String?
+  userName  String
+  action    String // LOGIN, CREATE, UPDATE, ARCHIVE, VIEW_SENSITIVE, EXPORT, EXTRACT ...
+  entity    String
+  entityId  String?
+  summary   String
+  meta      Json?
+  ip        String?
+  userAgent String?
+
+  @@index([at])
+  @@index([entity, entityId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- people
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum RecordStatus {
+  ACTIVE
+  AMENDED
+  ENTERED_IN_ERROR
+}
+
+model Employee {
+  id String @id @default(cuid())
+
+  // identity — stable
+  nationalId String  @unique
+  name       String
+  nameEn     String?
+  dob        DateTime?
+  gender     Gender?
+  phone      String?
+  email      String?
+
+  // employment — current snapshot, history in EmploymentHistory
+  employeeNo       String?
+  department       String?
+  jobTitle         String?
+  employmentStatus EmploymentStatus @default(ACTIVE)
+  hireDate         DateTime?
+
+  // health summary
+  bloodType          String?
+  chronicConditions  String[] @default([])
+  currentMedications String[] @default([])
+
+  isArchived    Boolean   @default(false)
+  archivedAt    DateTime?
+  archiveReason String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
+
+  employmentHistory EmploymentHistory[]
+  visits            Visit[]
+  labResults        LabResult[]
+  allergies         Allergy[]
+  vaccinations      Vaccination[]
+  educations        HealthEducation[]
+  notes             ClinicalNote[]
+  attachments       Attachment[]
+  importItems       LabImportItem[]
+
+  @@index([department])
+  @@index([isArchived])
+  @@index([name])
+}
+
+model EmploymentHistory {
+  id            String           @id @default(cuid())
+  employeeId    String
+  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department    String?
+  jobTitle      String?
+  employeeNo    String?
+  status        EmploymentStatus
+  effectiveFrom DateTime         @default(now())
+  effectiveTo   DateTime?
+  note          String?
+
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------- visits
+
+enum VisitType {
+  ACUTE_CARE
+  FOLLOW_UP
+  PRE_EMPLOYMENT
+  PERIODIC
+  INJURY
+  EXPOSURE
+  VACCINATION
+  CONSULTATION
+  OTHER
+}
+
+model Visit {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  visitDate  DateTime  @default(now())
+  type       VisitType @default(ACUTE_CARE)
+
+  chiefComplaint String?
+  diagnosis      String?
+  plan           String?
+  notes          String?
+
+  // vitals — columns, not JSON, so reports can aggregate them
+  tempC     Float?
+  systolic  Int?
+  diastolic Int?
+  pulse     Int?
+  respRate  Int?
+  spo2      Int?
+  weightKg  Float?
+  heightCm  Float?
+
+  status      RecordStatus @default(ACTIVE)
+  voidReason  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+
+  @@index([employeeId, visitDate])
+  @@index([visitDate])
+}
+
+// ---------------------------------------------------------------- laboratory
+
+enum ResultType {
+  QUANTITATIVE
+  QUALITATIVE
+}
+
+enum LabFlag {
+  NORMAL
+  LOW
+  HIGH
+  CRITICAL_LOW
+  CRITICAL_HIGH
+  REACTIVE
+  NON_REACTIVE
+  INDETERMINATE
+  UNKNOWN
+}
+
+model LabResult {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  testCode String // controlled vocabulary — see src/lib/catalog/tests.ts
+  testName String
+
+  resultType ResultType @default(QUANTITATIVE)
+  valueNum   Float?
+  valueText  String?
+  unit       String?
+  refLow     Float?
+  refHigh    Float?
+  refText    String?
+
+  /// Computed by the rules engine at write time; recomputed on edit. Never taken from a model.
+  flag LabFlag @default(UNKNOWN)
+
+  collectedAt DateTime?
+  verifiedAt  DateTime?
+  orderNo     String?
+  sampleNo    String?
+  performedBy String?
+  verifiedBy  String?
+  labName     String?
+
+  requiresReview Boolean   @default(false)
+  reviewedAt     DateTime?
+  reviewedById   String?
+  reviewedBy     User?     @relation("LabReviewedBy", fields: [reviewedById], references: [id])
+
+  criticalNotifiedAt DateTime?
+  criticalNotifiedTo String?
+  criticalAction     String?
+
+  // provenance when the row came from an imported report
+  sourceAttachmentId   String?
+  sourceAttachment     Attachment? @relation(fields: [sourceAttachmentId], references: [id])
+  sourcePage           Int?
+  extractionConfidence Float?
+  extractionCitation   String?
+
+  status      RecordStatus @default(ACTIVE)
+  voidReason  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation("LabCreatedBy", fields: [createdById], references: [id])
+
+  @@index([employeeId, testCode, collectedAt])
+  @@index([requiresReview])
+  @@index([collectedAt])
+}
+
+// ---------------------------------------------------------------- allergies
+
+enum AllergyType {
+  DRUG
+  FOOD
+  ENVIRONMENT
+  LATEX
+  INSECT
+  OTHER
+}
+
+enum Severity {
+  MILD
+  MODERATE
+  SEVERE
+  LIFE_THREATENING
+}
+
+enum AllergyStatus {
+  ACTIVE
+  RESOLVED
+  REFUTED
+}
+
+enum Certainty {
+  CONFIRMED
+  SUSPECTED
+}
+
+model Allergy {
+  id         String        @id @default(cuid())
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type       AllergyType
+  substance  String
+  severity   Severity
+  reaction   String?
+  action     String?
+  certainty  Certainty     @default(SUSPECTED)
+  allergyStatus AllergyStatus @default(ACTIVE)
+  notes      String?
+  recordedAt DateTime      @default(now())
+
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------- immunisation
+
+model Vaccination {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  vaccineCode String // see src/lib/catalog/vaccines.ts
+  vaccineName String
+  doseNumber  Int       @default(1)
+  givenAt     DateTime
+  lotNumber   String?
+  site        String?
+  provider    String?
+  /// Explicit override; when null the due engine computes the next dose date.
+  nextDueAt   DateTime?
+  notes       String?
+
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+
+  @@index([employeeId, vaccineCode, doseNumber])
+  @@index([givenAt])
+}
+
+// ---------------------------------------------------------------- education & notes
+
+model HealthEducation {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  topic       String
+  providedAt  DateTime @default(now())
+  method      String?
+  notes       String?
+
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+
+  @@index([employeeId])
+}
+
+model ClinicalNote {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  body       String
+  isPinned   Boolean  @default(false)
+
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------- files
+
+/// Stored in Postgres so the deployment needs no second service. Capped at 10 MB per file.
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String
+  mimeType     String
+  size         Int
+  sha256       String
+  data         Bytes
+  employeeId   String?
+  employee     Employee? @relation(fields: [employeeId], references: [id])
+  uploadedById String?
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime  @default(now())
+
+  labResults   LabResult[]
+  importBatch  LabImportBatch?
+
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------- assisted import
+
+enum ImportStatus {
+  UPLOADED
+  EXTRACTING
+  NEEDS_REVIEW
+  COMMITTED
+  FAILED
+}
+
+enum MatchStatus {
+  MATCHED // exact national ID hit — safe to link
+  SUGGESTED // fuzzy name/employee-number hit — a human must confirm
+  UNMATCHED // no candidate; goes to the unmatched queue, never auto-created
+}
+
+enum ItemReview {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model LabImportBatch {
+  id           String       @id @default(cuid())
+  attachmentId String       @unique
+  attachment   Attachment   @relation(fields: [attachmentId], references: [id])
+  filename     String
+  pageCount    Int          @default(0)
+  status       ImportStatus @default(UPLOADED)
+  model        String?
+  promptVersion String?
+  error        String?
+  inputTokens  Int?
+  outputTokens Int?
+
+  uploadedById String?
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime  @default(now())
+  committedAt  DateTime?
+
+  items LabImportItem[]
+
+  @@index([status])
+}
+
+/// One candidate lab row awaiting human approval. Nothing here is clinical data yet.
+model LabImportItem {
+  id      String         @id @default(cuid())
+  batchId String
+  batch   LabImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  page    Int            @default(1)
+
+  extractedNationalId String?
+  extractedName       String?
+  extractedEmployeeNo String?
+  nationalIdValid     Boolean @default(false)
+
+  matchStatus       MatchStatus @default(UNMATCHED)
+  matchScore        Float?
+  matchedEmployeeId String?
+  matchedEmployee   Employee?   @relation(fields: [matchedEmployeeId], references: [id])
+
+  testCode   String?
+  testName   String?
+  resultType ResultType @default(QUANTITATIVE)
+  valueNum   Float?
+  valueText  String?
+  unit       String?
+  refLow     Float?
+  refHigh    Float?
+  refText    String?
+
+  collectedAt DateTime?
+  verifiedAt  DateTime?
+  orderNo     String?
+  sampleNo    String?
+  performedBy String?
+  verifiedBy  String?
+  labName     String?
+
+  confidence Float?
+  citation   String?
+  rawJson    Json?
+  warnings   String[] @default([])
+
+  review              ItemReview @default(PENDING)
+  rejectReason        String?
+  committedLabResultId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([batchId, review])
+}
+
+// ---------------------------------------------------------------- settings
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
