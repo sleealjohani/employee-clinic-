@@ -190,7 +190,12 @@ export async function changePasswordAction(
 export type SetupState = { error?: string };
 
 export async function setupAction(_prev: SetupState, formData: FormData): Promise<SetupState> {
-  if ((await db.user.count()) > 0) return { error: "setup.closed" };
+  try {
+    if ((await db.user.count()) > 0) return { error: "setup.closed" };
+  } catch (error) {
+    console.error("[setup] failed to check existing users", error);
+    return { error: "common.error" };
+  }
 
   const expected = process.env.SETUP_TOKEN;
   if (!expected || String(formData.get("token") ?? "") !== expected) return { error: "setup.badToken" };
@@ -205,9 +210,15 @@ export async function setupAction(_prev: SetupState, formData: FormData): Promis
   if (name.length < 2) return { error: "common.error" };
   if (!passwordIsStrong(password)) return { error: "auth.passwordWeak" };
 
-  const user = await db.user.create({
-    data: { username, name, role: "ADMIN", passwordHash: await hashPassword(password) },
-  });
+  let user;
+  try {
+    user = await db.user.create({
+      data: { username, name, role: "ADMIN", passwordHash: await hashPassword(password) },
+    });
+  } catch (error) {
+    console.error("[setup] failed to create first administrator", error);
+    return { error: "common.error" };
+  }
 
   await writeAudit({
     user: { id: user.id, name: user.name },
