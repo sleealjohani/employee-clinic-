@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
 import { getT } from "@/lib/i18n";
-import { bmi, formatDate, vitalOutOfRange } from "@/lib/format";
+import { bmi, formatDate } from "@/lib/format";
+import { vitalOutOfRange } from "@/lib/clinical/rules";
 import { Chip, Empty, KeyValue } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
 import { VisitForm, VoidRecordForm } from "@/components/forms/RecordForms";
@@ -46,7 +47,7 @@ export async function EmployeeVisitWorkspace({ employeeId }: { employeeId: strin
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-[1.2rem] border px-4 py-3" style={{ background: "color-mix(in srgb, var(--surface-glass) 88%, transparent)", borderColor: "var(--glass-border)" }}>
         <div>
           <p className="text-[0.65rem] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--accent-text)" }}>
-            {ar ? "VISIT WORKSPACE" : "VISIT WORKSPACE"}
+            VISIT WORKSPACE
           </p>
           <h2 className="mt-1 text-base font-extrabold">{ar ? "سجل الزيارات" : "Visit history"}</h2>
           <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
