@@ -1,3 +1,7 @@
+:global(.app-page) > [data-master-active="true"] + * {
+  display: none !important;
+}
+
 .workspace {
   display: grid;
   min-width: 0;
