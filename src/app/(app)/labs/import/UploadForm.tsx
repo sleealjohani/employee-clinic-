@@ -29,19 +29,30 @@ function Progress() {
   );
 }
 
-export function UploadForm() {
+export function UploadForm({ allowImages = false }: { allowImages?: boolean }) {
   const t = useT();
+  const ar = t.locale === "ar";
   const [state, formAction] = useActionState<UploadState, FormData>(uploadAndExtractAction, {});
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <div className="min-w-[16rem] flex-1">
-        <Field label={t("imp.file")} hint={t("imp.uploadHint")} required>
+        <Field
+          label={t("imp.file")}
+          hint={
+            allowImages
+              ? t("imp.uploadHint")
+              : ar
+                ? "PDF رقمي حتى 10 MB. تتم معالجة النص داخل الخادم دون إرسال التقرير إلى خدمة ذكاء اصطناعي خارجية."
+                : "Digital PDF up to 10 MB. Text is processed on the server without sending the report to an external AI service."
+          }
+          required
+        >
           <input
             className="input"
             type="file"
             name="file"
-            accept="application/pdf,image/jpeg,image/png,image/webp"
+            accept={allowImages ? "application/pdf,image/jpeg,image/png,image/webp" : "application/pdf"}
             required
           />
         </Field>
