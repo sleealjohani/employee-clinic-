@@ -122,9 +122,8 @@ export function SmartVisitForm({
 
       <div className={styles.hero}>
         <div>
-          <span className={styles.eyebrow}>SMART VISIT FLOW</span>
+          <span className={styles.eyebrow}>{ar ? "توثيق زيارة" : "Visit flow"}</span>
           <h3>{ar ? "توثيق زيارة سريرية" : "Document clinical visit"}</h3>
-          <p>{ar ? "ثلاث مراحل قصيرة تحافظ على سياق الزيارة وتفصل القياسات عن التقييم السريري." : "Three focused stages keep encounter context, measurements and clinical assessment clearly separated."}</p>
         </div>
         <span className={styles.status} data-dirty={dirty}>{dirty ? (ar ? "غير محفوظ" : "Unsaved") : (ar ? "جاهز" : "Ready")}</span>
       </div>
@@ -284,9 +283,8 @@ export function SmartLabForm({
 
       <div className={styles.hero}>
         <div>
-          <span className={styles.eyebrow}>SMART LAB FLOW</span>
+          <span className={styles.eyebrow}>{ar ? "توثيق نتيجة" : "Lab flow"}</span>
           <h3>{ar ? "توثيق نتيجة مخبرية" : "Document laboratory result"}</h3>
-          <p>{ar ? "اختر الفحص أولًا ليجهّز النظام نوع النتيجة والوحدة والمدى المرجعي تلقائيًا قبل التوثيق." : "Choose the test first so the result type, unit and reference interval can be prepared automatically."}</p>
         </div>
         <span className={styles.status} data-dirty={dirty}>{dirty ? (ar ? "غير محفوظ" : "Unsaved") : (ar ? "جاهز" : "Ready")}</span>
       </div>

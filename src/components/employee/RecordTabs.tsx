@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getT } from "@/lib/i18n";
-import { ageFrom, formatDate } from "@/lib/format";
+import { ageFrom, formatDate, initials } from "@/lib/format";
 import { hbvStatus, hbvTone } from "@/lib/clinical/hbv";
 import { Chip, Meter } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
@@ -198,7 +198,7 @@ export async function RecordTabs({
     >
       <nav className={`${styles.navigator} glass no-print`} aria-label={ar ? "أقسام ملف الموظف" : "Employee record sections"}>
         <div className={styles.identity}>
-          <span className={styles.avatar} aria-hidden>{snapshot?.name.trim().charAt(0) || "•"}</span>
+          <span className={styles.avatar} aria-hidden>{snapshot?.name ? initials(snapshot.name) : "•"}</span>
           <div className={styles.identityText}>
             <p className={styles.kicker}>{ar ? "ملف الموظف 360°" : "Employee 360°"}</p>
             <p className={styles.name}>{snapshot?.name ?? (ar ? "ملف الموظف" : "Employee record")}</p>

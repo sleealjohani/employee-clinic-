@@ -3,7 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
-import { Alert, Chip, Field } from "@/components/ui";
+import { Alert, Chip } from "@/components/ui";
+import { FileField } from "@/components/ui/FileField";
 import { importEmployeesAction, type EmployeeImportState } from "@/server/actions/employee-import";
 
 /**
@@ -37,19 +38,22 @@ export function EmployeeImportForm() {
 
   return (
     <>
-      <form action={formAction} className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[16rem] flex-1">
-          <Field label={t("imp.file")} hint={t("empimp.fileHint")} required>
-            <input className="input" type="file" name="file" accept=".xlsx,.xls,.csv" required />
-          </Field>
+      <form action={formAction}>
+        <FileField
+          name="file"
+          accept=".xlsx,.xls,.csv"
+          required
+          hint={`${t("empimp.fileHint")} · ${t("empimp.columns")}`}
+        />
+        <div className="mt-4">
+          <Actions />
         </div>
-        <Actions />
       </form>
 
       {state.error && (
         <div className="mt-4">
           <Alert tone="danger" title={t(state.error)}>
-            {t(`${state.error}.hint`)}
+            {t.has(`${state.error}.hint`) && t(`${state.error}.hint`)}
             {state.errorDetail && (
               <span className="mt-1 block font-semibold" dir="auto">
                 {state.errorDetail}
@@ -105,7 +109,7 @@ export function EmployeeImportForm() {
                     <th>{t("common.reason")}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="row-in">
                   {state.rows.map((row) => (
                     <tr key={row.row}>
                       <td className="num">{row.row}</td>

@@ -7,8 +7,10 @@ export const metadata = { title: "لا توجد صلاحية" };
 export default async function DeniedPage() {
   const t = await getT();
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="card card-pad max-w-md text-center">
+    <div className="workspace-shell flex min-h-screen items-center justify-center px-4">
+      <div className="ambient-orb ambient-orb-one" />
+
+      <div className="auth-panel card card-pad glass-strong specular max-w-md text-center">
         <div className="mb-3 flex justify-center">
           <LogoMark size={44} />
         </div>
@@ -16,7 +18,7 @@ export default async function DeniedPage() {
         <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
           {t("role.VIEWER.desc")}
         </p>
-        <Link href="/dashboard" className="btn btn-primary mt-5">
+        <Link href="/dashboard" className="btn btn-primary sheen mt-5">
           {t("nav.dashboard")}
         </Link>
       </div>

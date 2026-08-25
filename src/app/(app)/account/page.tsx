@@ -86,7 +86,7 @@ export default async function AccountPage() {
                   <th>{t("audit.ip")}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="row-in">
                 {recent.map((entry) => (
                   <tr key={entry.id}>
                     <td className="num">{formatDateTime(entry.at, t.locale)}</td>

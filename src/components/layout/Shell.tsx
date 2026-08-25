@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { Role } from "@prisma/client";
+import { initials } from "@/lib/format";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { useT } from "@/lib/i18n/client";
 import { canOpenPath } from "@/lib/auth/rbac";
@@ -208,7 +209,7 @@ export function Shell({
           title={user.name}
           aria-label={user.name}
         >
-          {user.name.trim().charAt(0)}
+          {initials(user.name)}
         </Link>
       </div>
     </>
@@ -309,7 +310,7 @@ export function Shell({
             <div className="mt-4 border-t pt-4">
               <Link href="/account" prefetch={false} className="mb-3 flex items-center gap-3 rounded-xl px-2 py-2">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}>
-                  {user.name.trim().charAt(0)}
+                  {initials(user.name)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">{user.name}</span>
@@ -362,7 +363,7 @@ export function Shell({
 
             <Link href="/account" prefetch={false} className="flex shrink-0 items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-[var(--surface-2)]">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}>
-                {user.name.trim().charAt(0)}
+                {initials(user.name)}
               </span>
               <span className="hidden max-w-32 xl:block">
                 <span className="block truncate text-xs font-bold">{user.name}</span>

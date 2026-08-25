@@ -9,7 +9,7 @@ import { hbvStatus, hbvTone, type HbvStatus } from "@/lib/clinical/hbv";
 import { loadDueItems } from "@/server/queries/due";
 import { Chip, Meter } from "@/components/ui";
 import { ColumnChart, RowBars } from "@/components/charts/Charts";
-import { AnimatedMetric } from "@/components/dashboard/AnimatedMetric";
+import { CountUp } from "@/components/motion/CountUp";
 import "./dashboard.css";
 
 export const metadata = { title: "لوحة التحكم" };
@@ -319,21 +319,20 @@ export default async function DashboardPage() {
         <div className="clinic-dashboard-section-label">
           <div>
             <h2>{ar ? "يحتاج إجراء الآن" : "Needs action now"}</h2>
-            <p>{ar ? "ترتيب أولويات العمل قبل المؤشرات العامة" : "Operational priorities before general metrics"}</p>
           </div>
           <Link href="/due" prefetch={false}>{ar ? "كل المستحقات" : "All due items"}</Link>
         </div>
 
         {clinical && visibleActions.length > 0 ? (
-          <div className="clinic-dashboard-priority-grid">
+          <div className="clinic-dashboard-priority-grid stagger">
             {visibleActions.map((tile) => (
-              <Link key={`${tile.kind}-${tile.href}`} href={tile.href} prefetch={false} className="clinic-dashboard-priority" data-tone={tile.tone}>
+              <Link key={`${tile.kind}-${tile.href}`} href={tile.href} prefetch={false} className="clinic-dashboard-priority lift specular" data-tone={tile.tone}>
                 <span className="clinic-dashboard-priority-icon"><ActionGlyph kind={tile.kind} /></span>
                 <span className="min-w-0">
                   <span className="clinic-dashboard-priority-title">{tile.label}</span>
                   <span className="clinic-dashboard-priority-hint block">{tile.hint}</span>
                 </span>
-                <AnimatedMetric value={tile.value} className="clinic-dashboard-priority-value" />
+                <CountUp value={tile.value} className="clinic-dashboard-priority-value" />
               </Link>
             ))}
           </div>
@@ -349,28 +348,27 @@ export default async function DashboardPage() {
         <div className="clinic-dashboard-section-label">
           <div>
             <h2>{ar ? "نبض العيادة" : "Clinic pulse"}</h2>
-            <p>{ar ? "الأرقام الأساسية بدون ازدحام بصري" : "Core numbers without visual noise"}</p>
           </div>
         </div>
-        <div className="clinic-dashboard-metrics">
-          <Link href="/employees" prefetch={false} className="clinic-dashboard-metric">
+        <div className="clinic-dashboard-metrics stagger">
+          <Link href="/employees" prefetch={false} className="clinic-dashboard-metric lift specular">
             <p className="clinic-dashboard-metric-label">{t("dash.activeEmployees")}</p>
-            <AnimatedMetric value={activeEmployees} className="clinic-dashboard-metric-value" />
+            <CountUp value={activeEmployees} className="clinic-dashboard-metric-value" />
             <p className="clinic-dashboard-metric-hint">{ar ? "ملفات وظيفية نشطة" : "Active employee records"}</p>
           </Link>
-          <Link href="/visits" prefetch={false} className="clinic-dashboard-metric">
+          <Link href="/visits" prefetch={false} className="clinic-dashboard-metric lift specular">
             <p className="clinic-dashboard-metric-label">{t("dash.visitsToday")}</p>
-            <AnimatedMetric value={visitsToday} className="clinic-dashboard-metric-value" />
+            <CountUp value={visitsToday} className="clinic-dashboard-metric-value" />
             <p className="clinic-dashboard-metric-hint">{t("dash.visitsMonth")}: <span className="num">{visitsMonth}</span></p>
           </Link>
-          <Link href="/labs" prefetch={false} className="clinic-dashboard-metric">
+          <Link href="/labs" prefetch={false} className="clinic-dashboard-metric lift specular">
             <p className="clinic-dashboard-metric-label">{t("dash.labsTotal")}</p>
-            <AnimatedMetric value={clinical ? labsTotal : 0} className="clinic-dashboard-metric-value" />
+            <CountUp value={clinical ? labsTotal : 0} className="clinic-dashboard-metric-value" />
             <p className="clinic-dashboard-metric-hint">{ar ? "نتائج مخبرية في السجل" : "Lab results in the record"}</p>
           </Link>
-          <div className="clinic-dashboard-metric">
+          <div className="clinic-dashboard-metric lift specular">
             <p className="clinic-dashboard-metric-label">{t("dash.fileCompleteness")}</p>
-            <AnimatedMetric value={avgCompleteness} suffix="%" className="clinic-dashboard-metric-value" />
+            <CountUp value={avgCompleteness} suffix="%" className="clinic-dashboard-metric-value" />
             <p className="clinic-dashboard-metric-hint">{ar ? `${incompleteFiles} ملف يحتاج استكمالًا` : `${incompleteFiles} records need completion`}</p>
           </div>
         </div>
@@ -390,7 +388,7 @@ export default async function DashboardPage() {
         <section className="clinic-dashboard-panel" data-glass="true">
           <div className="clinic-dashboard-section-label">
             <div>
-              <h2>{ar ? "Clinical Pulse" : "Clinical pulse"}</h2>
+              <h2>{t("dash.pulse")}</h2>
               <p>{ar ? "مؤشرات سريعة للجاهزية السريرية" : "Fast clinical readiness indicators"}</p>
             </div>
           </div>

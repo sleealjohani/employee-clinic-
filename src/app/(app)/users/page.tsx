@@ -19,7 +19,6 @@ export default async function UsersPage() {
     <>
       <PageHeader
         title={t("user.title")}
-        subtitle={t("role.ADMIN.desc")}
         badge={<Chip tone="neutral">{users.length}</Chip>}
         actions={<NewUserButton />}
       />
@@ -46,7 +45,7 @@ export default async function UsersPage() {
                 <th>{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="row-in">
               {users.map((user) => {
                 const isSelf = user.id === admin.id;
                 return (

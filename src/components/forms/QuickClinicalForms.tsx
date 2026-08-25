@@ -121,7 +121,7 @@ export function QuickVaccinationForm({
       ? def.intervalsMonths[doseNumber - 1]
       : def.boosterMonths;
     return interval ? addMonths(givenAt, interval) : "";
-  }, [code, def, dose, givenAt]);
+  }, [def, dose, givenAt]);
   const nextDue = dueTouched ? nextDueOverride : suggestedDue;
 
   return (
@@ -131,9 +131,8 @@ export function QuickVaccinationForm({
 
       <div className={styles.hero}>
         <div className={styles.heroText}>
-          <span className={styles.eyebrow}>QUICK IMMUNISATION</span>
+          <span className={styles.eyebrow}>{ar ? "تحصين سريع" : "Quick immunisation"}</span>
           <h3>{ar ? "تسجيل جرعة تطعيم" : "Record vaccine dose"}</h3>
-          <p>{ar ? "اختيار اللقاح والجرعة يجهّز تاريخ الاستحقاق التالي تلقائيًا مع إمكانية تعديله قبل الحفظ." : "Vaccine and dose selection prepare the next due date automatically, while keeping it editable."}</p>
         </div>
         <span className={styles.signal} data-tone={def?.occupational ? "warn" : "ok"}>
           {def?.occupational ? (ar ? "تحصين مهني" : "Occupational") : (ar ? "تحصين عام" : "General")}
@@ -220,9 +219,8 @@ export function QuickAllergyForm({ employeeId }: { employeeId: string }) {
 
       <div className={styles.hero}>
         <div className={styles.heroText}>
-          <span className={styles.eyebrow}>ALLERGY SAFETY</span>
+          <span className={styles.eyebrow}>{ar ? "سلامة الحساسية" : "Allergy safety"}</span>
           <h3>{ar ? "تسجيل حساسية" : "Record allergy"}</h3>
-          <p>{ar ? "الأولوية للمادة المسببة ودرجة الخطورة؛ الحساسية الشديدة ستظهر كتنبيه بارز في ملف الموظف." : "Prioritize the substance and severity; severe allergies surface prominently in the employee record."}</p>
         </div>
         <span className={styles.signal} data-tone={tone}>{t(`severity.${severity}`)}</span>
       </div>
@@ -286,9 +284,8 @@ export function QuickEducationForm({ employeeId }: { employeeId: string }) {
 
       <div className={styles.hero}>
         <div className={styles.heroText}>
-          <span className={styles.eyebrow}>HEALTH EDUCATION</span>
+          <span className={styles.eyebrow}>{ar ? "تثقيف صحي" : "Health education"}</span>
           <h3>{ar ? "توثيق تثقيف صحي" : "Document health education"}</h3>
-          <p>{ar ? "اختر موضوعًا شائعًا بضغطة واحدة أو اكتب موضوعًا مخصصًا، ثم وثّق وسيلة التثقيف." : "Pick a common topic in one tap or enter a custom topic, then record how education was delivered."}</p>
         </div>
         <span className={styles.signal} data-tone={topic ? "ok" : undefined}>{topic ? (ar ? "الموضوع محدد" : "Topic selected") : (ar ? "إدخال سريع" : "Quick entry")}</span>
       </div>
@@ -343,9 +340,8 @@ export function QuickNoteForm({ employeeId }: { employeeId: string }) {
 
       <div className={styles.hero}>
         <div className={styles.heroText}>
-          <span className={styles.eyebrow}>CLINICAL NOTE</span>
+          <span className={styles.eyebrow}>{ar ? "ملاحظة سريرية" : "Clinical note"}</span>
           <h3>{ar ? "إضافة ملاحظة سريرية" : "Add clinical note"}</h3>
-          <p>{ar ? "ملاحظة سريعة داخل الملف؛ استخدم التثبيت فقط للمعلومة التي يجب أن تبقى ظاهرة بأولوية." : "A concise note for the record; pin only information that should remain visibly prioritized."}</p>
         </div>
         <span className={styles.signal} data-tone={pinned ? "warn" : undefined}>{pinned ? t("note.pinned") : `${body.length}`}</span>
       </div>

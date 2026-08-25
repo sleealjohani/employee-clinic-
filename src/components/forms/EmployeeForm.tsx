@@ -88,13 +88,8 @@ export function EmployeeForm({
       <div className={styles.shell}>
         <div className={styles.header}>
           <div>
-            <span className={styles.eyebrow}>SMART EMPLOYEE FORM</span>
+            <span className={styles.eyebrow}>{ar ? "ملف موظف" : "Employee record"}</span>
             <h2>{isEdit ? (ar ? "تحديث ملف الموظف" : "Update employee record") : (ar ? "إنشاء ملف موظف" : "Create employee record")}</h2>
-            <p>
-              {ar
-                ? "نموذج مقسّم إلى مراحل واضحة حتى تبقى البيانات الإدارية والصحية مرتبة وسهلة المراجعة قبل الحفظ."
-                : "A focused multi-step form that keeps administrative and health data easy to review before saving."}
-            </p>
           </div>
           <span className={styles.dirty} data-dirty={dirty}>
             {dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "جاهز للتعبئة" : "Ready")}
@@ -137,7 +132,7 @@ export function EmployeeForm({
 
               <div className={styles.fields}>
                 <div className={styles.field4}>
-                  <Field label={t("emp.nationalId")} hint={t("emp.invalidId")} required>
+                  <Field label={t("emp.nationalId")} hint={t("emp.idFormat")} required>
                     <input className="input num" name="nationalId" dir="ltr" inputMode="numeric" maxLength={20} defaultValue={values.nationalId ?? ""} required />
                   </Field>
                 </div>

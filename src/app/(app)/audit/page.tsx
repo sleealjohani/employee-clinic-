@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
-import { Alert, Card, Chip, Empty, PageHeader } from "@/components/ui";
+import { Card, Chip, Empty, PageHeader } from "@/components/ui";
 
 export const metadata = { title: "سجل التدقيق" };
 export const dynamic = "force-dynamic";
@@ -72,13 +72,8 @@ export default async function AuditPage({
     <>
       <PageHeader
         title={t("audit.title")}
-        subtitle={t("audit.subtitle")}
         badge={<Chip tone="neutral">{total}</Chip>}
       />
-
-      <div className="mb-4">
-        <Alert tone="info">{t("audit.immutable")}</Alert>
-      </div>
 
       <Card className="mb-4">
         <form method="get" className="flex flex-wrap items-end gap-2.5">
@@ -107,7 +102,7 @@ export default async function AuditPage({
         </form>
       </Card>
 
-      <Card pad={false}>
+      <Card pad={false} className="specular">
         {entries.length === 0 ? (
           <Empty title={t("common.empty")} />
         ) : (
@@ -123,7 +118,7 @@ export default async function AuditPage({
                   <th>{t("audit.ip")}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="row-in">
                 {entries.map((entry) => (
                   <tr key={entry.id}>
                     <td className="num whitespace-nowrap">{formatDateTime(entry.at, t.locale)}</td>

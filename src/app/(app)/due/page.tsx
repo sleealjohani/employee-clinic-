@@ -41,7 +41,6 @@ export default async function DuePage({
     <>
       <PageHeader
         title={t("due.title")}
-        subtitle={t("due.subtitle")}
         badge={
           overdueCount > 0 ? (
             <Chip tone="danger" dot>
@@ -74,7 +73,7 @@ export default async function DuePage({
         })}
       </div>
 
-      <Card pad={false}>
+      <Card pad={false} className="specular">
         {items.length === 0 ? (
           <Empty title={t("due.empty")} />
         ) : (
@@ -91,7 +90,7 @@ export default async function DuePage({
                   <th>{t("due.daysLate")}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="row-in">
                 {items.map((item) => (
                   <tr key={item.id}>
                     <td>

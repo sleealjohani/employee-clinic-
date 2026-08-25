@@ -421,11 +421,15 @@
 }
 
 @media (min-width: 1440px) {
+  /* The rails are fixed to the viewport, so the column has to reserve their
+     full reach — offset plus width plus a gap — not just their width. The old
+     13.35rem was less than the 6.8rem offset + 12.1rem rail, which is why the
+     navigator painted over the identity cards on every 1440-1759px laptop. */
   :global(.app-page):has(.anchors) {
     position: relative;
-    padding-inline-start: 13.35rem;
-    padding-inline-end: 18.25rem;
-    transition: padding var(--motion-slow) var(--ease-out);
+    padding-inline-start: 20.2rem;
+    padding-inline-end: 19.4rem;
+    transition: padding var(--dur-4) var(--ease-entrance);
   }
 
   .anchors {
@@ -489,15 +493,12 @@
   }
 }
 
-@media (min-width: 1760px) {
-  .navigator {
-    inset-inline-start: calc((100vw - 96rem) / 2 + 6.85rem);
-  }
-
-  .snapshot {
-    inset-inline-end: calc((100vw - 96rem) / 2 + 1rem);
-  }
-}
+/* The record page is full-bleed — it pads in from the viewport rather than
+   centring a 96rem column — so the fixed rails track the viewport at every
+   width. Re-anchoring them to a centred column above 1760px, as an earlier
+   version did, drifted the navigator further over the cards the wider the
+   screen got, and reserving the gutter twice to compensate squeezed the
+   record into the middle third of a large display. */
 
 @media (max-width: 639px) {
   .navigator {

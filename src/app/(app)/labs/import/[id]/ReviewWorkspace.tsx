@@ -2,10 +2,24 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useT } from "@/lib/i18n/client";
-import { Alert, Card, Empty, SectionTitle } from "@/components/ui";
+import { Alert, Card, Chip, Empty, SectionTitle } from "@/components/ui";
 import { CommitBatch, ReviewItem, type PickEmployee, type ReviewItemData } from "./ReviewItem";
+
+const MATCH_TONE = { MATCHED: "ok", SUGGESTED: "warn", UNMATCHED: "danger" } as const;
+
+type Filter = "all" | "attention" | "pending" | "decided";
+
+/** "Attention" is anything a reviewer cannot approve on sight: an identity the
+ *  system could not confirm, a carried-over identity, or a shaky extraction. */
+const MATCHES: Record<Filter, (item: ReviewItemData) => boolean> = {
+  all: () => true,
+  attention: (item) =>
+    item.matchStatus !== "MATCHED" || item.warnings.length > 0 || (item.confidence ?? 1) < 0.75,
+  pending: (item) => item.review === "PENDING",
+  decided: (item) => item.review !== "PENDING",
+};
 
 /**
  * Split review: the original document on one side, the extracted candidates on
@@ -35,8 +49,24 @@ export function ReviewWorkspace({
 }) {
   const t = useT();
   const [page, setPage] = useState(items[0]?.page ?? 1);
+  const [filter, setFilter] = useState<Filter>("all");
   const isPdf = mimeType === "application/pdf";
   const src = `/api/attachments/${attachmentId}${isPdf ? `#page=${page}&view=FitH` : ""}`;
+
+  // A mass report is a stack of per-employee pages, so the review reads as a
+  // stack of pages too — not as one long undifferentiated list of results.
+  const groups = useMemo(() => {
+    const visible = items.filter((item) => MATCHES[filter](item));
+    const byPage = new Map<number, ReviewItemData[]>();
+    for (const item of visible) {
+      const list = byPage.get(item.page) ?? [];
+      list.push(item);
+      byPage.set(item.page, list);
+    }
+    return [...byPage.entries()].sort((a, b) => a[0] - b[0]);
+  }, [items, filter]);
+
+  const attention = items.filter(MATCHES.attention).length;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -109,16 +139,58 @@ export function ReviewWorkspace({
           <Alert tone="warn">{t("imp.reviewHint")}</Alert>
         </div>
 
-        {items.length === 0 ? (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {(["all", "attention", "pending", "decided"] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`btn btn-sm ${filter === key ? "btn-primary" : "btn-ghost"}`}
+            >
+              {t(`imp.filter.${key}`)}
+              {key === "attention" && attention > 0 && <span className="num"> · {attention}</span>}
+            </button>
+          ))}
+        </div>
+
+        {groups.length === 0 ? (
           <Card>
             <Empty title={t("imp.noItems")} />
           </Card>
         ) : (
-          <ul className="space-y-3">
-            {items.map((item) => (
-              <ReviewItem key={item.id} item={item} employees={employees} onFocusPage={setPage} />
-            ))}
-          </ul>
+          <div className="space-y-4">
+            {groups.map(([pageNo, pageItems]) => {
+              const head = pageItems[0];
+              return (
+                <section key={pageNo}>
+                  <button
+                    type="button"
+                    onClick={() => setPage(pageNo)}
+                    className="page-group-head lift"
+                    data-active={page === pageNo || undefined}
+                  >
+                    <span className="page-group-no num">{pageNo}</span>
+                    <span className="page-group-body">
+                      <strong dir="auto">{head.extractedName ?? t("common.notRecorded")}</strong>
+                      <small className="num" dir="ltr">
+                        {head.extractedNationalId ?? "—"}
+                      </small>
+                    </span>
+                    <Chip tone={MATCH_TONE[head.matchStatus]}>{t(`imp.match.${head.matchStatus}`)}</Chip>
+                    <span className="num text-xs" style={{ color: "var(--text-faint)" }}>
+                      {pageItems.length}
+                    </span>
+                  </button>
+
+                  <ul className="mt-2 space-y-3">
+                    {pageItems.map((item) => (
+                      <ReviewItem key={item.id} item={item} employees={employees} onFocusPage={setPage} />
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
