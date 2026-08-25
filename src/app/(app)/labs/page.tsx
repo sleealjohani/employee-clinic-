@@ -8,7 +8,7 @@ import { TESTS } from "@/lib/catalog/tests";
 import { Card, Chip, Empty, LinkButton, PageHeader } from "@/components/ui";
 import { DownloadLink } from "@/components/ui/DownloadLink";
 import { Modal } from "@/components/ui/Modal";
-import { LabForm } from "@/components/forms/RecordForms";
+import { SmartLabForm } from "@/components/forms/SmartClinicalForms";
 import { LabResultRow } from "@/components/employee/LabResultRow";
 import { IconImport, IconPlus } from "@/components/layout/icons";
 
@@ -91,7 +91,7 @@ export default async function LabsPage({
                   </button>
                 }
               >
-                <LabForm employees={employees} />
+                <SmartLabForm employees={employees} />
               </Modal>
             )}
           </>
@@ -116,44 +116,30 @@ export default async function LabsPage({
       <Card className="mb-4">
         <form method="get" className="flex flex-wrap items-end gap-2.5">
           <div className="w-56">
-            <label className="label" htmlFor="test">
-              {t("lab.test")}
-            </label>
+            <label className="label" htmlFor="test">{t("lab.test")}</label>
             <select id="test" className="select" name="test" defaultValue={test}>
               <option value="">{t("common.all")}</option>
               {TESTS.map((d) => (
-                <option key={d.code} value={d.code}>
-                  {t.locale === "ar" ? d.nameAr : d.nameEn}
-                </option>
+                <option key={d.code} value={d.code}>{t.locale === "ar" ? d.nameAr : d.nameEn}</option>
               ))}
             </select>
           </div>
           <div className="w-44">
-            <label className="label" htmlFor="flag">
-              {t("lab.flag")}
-            </label>
+            <label className="label" htmlFor="flag">{t("lab.flag")}</label>
             <select id="flag" className="select" name="flag" defaultValue={flag}>
               <option value="">{t("common.all")}</option>
-              {FLAGS.map((f) => (
-                <option key={f} value={f}>
-                  {t(`flag.${f}`)}
-                </option>
-              ))}
+              {FLAGS.map((f) => <option key={f} value={f}>{t(`flag.${f}`)}</option>)}
             </select>
           </div>
           <div className="w-44">
-            <label className="label" htmlFor="queue">
-              {t("dash.needsAction")}
-            </label>
+            <label className="label" htmlFor="queue">{t("dash.needsAction")}</label>
             <select id="queue" className="select" name="queue" defaultValue={queue}>
               <option value="">{t("common.all")}</option>
               <option value="review">{t("dash.needsReview")}</option>
               <option value="critical">{t("dash.criticalOpen")}</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-ghost">
-            {t("action.filter")}
-          </button>
+          <button type="submit" className="btn btn-ghost">{t("action.filter")}</button>
         </form>
       </Card>
 
