@@ -1,0 +1,134 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 10%, rgb(20 112 132 / .16), transparent 34%),
+    rgb(4 15 22 / .64);
+  backdrop-filter: blur(7px);
+  animation: modal-backdrop-in 180ms ease-out both;
+}
+
+.dialog {
+  position: relative;
+  width: 100%;
+  margin-block: 1.5rem;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--surface-glass-strong) 94%, transparent);
+  box-shadow: 0 30px 90px rgb(0 0 0 / .24);
+  backdrop-filter: blur(26px) saturate(155%);
+  animation: modal-dialog-in 220ms var(--ease-out) both;
+}
+
+.dialog::before {
+  content: "";
+  position: absolute;
+  width: 17rem;
+  height: 17rem;
+  inset-block-start: -12rem;
+  inset-inline-end: -5rem;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%);
+}
+
+.normal { max-width: 34rem; }
+.wide { max-width: 64rem; }
+
+.head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .95rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: .16rem;
+  font-size: .56rem;
+  font-weight: 850;
+  letter-spacing: .09em;
+  color: var(--accent-text);
+}
+
+.head h2 {
+  font-size: .9rem;
+  font-weight: 850;
+  color: var(--text);
+}
+
+.head p {
+  max-width: 40rem;
+  margin-top: .18rem;
+  font-size: .65rem;
+  line-height: 1.55;
+  color: var(--text-faint);
+}
+
+.body {
+  position: relative;
+  z-index: 1;
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.body :global(fieldset) {
+  border-color: var(--border) !important;
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+}
+
+.body :global(.input),
+.body :global(.select),
+.body :global(.textarea) {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast) var(--ease-out);
+}
+
+.body :global(.input:focus),
+.body :global(.select:focus),
+.body :global(.textarea:focus) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-dialog-in {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 640px) {
+  .layer { padding: .5rem; align-items: flex-end; }
+  .dialog {
+    margin-block: .5rem;
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+    border-radius: 1.35rem;
+  }
+  .head { position: sticky; top: 0; z-index: 3; backdrop-filter: blur(18px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .dialog { animation: none !important; }
+}
