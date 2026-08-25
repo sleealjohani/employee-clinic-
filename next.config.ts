@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  serverExternalPackages: ["exceljs"],
+  serverExternalPackages: ["exceljs", "pdfjs-dist"],
   experimental: { serverActions: { bodySizeLimit: "12mb" } },
   async headers() {
     return [
