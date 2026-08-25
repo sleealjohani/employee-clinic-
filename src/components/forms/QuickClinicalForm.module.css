@@ -1,0 +1,352 @@
+.quick {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.08rem;
+  background:
+    radial-gradient(circle at 10% 12%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 38%),
+    color-mix(in srgb, var(--surface-glass) 90%, transparent);
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.08);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto -3.5rem -4.5rem auto;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.heroText {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--accent-text);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.hero h3 {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.hero p {
+  margin: 0.22rem 0 0;
+  max-width: 37rem;
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  line-height: 1.7;
+}
+
+.signal {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  padding: 0.32rem 0.62rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--text-faint);
+  font-size: 0.59rem;
+  font-weight: 900;
+}
+
+.signal[data-tone="warn"] {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 28%, var(--glass-border));
+  background: color-mix(in srgb, var(--warn) 7%, var(--surface));
+}
+
+.signal[data-tone="danger"] {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--glass-border));
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+
+.signal[data-tone="ok"] {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 28%, var(--glass-border));
+  background: color-mix(in srgb, var(--ok) 7%, var(--surface));
+}
+
+.surface {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.08rem;
+  background: color-mix(in srgb, var(--surface) 91%, transparent);
+  animation: quick-in 230ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sectionHead h4 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.sectionHead p {
+  margin: 0.18rem 0 0;
+  color: var(--text-faint);
+  font-size: 0.63rem;
+  line-height: 1.6;
+}
+
+.grid2,
+.grid3 {
+  display: grid;
+  gap: 0.68rem;
+}
+
+.grid2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.infoCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.64rem 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--accent-soft) 34%, var(--surface));
+}
+
+.infoCard span,
+.infoCard strong {
+  min-width: 0;
+}
+
+.infoCard span {
+  color: var(--text-faint);
+  font-size: 0.59rem;
+  font-weight: 800;
+}
+
+.infoCard strong {
+  overflow: hidden;
+  color: var(--accent-text);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riskCard {
+  padding: 0.68rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+}
+
+.riskCard[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+  background: color-mix(in srgb, var(--danger-soft) 65%, var(--surface));
+}
+
+.riskCard[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 26%, var(--border));
+  background: color-mix(in srgb, var(--warn) 7%, var(--surface));
+}
+
+.riskCard span,
+.riskCard strong {
+  display: block;
+}
+
+.riskCard span {
+  color: var(--text-faint);
+  font-size: 0.57rem;
+  font-weight: 800;
+}
+
+.riskCard strong {
+  margin-top: 0.15rem;
+  font-size: 0.76rem;
+}
+
+.quickChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.quickChoice {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.36rem 0.62rem;
+  background: color-mix(in srgb, var(--surface-2) 74%, transparent);
+  color: var(--text-muted);
+  font-size: 0.61rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.quickChoice:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  color: var(--accent-text);
+}
+
+.quickChoice[data-active="true"] {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 64%, var(--surface));
+}
+
+.pin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--surface-2) 76%, transparent);
+}
+
+.pinText b,
+.pinText small {
+  display: block;
+}
+
+.pinText b {
+  font-size: 0.7rem;
+}
+
+.pinText small {
+  margin-top: 0.12rem;
+  color: var(--text-faint);
+  font-size: 0.58rem;
+}
+
+.switch {
+  position: relative;
+  width: 2.45rem;
+  height: 1.38rem;
+  flex: 0 0 auto;
+}
+
+.switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.switch span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.switch span::after {
+  content: "";
+  position: absolute;
+  top: 0.18rem;
+  inset-inline-start: 0.2rem;
+  width: 0.88rem;
+  height: 0.88rem;
+  border-radius: 999px;
+  background: var(--text-faint);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.switch input:checked + span {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 75%, var(--surface));
+}
+
+.switch input:checked + span::after {
+  background: var(--accent);
+  transform: translateX(calc(var(--dir-mult, 1) * 1rem));
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  padding-top: 0.1rem;
+}
+
+.error {
+  margin: 0;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--border));
+  border-radius: 0.82rem;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+@keyframes quick-in {
+  from { opacity: 0; transform: translateY(5px) scale(0.997); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .grid2,
+  .grid3 {
+    grid-template-columns: 1fr;
+  }
+
+  .surface {
+    padding: 0.78rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface { animation: none; }
+  .quickChoice, .switch span, .switch span::after { transition: none; }
+}
