@@ -9,7 +9,7 @@ import { vitalOutOfRange } from "@/lib/clinical/rules";
 import { Card, Chip, Empty, PageHeader } from "@/components/ui";
 import { DownloadLink } from "@/components/ui/DownloadLink";
 import { Modal } from "@/components/ui/Modal";
-import { VisitForm } from "@/components/forms/RecordForms";
+import { SmartVisitForm } from "@/components/forms/SmartClinicalForms";
 import { IconPlus } from "@/components/layout/icons";
 
 export const metadata = { title: "الزيارات" };
@@ -71,7 +71,7 @@ export default async function VisitsPage({
                   </button>
                 }
               >
-                <VisitForm employees={employees} />
+                <SmartVisitForm employees={employees} />
               </Modal>
             )}
           </>
@@ -81,43 +81,23 @@ export default async function VisitsPage({
       <Card className="mb-4">
         <form method="get" className="flex flex-wrap items-end gap-2.5">
           <div>
-            <label className="label" htmlFor="from">
-              {t("rep.from")}
-            </label>
+            <label className="label" htmlFor="from">{t("rep.from")}</label>
             <input id="from" className="input" type="date" name="from" defaultValue={toDateInput(from)} />
           </div>
           <div>
-            <label className="label" htmlFor="to">
-              {t("rep.to")}
-            </label>
+            <label className="label" htmlFor="to">{t("rep.to")}</label>
             <input id="to" className="input" type="date" name="to" defaultValue={toDateInput(to)} />
           </div>
           <div className="w-44">
-            <label className="label" htmlFor="type">
-              {t("visit.type")}
-            </label>
+            <label className="label" htmlFor="type">{t("visit.type")}</label>
             <select id="type" className="select" name="type" defaultValue={type}>
               <option value="">{t("common.all")}</option>
-              {[
-                "ACUTE_CARE",
-                "FOLLOW_UP",
-                "PRE_EMPLOYMENT",
-                "PERIODIC",
-                "INJURY",
-                "EXPOSURE",
-                "VACCINATION",
-                "CONSULTATION",
-                "OTHER",
-              ].map((v) => (
-                <option key={v} value={v}>
-                  {t(`visitType.${v}`)}
-                </option>
+              {["ACUTE_CARE", "FOLLOW_UP", "PRE_EMPLOYMENT", "PERIODIC", "INJURY", "EXPOSURE", "VACCINATION", "CONSULTATION", "OTHER"].map((v) => (
+                <option key={v} value={v}>{t(`visitType.${v}`)}</option>
               ))}
             </select>
           </div>
-          <button type="submit" className="btn btn-ghost">
-            {t("action.filter")}
-          </button>
+          <button type="submit" className="btn btn-ghost">{t("action.filter")}</button>
         </form>
       </Card>
 
@@ -149,27 +129,15 @@ export default async function VisitsPage({
                     <tr key={v.id}>
                       <td className="num">{formatDate(v.visitDate, t.locale)}</td>
                       <td>
-                        <Link
-                          href={`/employees/${v.employee.id}?tab=visits`}
-                          className="font-semibold"
-                          style={{ color: "var(--accent-text)" }}
-                        >
+                        <Link href={`/employees/${v.employee.id}?tab=visits`} className="font-semibold" style={{ color: "var(--accent-text)" }}>
                           {v.employee.name}
                         </Link>
                       </td>
                       <td>{v.employee.department ?? "—"}</td>
-                      <td>
-                        <Chip tone="accent">{t(`visitType.${v.type}`)}</Chip>
-                      </td>
+                      <td><Chip tone="accent">{t(`visitType.${v.type}`)}</Chip></td>
                       <td>{v.chiefComplaint ?? "—"}</td>
                       <td>{v.diagnosis ?? "—"}</td>
-                      <td>
-                        {abnormal ? (
-                          <Chip tone="warn">{t("visit.abnormalVitals")}</Chip>
-                        ) : (
-                          <span style={{ color: "var(--text-faint)" }}>—</span>
-                        )}
-                      </td>
+                      <td>{abnormal ? <Chip tone="warn">{t("visit.abnormalVitals")}</Chip> : <span style={{ color: "var(--text-faint)" }}>—</span>}</td>
                     </tr>
                   );
                 })}
