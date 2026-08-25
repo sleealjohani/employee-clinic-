@@ -42,6 +42,11 @@ export type ExtractedResult = {
   page: number;
   quote: string;
   confidence: number;
+  /**
+   * True when this result sits on a continuation page that carried no header of
+   * its own and inherited the previous page's patient. Never auto-linked.
+   */
+  carried_identity?: boolean;
 };
 
 export type ExtractedReport = {

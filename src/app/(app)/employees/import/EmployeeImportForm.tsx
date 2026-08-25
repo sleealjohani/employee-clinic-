@@ -3,16 +3,26 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
-import { Chip, Field } from "@/components/ui";
+import { Alert, Chip, Field } from "@/components/ui";
 import { importEmployeesAction, type EmployeeImportState } from "@/server/actions/employee-import";
 
-function Submit() {
+/**
+ * Preview and import are two named buttons, not a checkbox. The previous version
+ * defaulted to a checked "review" box and then reported rows as CREATED/UPDATED,
+ * so a run that wrote nothing looked exactly like a successful import.
+ */
+function Actions() {
   const t = useT();
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn btn-primary" disabled={pending}>
-      {pending ? t("action.saving") : t("action.upload")}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="submit" name="mode" value="preview" className="btn btn-ghost" disabled={pending}>
+        {pending ? t("action.saving") : t("empimp.preview")}
+      </button>
+      <button type="submit" name="mode" value="commit" className="btn btn-primary" disabled={pending}>
+        {pending ? t("action.saving") : t("empimp.commit")}
+      </button>
+    </div>
   );
 }
 
@@ -22,44 +32,65 @@ export function EmployeeImportForm() {
   const t = useT();
   const [state, formAction] = useActionState<EmployeeImportState, FormData>(importEmployeesAction, {});
 
+  const outcomeLabel = (outcome: keyof typeof OUTCOME_TONE) =>
+    state.dryRun ? t(`empimp.will.${outcome}`) : t(`empimp.did.${outcome}`);
+
   return (
     <>
       <form action={formAction} className="flex flex-wrap items-end gap-3">
         <div className="min-w-[16rem] flex-1">
-          <Field label={t("imp.file")} required>
+          <Field label={t("imp.file")} hint={t("empimp.fileHint")} required>
             <input className="input" type="file" name="file" accept=".xlsx,.xls,.csv" required />
           </Field>
         </div>
-        <label className="flex items-center gap-1.5 pb-2 text-xs font-semibold">
-          <input type="checkbox" name="dryRun" defaultChecked />
-          {t("imp.review")}
-        </label>
-        <Submit />
+        <Actions />
       </form>
 
       {state.error && (
-        <p
-          className="mt-3 rounded-lg px-3 py-2 text-xs font-semibold"
-          style={{ background: "var(--danger-soft)", color: "var(--danger)" }}
-          role="alert"
-        >
-          {t(state.error)}
-        </p>
+        <div className="mt-4">
+          <Alert tone="danger" title={t(state.error)}>
+            {t(`${state.error}.hint`)}
+            {state.errorDetail && (
+              <span className="mt-1 block font-semibold" dir="auto">
+                {state.errorDetail}
+              </span>
+            )}
+          </Alert>
+        </div>
       )}
 
       {state.summary && (
         <div className="mt-4">
-          <div className="mb-3 flex flex-wrap gap-2">
-            {state.dryRun && <Chip tone="warn">{t("imp.review")}</Chip>}
+          <div className="mb-3">
+            {state.dryRun ? (
+              <Alert tone="warn" title={t("empimp.previewTitle")}>
+                {t("empimp.previewBody")}
+              </Alert>
+            ) : (
+              <Alert tone="ok" title={t("empimp.savedTitle")}>
+                {t("empimp.savedBody", {
+                  created: state.summary.created,
+                  updated: state.summary.updated,
+                })}
+              </Alert>
+            )}
+          </div>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <Chip tone="ok">
-              {t("action.add")}: {state.summary.created}
+              {outcomeLabel("CREATED")}: {state.summary.created}
             </Chip>
             <Chip tone="accent">
-              {t("action.edit")}: {state.summary.updated}
+              {outcomeLabel("UPDATED")}: {state.summary.updated}
             </Chip>
             <Chip tone="warn">
-              {t("imp.rejectedCount")}: {state.summary.skipped}
+              {outcomeLabel("SKIPPED")}: {state.summary.skipped}
             </Chip>
+            {state.headerRow !== undefined && state.headerRow > 1 && (
+              <Chip tone="neutral">
+                {t("empimp.headerRow")}: {state.headerRow}
+              </Chip>
+            )}
           </div>
 
           {state.rows && state.rows.length > 0 && (
@@ -67,7 +98,7 @@ export function EmployeeImportForm() {
               <table className="data">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th>{t("empimp.sheetRow")}</th>
                     <th>{t("emp.nationalId")}</th>
                     <th>{t("emp.name")}</th>
                     <th>{t("common.status")}</th>
@@ -83,7 +114,7 @@ export function EmployeeImportForm() {
                       </td>
                       <td>{row.name}</td>
                       <td>
-                        <Chip tone={OUTCOME_TONE[row.outcome]}>{row.outcome}</Chip>
+                        <Chip tone={OUTCOME_TONE[row.outcome]}>{outcomeLabel(row.outcome)}</Chip>
                       </td>
                       <td>{row.reason ? t(row.reason) : "—"}</td>
                     </tr>

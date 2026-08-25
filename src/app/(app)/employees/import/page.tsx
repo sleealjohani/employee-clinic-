@@ -20,10 +20,10 @@ export default async function EmployeeImportPage() {
       />
 
       <div className="mb-4">
-        <Alert tone="info" title={t("imp.uploadHint")}>
+        <Alert tone="info" title={t("empimp.fileHint")}>
           {t.locale === "ar"
-            ? "يقبل ملف Excel أو CSV. يجب أن يحتوي الصف الأول على عناوين الأعمدة، وأن يوجد عمودان على الأقل: رقم الهوية والاسم. باقي الأعمدة اختيارية وتُتعرَّف تلقائياً بالعربية أو الإنجليزية."
-            : "Accepts Excel or CSV. The first row must be headers, and at least a national ID column and a name column must be present. Other columns are optional and matched automatically in Arabic or English."}
+            ? "يقبل ملف Excel أو CSV. يكفي وجود عمودين: رقم الهوية والاسم — وتُقرأ العناوين تلقائياً من أي صف ضمن أول ١٥ صفاً، فلا تحتاج لحذف صفوف العنوان أعلى الجدول. باقي الأعمدة اختيارية وتُتعرَّف بالعربية أو الإنجليزية."
+            : "Accepts Excel or CSV. Two columns are enough — national ID and name. Headers are detected automatically in any of the first 15 rows, so title rows above the table are fine. Other columns are optional and matched in Arabic or English."}
         </Alert>
       </div>
 
