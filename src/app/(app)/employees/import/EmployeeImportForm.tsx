@@ -54,6 +54,18 @@ export function EmployeeImportForm() {
         <div className="mt-4">
           <Alert tone="danger" title={t(state.error)}>
             {t.has(`${state.error}.hint`) && t(`${state.error}.hint`)}
+            {state.missingColumns && state.missingColumns.length > 0 && (
+              <span className="mt-2 block">
+                {t("empimp.missingColumns")}{" "}
+                <b dir="auto">{state.missingColumns.map((c) => t(`empimp.col.${c}`)).join("، ")}</b>
+              </span>
+            )}
+            {state.foundColumns && state.foundColumns.length > 0 && (
+              <span className="mt-1 block" style={{ color: "var(--text-muted)" }}>
+                {t("empimp.foundColumns")}{" "}
+                <span dir="auto">{state.foundColumns.join(" · ")}</span>
+              </span>
+            )}
             {state.errorDetail && (
               <span className="mt-1 block font-semibold" dir="auto">
                 {state.errorDetail}
@@ -120,7 +132,21 @@ export function EmployeeImportForm() {
                       <td>
                         <Chip tone={OUTCOME_TONE[row.outcome]}>{outcomeLabel(row.outcome)}</Chip>
                       </td>
-                      <td>{row.reason ? t(row.reason) : "—"}</td>
+                      <td>
+                        {row.reason ? (
+                          t(row.reason)
+                        ) : row.notes ? (
+                          <span className="flex flex-wrap gap-1">
+                            {row.notes.map((note) => (
+                              <Chip key={note} tone="warn">
+                                {t(note)}
+                              </Chip>
+                            ))}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
