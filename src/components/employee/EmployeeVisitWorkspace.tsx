@@ -6,7 +6,8 @@ import { bmi, formatDate } from "@/lib/format";
 import { vitalOutOfRange } from "@/lib/clinical/rules";
 import { Chip, Empty, KeyValue } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
-import { VisitForm, VoidRecordForm } from "@/components/forms/RecordForms";
+import { VoidRecordForm } from "@/components/forms/RecordForms";
+import { SmartVisitForm } from "@/components/forms/SmartClinicalForms";
 import { IconPlus } from "@/components/layout/icons";
 import { ClinicalMasterDetail, type MasterDetailItem } from "./ClinicalMasterDetail";
 
@@ -64,7 +65,7 @@ export async function EmployeeVisitWorkspace({ employeeId }: { employeeId: strin
               </button>
             }
           >
-            <VisitForm employeeId={employeeId} />
+            <SmartVisitForm employeeId={employeeId} />
           </Modal>
         )}
       </div>
