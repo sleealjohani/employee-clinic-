@@ -11,6 +11,7 @@ import {
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { IconX } from "@/components/layout/icons";
+import styles from "./Modal.module.css";
 
 const ModalContext = createContext<{ close: () => void }>({ close: () => {} });
 
@@ -36,8 +37,8 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -53,35 +54,26 @@ export function Modal({
         {trigger}
       </span>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 no-print">
-          <div
-            className="fixed inset-0"
-            style={{ background: "rgb(6 18 25 / 0.55)" }}
-            onClick={close}
-            aria-hidden
-          />
+        <div className={styles.layer}>
+          <div className={styles.backdrop} onClick={close} aria-hidden />
           <div
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className={`card relative my-6 w-full ${wide ? "max-w-4xl" : "max-w-lg"}`}
-            style={{ boxShadow: "var(--shadow-md)" }}
+            className={`${styles.dialog} ${wide ? styles.wide : styles.normal}`}
           >
-            <div className="flex items-start justify-between gap-3 border-b px-5 py-3.5">
+            <div className={styles.head}>
               <div>
-                <h2 className="text-sm font-bold">{title}</h2>
-                {description && (
-                  <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-                    {description}
-                  </p>
-                )}
+                <span className={styles.eyebrow}>CLINICAL ACTION</span>
+                <h2>{title}</h2>
+                {description && <p>{description}</p>}
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={close} aria-label="Close">
+              <button className="btn btn-ghost btn-sm" type="button" onClick={close} aria-label="Close">
                 <IconX />
               </button>
             </div>
             <ModalContext.Provider value={{ close }}>
-              <div className="px-5 py-4">{children}</div>
+              <div className={styles.body}>{children}</div>
             </ModalContext.Provider>
           </div>
         </div>
@@ -126,8 +118,8 @@ export function FormError({ error }: { error?: string }) {
   if (!error) return null;
   return (
     <p
-      className="mt-3 rounded-lg px-3 py-2 text-xs font-semibold"
-      style={{ background: "var(--danger-soft)", color: "var(--danger)" }}
+      className="mt-3 rounded-xl border px-3 py-2 text-xs font-semibold"
+      style={{ background: "var(--danger-soft)", borderColor: "color-mix(in srgb, var(--danger) 22%, var(--border))", color: "var(--danger)" }}
       role="alert"
     >
       {t(error)}

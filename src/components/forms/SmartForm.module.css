@@ -1,0 +1,285 @@
+.shell {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.55rem;
+  background: color-mix(in srgb, var(--surface-glass) 90%, transparent);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  width: 20rem;
+  height: 20rem;
+  inset-block-start: -13rem;
+  inset-inline-end: -8rem;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent), transparent 68%);
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+  font-size: .61rem;
+  font-weight: 850;
+  letter-spacing: .09em;
+  color: var(--accent-text);
+}
+
+.header h2 {
+  margin-top: .2rem;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.header p {
+  max-width: 42rem;
+  margin-top: .2rem;
+  font-size: .7rem;
+  line-height: 1.65;
+  color: var(--text-faint);
+}
+
+.dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: .38rem .62rem;
+  font-size: .62rem;
+  font-weight: 750;
+  color: var(--text-faint);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+}
+
+.dirty::before {
+  content: "";
+  width: .42rem;
+  height: .42rem;
+  border-radius: 999px;
+  background: var(--ok);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.dirty[data-dirty="true"]::before {
+  background: var(--warn);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--warn) 11%, transparent);
+}
+
+.stepper {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .45rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 48%, transparent);
+}
+
+.step {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .55rem;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  padding: .55rem .65rem;
+  text-align: start;
+  color: var(--text-faint);
+  transition: transform var(--motion-fast) var(--ease-out), background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.step:hover {
+  transform: translateY(-1px);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+}
+
+.step[data-active="true"] {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface));
+}
+
+.stepIndex {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: .7rem;
+  font-size: .65rem;
+  font-weight: 900;
+  background: var(--surface-3);
+}
+
+.step[data-active="true"] .stepIndex {
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.stepText {
+  min-width: 0;
+}
+
+.stepText b,
+.stepText small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stepText b {
+  font-size: .7rem;
+}
+
+.stepText small {
+  margin-top: .06rem;
+  font-size: .57rem;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+.body {
+  position: relative;
+  z-index: 1;
+  padding: 1rem;
+}
+
+.panel {
+  animation: smart-panel-in 230ms var(--ease-out) both;
+}
+
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .9rem;
+}
+
+.panelHead h3 {
+  font-size: .9rem;
+  font-weight: 850;
+  color: var(--text);
+}
+
+.panelHead p {
+  margin-top: .15rem;
+  font-size: .64rem;
+  color: var(--text-faint);
+}
+
+.fields {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.field4 { grid-column: span 4; }
+.field6 { grid-column: span 6; }
+.field12 { grid-column: span 12; }
+
+.footer {
+  position: sticky;
+  z-index: 2;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .8rem 1rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-glass-strong) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.progress {
+  min-width: 8rem;
+  flex: 1;
+  max-width: 16rem;
+}
+
+.progressTop {
+  display: flex;
+  justify-content: space-between;
+  gap: .6rem;
+  margin-bottom: .3rem;
+  font-size: .58rem;
+  color: var(--text-faint);
+}
+
+.track {
+  height: .28rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width var(--motion-base) var(--ease-out);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.error {
+  margin: .75rem 1rem 0;
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, var(--border));
+  border-radius: .9rem;
+  padding: .65rem .75rem;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+@keyframes smart-panel-in {
+  from { opacity: 0; transform: translateY(7px) scale(.997); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 760px) {
+  .stepper {
+    grid-template-columns: 1fr;
+  }
+  .step:not([data-active="true"]) .stepText small { display: none; }
+  .field4, .field6 { grid-column: span 12; }
+  .footer { align-items: flex-end; }
+  .progress { min-width: 5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step,
+  .panel,
+  .track span {
+    animation: none !important;
+    transition: none !important;
+  }
+}

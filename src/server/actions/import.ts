@@ -15,9 +15,15 @@ import {
   MAX_UPLOAD_BYTES,
   PROMPT_VERSION,
   extractLabReport,
-  importEnabled,
+  importAvailability,
   type ExtractedResult,
+  type ExtractionOutput,
 } from "@/lib/ai/extract";
+import {
+  LOCAL_EXTRACTION_MODEL,
+  LOCAL_PROMPT_VERSION,
+  extractLocalPdfReport,
+} from "@/lib/import/local-pdf";
 import type { ActionState } from "./employees";
 
 const ACCEPTED = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -60,15 +66,18 @@ export async function uploadAndExtractAction(
   formData: FormData,
 ): Promise<UploadState> {
   const user = await requirePermission("import.run");
-  if (!importEnabled()) return { error: "imp.disabled" };
+  const aiAvailability = importAvailability();
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { error: "common.required" };
   if (file.size > MAX_UPLOAD_BYTES) return { error: "imp.uploadHint" };
   if (!ACCEPTED.includes(file.type)) return { error: "imp.uploadHint" };
+  // Images need the optional external fallback; digital PDFs work fully locally.
+  if (file.type !== "application/pdf" && !aiAvailability.enabled) return { error: "imp.uploadHint" };
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const startsLocal = file.type === "application/pdf";
 
   const attachment = await db.attachment.create({
     data: {
@@ -86,8 +95,8 @@ export async function uploadAndExtractAction(
       attachmentId: attachment.id,
       filename: file.name,
       status: "EXTRACTING",
-      model: EXTRACTION_MODEL,
-      promptVersion: PROMPT_VERSION,
+      model: startsLocal ? LOCAL_EXTRACTION_MODEL : EXTRACTION_MODEL,
+      promptVersion: startsLocal ? LOCAL_PROMPT_VERSION : PROMPT_VERSION,
       uploadedById: user.id,
     },
   });
@@ -98,11 +107,48 @@ export async function uploadAndExtractAction(
     entity: "LabImportBatch",
     entityId: batch.id,
     summary: `رفع تقرير مختبر للاستخراج: ${file.name}`,
-    meta: { sha256, size: bytes.byteLength, mimeType: file.type },
+    meta: {
+      sha256,
+      size: bytes.byteLength,
+      mimeType: file.type,
+      preferredExtractor: startsLocal ? LOCAL_EXTRACTION_MODEL : EXTRACTION_MODEL,
+    },
   });
 
   try {
-    const output = await extractLabReport(bytes, file.type);
+    let output: ExtractionOutput;
+    let promptVersion = PROMPT_VERSION;
+    let extractionMode: "LOCAL" | "AI" = "AI";
+
+    if (file.type === "application/pdf") {
+      let localOutput: ExtractionOutput | null = null;
+      try {
+        localOutput = await extractLocalPdfReport(bytes);
+      } catch (localError) {
+        // A malformed/encrypted PDF may not expose a text layer. Only fall back
+        // externally when that fallback was explicitly configured.
+        if (!aiAvailability.enabled) throw localError;
+      }
+
+      const localRows = localOutput?.reports.reduce((sum, report) => sum + report.results.length, 0) ?? 0;
+      if (localOutput && localRows > 0) {
+        output = localOutput;
+        promptVersion = LOCAL_PROMPT_VERSION;
+        extractionMode = "LOCAL";
+      } else if (aiAvailability.enabled) {
+        output = await extractLabReport(bytes, file.type);
+        promptVersion = PROMPT_VERSION;
+        extractionMode = "AI";
+      } else {
+        output = localOutput ?? { reports: [], usage: { inputTokens: 0, outputTokens: 0 }, model: LOCAL_EXTRACTION_MODEL };
+        promptVersion = LOCAL_PROMPT_VERSION;
+        extractionMode = "LOCAL";
+      }
+    } else {
+      output = await extractLabReport(bytes, file.type);
+      promptVersion = PROMPT_VERSION;
+      extractionMode = "AI";
+    }
 
     const employees = await db.employee.findMany({
       select: { id: true, name: true, nameEn: true, nationalId: true, employeeNo: true, gender: true },
@@ -172,6 +218,7 @@ export async function uploadAndExtractAction(
         error: rows.length > 0 ? null : "imp.noItems",
         pageCount,
         model: output.model,
+        promptVersion,
         inputTokens: output.usage.inputTokens,
         outputTokens: output.usage.outputTokens,
       },
@@ -184,10 +231,12 @@ export async function uploadAndExtractAction(
       entityId: batch.id,
       summary: `استخراج ${rows.length} نتيجة من ${output.reports.length} تقرير`,
       meta: {
+        mode: extractionMode,
         model: output.model,
-        promptVersion: PROMPT_VERSION,
+        promptVersion,
         inputTokens: output.usage.inputTokens,
         outputTokens: output.usage.outputTokens,
+        externalProcessing: extractionMode === "AI",
       },
     });
   } catch (error) {

@@ -1,15 +1,14 @@
-import Link from "next/link";
-import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requirePath } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
 import { getT } from "@/lib/i18n";
-import { formatDate, startOfDay, toDateInput } from "@/lib/format";
+import { bmi, formatDate, startOfDay, toDateInput } from "@/lib/format";
 import { vitalOutOfRange } from "@/lib/clinical/rules";
-import { Card, Chip, Empty, PageHeader } from "@/components/ui";
+import { Card, Chip, PageHeader } from "@/components/ui";
 import { DownloadLink } from "@/components/ui/DownloadLink";
 import { Modal } from "@/components/ui/Modal";
-import { VisitForm } from "@/components/forms/RecordForms";
+import { SmartVisitForm } from "@/components/forms/SmartClinicalForms";
+import { VisitsOperationalWorkspace } from "@/components/operations/OperationalWorkspaces";
 import { IconPlus } from "@/components/layout/icons";
 
 export const metadata = { title: "الزيارات" };
@@ -26,17 +25,14 @@ export default async function VisitsPage({
 
   const from = params.from ? new Date(params.from) : startOfDay(new Date(Date.now() - 29 * 86_400_000));
   const to = params.to ? new Date(`${params.to}T23:59:59`) : new Date();
-  const type = params.type ?? "";
-
-  const where: Prisma.VisitWhereInput = {
-    status: { not: "ENTERED_IN_ERROR" },
-    visitDate: { gte: from, lte: to },
-    ...(type ? { type: type as Prisma.EnumVisitTypeFilter["equals"] } : {}),
-  };
+  const initialType = params.type ?? "";
 
   const [visits, employees] = await Promise.all([
     db.visit.findMany({
-      where,
+      where: {
+        status: { not: "ENTERED_IN_ERROR" },
+        visitDate: { gte: from, lte: to },
+      },
       orderBy: { visitDate: "desc" },
       take: 300,
       include: { employee: { select: { id: true, name: true, department: true } } },
@@ -49,6 +45,38 @@ export default async function VisitsPage({
         })
       : Promise.resolve([]),
   ]);
+
+  const records = visits.map((visit) => {
+    const abnormal =
+      vitalOutOfRange("tempC", visit.tempC) ||
+      vitalOutOfRange("systolic", visit.systolic) ||
+      vitalOutOfRange("diastolic", visit.diastolic) ||
+      vitalOutOfRange("pulse", visit.pulse) ||
+      vitalOutOfRange("spo2", visit.spo2);
+    return {
+      id: visit.id,
+      employeeId: visit.employee.id,
+      employeeName: visit.employee.name,
+      department: visit.employee.department,
+      dateKey: toDateInput(visit.visitDate),
+      dateLabel: formatDate(visit.visitDate, t.locale),
+      type: visit.type,
+      chiefComplaint: visit.chiefComplaint,
+      diagnosis: visit.diagnosis,
+      plan: visit.plan,
+      notes: visit.notes,
+      tempC: visit.tempC,
+      systolic: visit.systolic,
+      diastolic: visit.diastolic,
+      pulse: visit.pulse,
+      respRate: visit.respRate,
+      spo2: visit.spo2,
+      weightKg: visit.weightKg,
+      heightCm: visit.heightCm,
+      bmi: bmi(visit.weightKg, visit.heightCm),
+      abnormal,
+    };
+  });
 
   return (
     <>
@@ -65,119 +93,31 @@ export default async function VisitsPage({
               <Modal
                 title={t("visit.new")}
                 wide
-                trigger={
-                  <button className="btn btn-primary">
-                    <IconPlus /> {t("visit.new")}
-                  </button>
-                }
+                trigger={<button className="btn btn-primary"><IconPlus /> {t("visit.new")}</button>}
               >
-                <VisitForm employees={employees} />
+                <SmartVisitForm employees={employees} />
               </Modal>
             )}
           </>
         }
       />
 
-      <Card className="mb-4">
+      <Card className="mb-4 glass">
         <form method="get" className="flex flex-wrap items-end gap-2.5">
           <div>
-            <label className="label" htmlFor="from">
-              {t("rep.from")}
-            </label>
+            <label className="label" htmlFor="from">{t("rep.from")}</label>
             <input id="from" className="input" type="date" name="from" defaultValue={toDateInput(from)} />
           </div>
           <div>
-            <label className="label" htmlFor="to">
-              {t("rep.to")}
-            </label>
+            <label className="label" htmlFor="to">{t("rep.to")}</label>
             <input id="to" className="input" type="date" name="to" defaultValue={toDateInput(to)} />
           </div>
-          <div className="w-44">
-            <label className="label" htmlFor="type">
-              {t("visit.type")}
-            </label>
-            <select id="type" className="select" name="type" defaultValue={type}>
-              <option value="">{t("common.all")}</option>
-              {[
-                "ACUTE_CARE",
-                "FOLLOW_UP",
-                "PRE_EMPLOYMENT",
-                "PERIODIC",
-                "INJURY",
-                "EXPOSURE",
-                "VACCINATION",
-                "CONSULTATION",
-                "OTHER",
-              ].map((v) => (
-                <option key={v} value={v}>
-                  {t(`visitType.${v}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button type="submit" className="btn btn-ghost">
-            {t("action.filter")}
-          </button>
+          {initialType && <input type="hidden" name="type" value={initialType} />}
+          <button type="submit" className="btn btn-ghost">{t("action.filter")}</button>
         </form>
       </Card>
 
-      <Card pad={false}>
-        {visits.length === 0 ? (
-          <Empty title={t("common.empty")} hint={t("common.emptyHint")} />
-        ) : (
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>{t("visit.date")}</th>
-                  <th>{t("due.employee")}</th>
-                  <th>{t("emp.department")}</th>
-                  <th>{t("visit.type")}</th>
-                  <th>{t("visit.chief")}</th>
-                  <th>{t("visit.diagnosis")}</th>
-                  <th>{t("visit.vitals")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visits.map((v) => {
-                  const abnormal =
-                    vitalOutOfRange("tempC", v.tempC) ||
-                    vitalOutOfRange("systolic", v.systolic) ||
-                    vitalOutOfRange("pulse", v.pulse) ||
-                    vitalOutOfRange("spo2", v.spo2);
-                  return (
-                    <tr key={v.id}>
-                      <td className="num">{formatDate(v.visitDate, t.locale)}</td>
-                      <td>
-                        <Link
-                          href={`/employees/${v.employee.id}?tab=visits`}
-                          className="font-semibold"
-                          style={{ color: "var(--accent-text)" }}
-                        >
-                          {v.employee.name}
-                        </Link>
-                      </td>
-                      <td>{v.employee.department ?? "—"}</td>
-                      <td>
-                        <Chip tone="accent">{t(`visitType.${v.type}`)}</Chip>
-                      </td>
-                      <td>{v.chiefComplaint ?? "—"}</td>
-                      <td>{v.diagnosis ?? "—"}</td>
-                      <td>
-                        {abnormal ? (
-                          <Chip tone="warn">{t("visit.abnormalVitals")}</Chip>
-                        ) : (
-                          <span style={{ color: "var(--text-faint)" }}>—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      <VisitsOperationalWorkspace records={records} todayKey={toDateInput(new Date())} />
     </>
   );
 }

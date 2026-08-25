@@ -1,0 +1,38 @@
+.bridge {
+  --quick-action-ready: 1;
+}
+
+.dock {
+  padding: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.dock :global(.contents) {
+  display: block;
+}
+
+.dock button {
+  width: 100%;
+  justify-content: center;
+}
+
+/* The redesigned dock owns creation for these tabs; suppress the older duplicate trigger only. */
+.bridge[data-active-tab="allergies"] + :global(.card) > div:first-child > :global(.contents),
+.bridge[data-active-tab="education"] + :global(.card) > div:first-child > :global(.contents),
+.bridge[data-active-tab="notes"] + :global(.card) > div:first-child > :global(.contents) {
+  display: none;
+}
+
+.bridge[data-active-tab="vaccines"] + :global(.space-y-4) > :global(.card):first-child :global(.contents) {
+  display: none;
+}
+
+@media (max-width: 1439px) {
+  .dock {
+    padding: 0.45rem;
+  }
+
+  .dock button {
+    min-height: 2.15rem;
+  }
+}
