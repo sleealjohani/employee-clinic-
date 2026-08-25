@@ -285,26 +285,146 @@ body {
   transform-origin: 50% 12%;
 }
 
+/* --- navigation rail ---------------------------------------------
+
+   Collapsed the rail is a column of glyphs; a native `title` tooltip is the
+   wrong answer for a primary navigation control — it takes a second to appear,
+   is styled by the OS, and never reads in Arabic. So the rail widens on hover
+   or keyboard focus and every destination states its own name. The rail is
+   fixed and the workspace already clears its collapsed width, so expanding
+   overlays the page rather than reflowing it.
+-------------------------------------------------------------------- */
+
+.nav-rail {
+  --rail-collapsed: 4.75rem;
+  --rail-expanded: 15.5rem;
+  width: var(--rail-collapsed);
+  padding: 0.85rem 0.95rem;
+  overflow: hidden;
+  transition:
+    width var(--dur-3) var(--ease-entrance),
+    background var(--dur-2) ease,
+    box-shadow var(--dur-3) var(--ease-out);
+}
+
+/* Expanded the rail covers the page, so it stops being a translucent sliver
+   and becomes a readable surface — labels over bleed-through are unreadable. */
+.nav-rail:hover,
+.nav-rail:focus-within {
+  width: var(--rail-expanded);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-shadow: var(--shadow-md), var(--shadow-glass);
+}
+
+:root[data-theme="dark"] .nav-rail:hover,
+:root[data-theme="dark"] .nav-rail:focus-within {
+  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
+}
+
+.rail-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-block: 0.25rem;
+}
+
+.rail-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+/* Labels occupy no width while collapsed, so the glyph column stays centred. */
+.rail-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: start;
+  transition:
+    opacity var(--dur-2) ease,
+    max-width var(--dur-3) var(--ease-entrance);
+  max-width: 0;
+}
+
+.nav-rail:hover .rail-label,
+.nav-rail:focus-within .rail-label {
+  opacity: 1;
+  max-width: 10rem;
+}
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  height: 2.85rem;
+  margin-bottom: 0.6rem;
+  padding-inline: 0.42rem;
+}
+
+.rail-brand-name {
+  font-size: 0.86rem;
+  font-weight: 850;
+  color: var(--text);
+}
+
+.rail-group {
+  padding: 0.55rem 0.6rem 0.25rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* Collapsed, a group heading would be an empty gap — hide it outright. */
+.nav-rail:not(:hover):not(:focus-within) .rail-group {
+  height: 0;
+  padding: 0;
+}
+
 .nav-icon-button {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 2.85rem;
+  gap: 0.7rem;
+  width: 100%;
   height: 2.85rem;
+  padding-inline: 0.42rem;
   border-radius: 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 650;
   color: var(--text-faint);
   transition:
-    transform var(--motion-base) var(--ease-out),
     color var(--motion-fast) ease,
     background var(--motion-fast) ease,
     box-shadow var(--motion-base) ease;
 }
 
+.nav-icon-glyph {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+}
+
 .nav-icon-button:hover {
-  transform: translateY(-1px);
   color: var(--accent-text);
   background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.nav-icon-danger:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .nav-icon-button[data-active="true"] {
@@ -318,10 +438,37 @@ body {
   position: absolute;
   width: 3px;
   height: 1.15rem;
-  inset-inline-start: -0.65rem;
+  inset-inline-start: -0.35rem;
   border-radius: 999px;
   background: linear-gradient(to bottom, var(--accent), var(--accent-2));
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.rail-avatar {
+  border-radius: 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 850;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.rail-identity {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.rail-identity span {
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 750;
+  color: var(--text);
+  text-overflow: ellipsis;
+}
+
+.rail-identity small {
+  font-size: 0.64rem;
+  color: var(--text-faint);
 }
 
 .floating-command {
@@ -1001,6 +1148,12 @@ body {
   .auth-panel {
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  /* The rail still expands — only the animation of it goes away. */
+  .nav-rail,
+  .rail-label {
+    transition: none !important;
   }
 
   .meter-fill,

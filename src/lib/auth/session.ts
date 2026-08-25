@@ -1,4 +1,10 @@
-import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+// Narrow imports, not the `jose` barrel: the barrel drags in the JWE encrypt
+// path, whose deflate helper uses CompressionStream and makes every build warn
+// that it is unsupported on the Edge runtime the middleware runs on. This
+// module only ever signs and verifies a JWS.
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
+import type { JWTPayload } from "jose";
 import type { Role } from "@prisma/client";
 
 export const SESSION_COOKIE = "clinic_session";

@@ -133,16 +133,13 @@ export function Shell({
 
   const desktopNav = (
     <>
-      <Link
-        href="/dashboard"
-        prefetch={false}
-        className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl"
-        aria-label={t("app.name")}
-      >
-        <LogoMark size={34} />
+      <Link href="/dashboard" prefetch={false} className="rail-brand" aria-label={t("app.name")}>
+        <LogoMark size={32} />
+        <span className="rail-label rail-brand-name">{t("app.name")}</span>
       </Link>
 
-      <nav className="flex flex-1 flex-col items-center gap-1.5 overflow-y-auto py-1">
+      <nav className="rail-nav">
+        <span className="rail-group rail-label">{t("nav.group.clinical")}</span>
         {visibleClinical.map((item) => (
           <Link
             key={item.href}
@@ -150,14 +147,15 @@ export function Shell({
             prefetch={false}
             className="nav-icon-button"
             data-active={isActive(item.href)}
-            title={t(item.labelKey)}
-            aria-label={t(item.labelKey)}
           >
-            {item.icon}
+            <span className="nav-icon-glyph">{item.icon}</span>
+            <span className="rail-label">{t(item.labelKey)}</span>
           </Link>
         ))}
 
-        {visibleOversight.length > 0 && <span className="my-2 h-px w-7 bg-[var(--border)]" />}
+        {visibleOversight.length > 0 && (
+          <span className="rail-group rail-label">{t("nav.group.oversight")}</span>
+        )}
 
         {visibleOversight.map((item) => (
           <Link
@@ -166,51 +164,51 @@ export function Shell({
             prefetch={false}
             className="nav-icon-button"
             data-active={isActive(item.href)}
-            title={t(item.labelKey)}
-            aria-label={t(item.labelKey)}
+            aria-label={item.badge ? `${t(item.labelKey)} (${item.badge})` : undefined}
           >
-            {item.icon}
-            {item.badge !== undefined && item.badge > 0 && (
-              <span
-                className="num absolute -end-1 -top-1 min-w-[1.1rem] rounded-full px-1 py-0.5 text-center text-[0.58rem] font-bold text-white"
-                style={{ background: "var(--danger)" }}
-              >
-                {item.badge > 99 ? "99+" : item.badge}
-              </span>
-            )}
+            <span className="nav-icon-glyph">
+              {item.icon}
+              {item.badge !== undefined && item.badge > 0 && (
+                <span
+                  aria-hidden
+                  className="num absolute -end-1 -top-1 min-w-[1.1rem] rounded-full px-1 py-0.5 text-center text-[0.58rem] font-bold text-white"
+                  style={{ background: "var(--danger)" }}
+                >
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              )}
+            </span>
+            <span className="rail-label">{t(item.labelKey)}</span>
           </Link>
         ))}
       </nav>
 
-      <div className="mt-4 flex flex-col items-center gap-1.5 border-t pt-4">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="nav-icon-button"
-          title={t("common.theme")}
-          aria-label={t("common.theme")}
-        >
-          {currentTheme === "dark" ? <IconSun /> : <IconMoon />}
+      <div className="rail-foot">
+        <button type="button" onClick={toggleTheme} className="nav-icon-button">
+          <span className="nav-icon-glyph">{currentTheme === "dark" ? <IconSun /> : <IconMoon />}</span>
+          <span className="rail-label">{t("common.theme")}</span>
         </button>
-        <button
-          type="button"
-          onClick={switchLocale}
-          className="nav-icon-button text-xs font-bold"
-          title={t("common.language")}
-          aria-label={t("common.language")}
-        >
-          {locale === "ar" ? "EN" : "ع"}
+        <button type="button" onClick={switchLocale} className="nav-icon-button">
+          <span aria-hidden className="nav-icon-glyph text-xs font-bold">{locale === "ar" ? "EN" : "ع"}</span>
+          <span className="rail-label">{t("common.language")}</span>
         </button>
-        <Link
-          href="/account"
-          prefetch={false}
-          className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl text-xs font-bold transition-transform hover:-translate-y-0.5"
-          style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}
-          title={user.name}
-          aria-label={user.name}
-        >
-          {initials(user.name)}
+
+        <Link href="/account" prefetch={false} className="nav-icon-button" data-active={isActive("/account")}>
+          <span aria-hidden className="nav-icon-glyph rail-avatar">{initials(user.name)}</span>
+          <span className="rail-label rail-identity">
+            <span>{user.name}</span>
+            <small>{t(`role.${user.role}`)}</small>
+          </span>
         </Link>
+
+        {/* Signing out was reachable only from the mobile drawer and the account
+            page — there was no way out of the desktop workspace at all. */}
+        <form action="/api/auth/logout" method="post" className="contents">
+          <button type="submit" className="nav-icon-button nav-icon-danger">
+            <span className="nav-icon-glyph"><IconLogout /></span>
+            <span className="rail-label">{t("action.logout")}</span>
+          </button>
+        </form>
       </div>
     </>
   );
@@ -252,7 +250,7 @@ export function Shell({
       <div className="ambient-orb ambient-orb-two" />
 
       {/* Desktop navigation rail */}
-      <aside className="glass fixed inset-y-3 z-30 hidden w-[4.75rem] flex-col items-center rounded-[1.45rem] px-3 py-4 lg:flex no-print" style={{ insetInlineStart: "0.75rem" }}>
+      <aside className="glass nav-rail fixed inset-y-3 z-40 hidden flex-col rounded-[1.45rem] lg:flex no-print" style={{ insetInlineStart: "0.75rem" }}>
         {desktopNav}
       </aside>
 

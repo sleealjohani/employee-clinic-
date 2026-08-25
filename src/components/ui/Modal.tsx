@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useFormStatus } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { IconX } from "@/components/layout/icons";
 import styles from "./Modal.module.css";
@@ -33,7 +33,10 @@ export function Modal({
   wide?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const close = useCallback(() => setOpen(false), []);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -48,35 +51,43 @@ export function Modal({
     };
   }, [open, close]);
 
+  // Every card and rail in this app carries a backdrop-filter, and a filtered
+  // element becomes the containing block for its fixed-position descendants.
+  // A dialog left where its trigger sits is therefore positioned against that
+  // card and clipped by it — which is exactly what a modal must never be. The
+  // portal lifts it out to the document so `position: fixed` means the
+  // viewport again.
+  const layer = (
+    <div className={styles.layer}>
+      <div className={styles.backdrop} onClick={close} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`${styles.dialog} ${wide ? styles.wide : styles.normal}`}
+      >
+        <div className={styles.head}>
+          <div>
+            <h2>{title}</h2>
+            {description && <p>{description}</p>}
+          </div>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={close} aria-label="Close">
+            <IconX />
+          </button>
+        </div>
+        <ModalContext.Provider value={{ close }}>
+          <div className={styles.body}>{children}</div>
+        </ModalContext.Provider>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <span onClick={() => setOpen(true)} className="contents">
         {trigger}
       </span>
-      {open && (
-        <div className={styles.layer}>
-          <div className={styles.backdrop} onClick={close} aria-hidden />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            className={`${styles.dialog} ${wide ? styles.wide : styles.normal}`}
-          >
-            <div className={styles.head}>
-              <div>
-                <h2>{title}</h2>
-                {description && <p>{description}</p>}
-              </div>
-              <button className="btn btn-ghost btn-sm" type="button" onClick={close} aria-label="Close">
-                <IconX />
-              </button>
-            </div>
-            <ModalContext.Provider value={{ close }}>
-              <div className={styles.body}>{children}</div>
-            </ModalContext.Provider>
-          </div>
-        </div>
-      )}
+      {open && mounted && createPortal(layer, document.body)}
     </>
   );
 }
