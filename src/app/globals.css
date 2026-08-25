@@ -1233,3 +1233,19 @@ body {
   font-size: 0.68rem;
   color: var(--text-faint);
 }
+
+/* Upload progress for a batch that arrives in parts. */
+.upload-track {
+  overflow: hidden;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.upload-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width var(--dur-2) linear;
+}
