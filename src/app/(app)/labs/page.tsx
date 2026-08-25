@@ -1,4 +1,3 @@
-import { type LabFlag } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requirePath } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
@@ -97,7 +96,6 @@ export default async function LabsPage({
     <>
       <PageHeader
         title={t("lab.title")}
-        subtitle={t("lab.autoRef")}
         badge={<Chip tone="neutral">{labs.length}</Chip>}
         actions={
           <>

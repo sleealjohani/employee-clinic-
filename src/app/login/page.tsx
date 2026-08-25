@@ -23,8 +23,11 @@ export default async function LoginPage({
   const t = await getT();
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[26rem]">
+    <div className="workspace-shell flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="ambient-orb ambient-orb-one" />
+      <div className="ambient-orb ambient-orb-two" />
+
+      <div className="auth-panel w-full max-w-[26rem]">
         <div className="mb-6 flex flex-col items-center text-center">
           <Logo height={62} />
           <p className="mt-4 text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
@@ -32,7 +35,7 @@ export default async function LoginPage({
           </p>
         </div>
 
-        <div className="card card-pad">
+        <div className="card card-pad glass-strong specular">
           {params.setup === "done" && (
             <div
               className="mb-4 rounded-lg px-3 py-2 text-xs font-semibold"

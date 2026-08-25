@@ -118,15 +118,7 @@ export default async function EmployeesPage({
               <IconEmployees size={22} />
             </span>
             <div className="min-w-0">
-              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em]" style={{ color: "var(--accent-text)" }}>
-                EMPLOYEE DIRECTORY
-              </p>
               <h1 className="mt-1 text-xl font-black sm:text-2xl">{ar ? "مركز ملفات الموظفين" : "Employee record center"}</h1>
-              <p className="mt-1 max-w-2xl text-xs leading-relaxed" style={{ color: "var(--text-faint)" }}>
-                {ar
-                  ? "ابحث عن الموظف، راجع حالة ملفه سريعًا، ثم انتقل إلى سجل 360° دون المرور بقوائم وجداول تقليدية."
-                  : "Find an employee, preview record readiness and clinical signals, then move directly into the 360° record."}
-              </p>
             </div>
           </div>
 

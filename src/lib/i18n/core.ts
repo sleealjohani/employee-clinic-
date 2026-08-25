@@ -6,6 +6,9 @@ export const DEFAULT_LOCALE: Locale = "ar";
 export type Translator = ((key: DictKey | string, vars?: Record<string, string | number>) => string) & {
   locale: Locale;
   dir: "rtl" | "ltr";
+  /** A missing key renders as the key itself, so callers that build a key at
+   *  runtime (`${error}.hint`) must be able to ask before they render it. */
+  has: (key: DictKey | string) => boolean;
 };
 
 export function makeTranslator(locale: Locale): Translator {
@@ -17,6 +20,7 @@ export function makeTranslator(locale: Locale): Translator {
   }) as Translator;
   t.locale = locale;
   t.dir = locale === "ar" ? "rtl" : "ltr";
+  t.has = (key: string) => Object.hasOwn(dict as Record<string, string>, key);
   return t;
 }
 

@@ -38,7 +38,6 @@ export default async function ReportsPage({
     <>
       <PageHeader
         title={t("rep.title")}
-        subtitle={t("rep.subtitle")}
         badge={
           <Chip tone="neutral">
             {t("rep.rows")}: {table.rows.length}
@@ -116,7 +115,7 @@ export default async function ReportsPage({
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="row-in">
                 {table.rows.slice(0, 500).map((row, i) => (
                   <tr key={i}>
                     {row.map((cell, j) => (

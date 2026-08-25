@@ -5,6 +5,7 @@ import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
 import { importAvailability } from "@/lib/ai/extract";
 import { Alert, Card, Chip, Empty, PageHeader, SectionTitle } from "@/components/ui";
+import { Reveal } from "@/components/motion/Reveal";
 import { UploadForm } from "./UploadForm";
 
 export const metadata = { title: "استيراد تقارير المختبر" };
@@ -42,11 +43,6 @@ export default async function ImportPage() {
     <>
       <PageHeader
         title={t("imp.title")}
-        subtitle={
-          ar
-            ? "استخراج محلي خاص أولاً، ثم مراجعة بشرية قبل إضافة أي نتيجة للملف الصحي"
-            : "Private local extraction first, followed by human review before anything reaches the health record"
-        }
         badge={
           <div className="flex flex-wrap gap-1.5">
             <Chip tone="ok">{ar ? "PDF محلي" : "Local PDF"}</Chip>
@@ -55,33 +51,18 @@ export default async function ImportPage() {
         }
       />
 
-      <div className="mb-4 space-y-3">
-        <Alert tone="info" title={ar ? "المسار الافتراضي خاص وبدون تكلفة API" : "Private, no-API-cost default path"}>
-          {ar
-            ? "ملفات PDF الرقمية ذات النص القابل للتحديد تُقرأ داخل خادم النظام باستخدام قواعد ثابتة. لا يتم إرسال التقرير إلى Anthropic أو أي مزود ذكاء اصطناعي، وتبقى كل نتيجة في قائمة المراجعة قبل اعتمادها."
-            : "Digital PDFs with selectable text are read inside the application server using deterministic rules. The report is not sent to Anthropic or another AI provider, and every result still enters the review queue before approval."}
-        </Alert>
-
-        {!aiFallback.enabled && (
-          <Alert tone="neutral" title={ar ? "الصور والملفات الممسوحة" : "Scans and images"}>
-            {ar
-              ? "الاستيراد المجاني يدعم PDF الرقمي. إذا كان الملف صورة أو PDF ممسوحًا بلا طبقة نص، استخدم نسخة PDF رقمية من المختبر. يمكن إضافة مفتاح AI لاحقًا فقط كخيار احتياطي لهذه الحالات."
-              : "The free importer supports digital PDFs. For an image or image-only scanned PDF, use a digital PDF exported by the laboratory. An AI key can remain an optional fallback for those cases later."}
-          </Alert>
-        )}
-
-        <Card>
-          <SectionTitle>{t("imp.upload")}</SectionTitle>
+      <Reveal className="mb-4">
+        <Card className="specular">
           <UploadForm allowImages={aiFallback.enabled} />
         </Card>
-      </div>
+      </Reveal>
 
       {unmatched > 0 && (
-        <div className="mb-4">
+        <Reveal className="mb-4" delay={60}>
           <Alert tone="warn" title={`${t("imp.unmatchedQueue")}: ${unmatched}`}>
             {t("imp.unmatchedHint")}
           </Alert>
-        </div>
+        </Reveal>
       )}
 
       <Card pad={false}>
@@ -104,7 +85,7 @@ export default async function ImportPage() {
                   <th></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="row-in">
                 {batches.map((batch) => (
                   <tr key={batch.id}>
                     <td className="font-semibold">

@@ -112,7 +112,6 @@ export default async function VaccinationsPage() {
     <>
       <PageHeader
         title={t("vac.title")}
-        subtitle={t("due.subtitle")}
         actions={
           <>
             <DownloadLink href="/api/export/immunisation">{t("action.export")}</DownloadLink>

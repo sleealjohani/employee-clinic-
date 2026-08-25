@@ -94,6 +94,21 @@ async function readPages(bytes: Buffer): Promise<PageText[]> {
   return pages;
 }
 
+/**
+ * Field labels that can follow a value on the same physical line. PDF text
+ * extraction flattens a printed grid into one line — "Patient Name AHMED ...
+ * Order No ORD-58412" — so a captured value has to be cut where the next
+ * label starts.
+ */
+const NEXT_LABEL =
+  /(?:national\s*(?:id|identity)|patient\s*id|civil\s*id|iqama|id\s*no\.?|employee\s*(?:no\.?|number|id)|staff\s*(?:no\.?|number)|file\s*(?:no\.?|number)|mrn|order\s*(?:no\.?|number)|request\s*(?:no\.?|number)|sample\s*(?:no\.?|number)|specimen\s*(?:no\.?|number)|accession|collected|collection\s*date|verified|validated|result\s*date|reported|printed|sex|gender|age|d\.?o\.?b\.?|date\s*of\s*birth|department|nationality|visit\s*(?:no\.?|type)|رقم\s*(?:الهوية|الإقامة|الاقامة|الطلب|العينة|الملف)|الرقم\s*الوظيفي|تاريخ\s*\S+|الجنس|العمر|القسم|الجنسية)/iu;
+
+function cutAtNextLabel(value: string) {
+  const hit = NEXT_LABEL.exec(value);
+  const head = hit ? value.slice(0, hit.index) : value;
+  return clean(head).replace(/[\s:：#\-–—,]+$/u, "");
+}
+
 function labelled(lines: string[], patterns: RegExp[]) {
   for (const line of lines) {
     for (const pattern of patterns) {
@@ -131,10 +146,15 @@ function identity(lines: string[], text: string) {
       confidence = 0.82;
     }
   }
-  const name = labelled(lines, [
-    /(?:patient\s*name|full\s*name)\s*[:：#\-]\s*(.+)$/iu,
-    /(?:اسم\s*المريض|اسم\s*المراجع|الاسم)\s*[:：#\-]\s*(.+)$/u,
-  ]).replace(/\s+(?:national\s*id|patient\s*id|file\s*no|mrn|رقم\s*الهوية).*$/iu, "").trim();
+  const name = cutAtNextLabel(
+    labelled(lines, [
+      /(?:patient(?:'?s)?\s*name|full\s*name)\s*[:：#\-]?\s*(.+)$/iu,
+      /(?:اسم\s*(?:المريض|المراجع|الموظف)|الاسم)\s*[:：#\-]?\s*(.+)$/u,
+    ]),
+  )
+    // A long digit run after the name is an identifier, not part of it.
+    .replace(/\s*\b\d{6,}\b.*$/u, "")
+    .trim();
   const employeeNo = labelled(lines, [
     /(?:employee\s*(?:no\.?|number|id)|staff\s*(?:no\.?|number)|file\s*(?:no\.?|number)|mrn)\s*[:：#\-]?\s*([A-Z0-9\-/]+)/iu,
     /(?:الرقم\s*الوظيفي|رقم\s*الموظف|رقم\s*الملف)\s*[:：#\-]?\s*([A-Z0-9\-/]+)/iu,
@@ -165,9 +185,9 @@ function meta(lines: string[]) {
     verifiedAt: dateFrom(labelled(lines, [/(?:verified(?:\s*at)?|verification\s*date|validated(?:\s*at)?|result\s*date|تاريخ\s*(?:التحقق|الاعتماد))\s*[:：#\-]?\s*(.+)$/iu])),
     orderNo: labelled(lines, [/(?:order\s*(?:no\.?|number)|request\s*(?:no\.?|number)|رقم\s*(?:الطلب|الأمر))\s*[:：#\-]?\s*([A-Z0-9\-/]+)/iu]),
     sampleNo: labelled(lines, [/(?:sample\s*(?:no\.?|number)|specimen\s*(?:no\.?|number)|accession\s*(?:no\.?|number)|رقم\s*(?:العينة|العينه))\s*[:：#\-]?\s*([A-Z0-9\-/]+)/iu]),
-    performedBy: labelled(lines, [/(?:performed\s*by|technician|منفذ\s*التحليل)\s*[:：#\-]?\s*(.+)$/iu]),
-    verifiedBy: labelled(lines, [/(?:verified\s*by|validated\s*by|approved\s*by|معتمد\s*النتيجة)\s*[:：#\-]?\s*(.+)$/iu]),
-    labName: labelled(lines, [/(?:laboratory|lab\s*name|المختبر)\s*[:：#\-]?\s*(.+)$/iu]),
+    performedBy: cutAtNextLabel(labelled(lines, [/(?:performed\s*by|technician|منفذ\s*التحليل)\s*[:：#\-]?\s*(.+)$/iu])),
+    verifiedBy: cutAtNextLabel(labelled(lines, [/(?:verified\s*by|validated\s*by|approved\s*by|معتمد\s*النتيجة)\s*[:：#\-]?\s*(.+)$/iu])),
+    labName: cutAtNextLabel(labelled(lines, [/(?:laboratory|lab\s*name|المختبر)\s*[:：#\-]?\s*(.+)$/iu])),
   };
 }
 
@@ -183,6 +203,14 @@ function qualitative(text: string) {
 function number(text: string) {
   return /(?:^|[\s:=])([<>≤≥]?\s*[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+))(?=\s|$|[*HhLl()])/u.exec(text)?.[1]
     ?.replace(/\s+/g, "").replace(",", ".") ?? "";
+}
+
+/** µ and u are the same unit in print; so are μ (Greek mu) and spacing variants. */
+function normaliseUnit(value: string) {
+  return value
+    .toLocaleLowerCase()
+    .replace(/[µμ]/g, "u")
+    .replace(/\s/g, "");
 }
 
 function refRange(text: string) {
@@ -215,7 +243,7 @@ function parse(line: string, page: number, metadata: ReturnType<typeof meta>): E
   const value = number(tail);
   if (!value) return null;
   const range = refRange(tail);
-  const unit = test.def.unit && line.toLocaleLowerCase().replace(/\s/g, "").includes(test.def.unit.toLocaleLowerCase().replace(/\s/g, "")) ? test.def.unit : "";
+  const unit = test.def.unit && normaliseUnit(line).includes(normaliseUnit(test.def.unit)) ? test.def.unit : "";
   return { ...base, result_type: "QUANTITATIVE", value_number: value, value_text: "", unit, reference_low: range.low, reference_high: range.high, reference_text: range.text, confidence: range.text ? 0.97 : 0.93 };
 }
 
@@ -243,17 +271,46 @@ function results(page: PageText) {
 export async function extractLocalPdfReport(bytes: Buffer): Promise<ExtractionOutput> {
   const pages = await readPages(bytes);
   const reports: ExtractedReport[] = [];
+
+  // A batch of reports usually runs one patient per page, but a long panel spills
+  // onto a continuation page that repeats no header. Those pages used to lose the
+  // patient entirely and land in the unmatched queue, so a two-page report always
+  // arrived half orphaned. They now inherit the patient from the page before —
+  // marked as inherited, so the reviewer confirms rather than the system assuming.
+  let open: ExtractedReport | null = null;
+
   for (const page of pages) {
     if (page.text.replace(/\s/g, "").length < 24) continue;
     const extracted = results(page);
     if (!extracted.length) continue;
+
     const person = identity(page.lines, page.text);
-    reports.push({
-      patient: { national_id: person.id, full_name: person.name, employee_no: person.employeeNo, confidence: person.confidence },
+    const headed = Boolean(person.id || person.name || person.employeeNo);
+
+    if (!headed && open) {
+      for (const result of extracted) {
+        result.carried_identity = true;
+        result.confidence = Math.min(result.confidence, 0.7);
+      }
+      open.results.push(...extracted);
+      open.page_to = page.page;
+      continue;
+    }
+
+    const report: ExtractedReport = {
+      patient: {
+        national_id: person.id,
+        full_name: person.name,
+        employee_no: person.employeeNo,
+        confidence: person.confidence,
+      },
       page_from: page.page,
       page_to: page.page,
       results: extracted,
-    });
+    };
+    reports.push(report);
+    open = headed ? report : null;
   }
+
   return { reports, usage: { inputTokens: 0, outputTokens: 0 }, model: LOCAL_EXTRACTION_MODEL };
 }

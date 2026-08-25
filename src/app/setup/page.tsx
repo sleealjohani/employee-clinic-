@@ -13,8 +13,11 @@ export default async function SetupPage() {
   const t = await getT();
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[28rem]">
+    <div className="workspace-shell flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="ambient-orb ambient-orb-one" />
+      <div className="ambient-orb ambient-orb-two" />
+
+      <div className="auth-panel w-full max-w-[28rem]">
         <div className="mb-6 flex flex-col items-center text-center">
           <Logo height={62} />
           <h1 className="mt-4 text-lg font-bold">{t("setup.title")}</h1>
@@ -22,7 +25,7 @@ export default async function SetupPage() {
             {t("setup.intro")}
           </p>
         </div>
-        <div className="card card-pad">
+        <div className="card card-pad glass-strong specular">
           <SetupForm />
         </div>
       </div>

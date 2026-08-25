@@ -87,6 +87,8 @@ export function ColumnChart({
           <g key={`${d.label}-${i}`}>
             {h > 0 && (
               <path
+                className="bar-grow"
+                style={{ animationDelay: `${i * 45}ms`, transformOrigin: `${x + barW / 2}px ${padTop + plotH}px` }}
                 d={roundedTopBar(x, y, barW, h, 4)}
                 fill="var(--mark-accent)"
                 opacity={isPeak ? 1 : 0.82}
@@ -153,7 +155,7 @@ export function RowBars({
 
   return (
     <ul className="space-y-2.5">
-      {data.map((d) => (
+      {data.map((d, i) => (
         <li key={d.label} className="grid grid-cols-[minmax(6rem,9rem)_1fr_2.2rem] items-center gap-2.5">
           <span className="truncate text-xs" style={{ color: "var(--text-muted)" }} title={d.label}>
             {d.label}
@@ -165,8 +167,12 @@ export function RowBars({
             aria-label={`${d.label}: ${d.value}`}
           >
             <span
-              className="block h-full rounded-e-[4px]"
-              style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: "var(--mark-accent)" }}
+              className="meter-fill block h-full rounded-e-[4px]"
+              style={{
+                width: `${Math.max(2, (d.value / max) * 100)}%`,
+                background: "var(--mark-accent)",
+                animationDelay: `${i * 55}ms`,
+              }}
             />
           </span>
           <span className="num text-end text-xs font-bold">{d.value}</span>

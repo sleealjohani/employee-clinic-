@@ -26,7 +26,11 @@ export type ImportRowResult = {
 
 export type EmployeeImportState = {
   error?: string;
+  errorDetail?: string;
+  /** True when this run only previewed the file and wrote nothing. */
   dryRun?: boolean;
+  /** 1-based sheet row the headers were found on, so the user can see what was read. */
+  headerRow?: number;
   summary?: { created: number; updated: number; skipped: number; total: number };
   rows?: ImportRowResult[];
 };
@@ -114,7 +118,9 @@ export async function importEmployeesAction(
   const user = await requirePermission("employee.write");
 
   const file = formData.get("file");
-  const dryRun = formData.get("dryRun") === "on";
+  // Two explicit submit buttons rather than a checkbox: the user chooses to
+  // preview or to import, and can never mistake one for the other.
+  const dryRun = String(formData.get("mode") ?? "preview") !== "commit";
   if (!(file instanceof File) || file.size === 0) return { error: "common.required" };
   if (file.size > 5 * 1024 * 1024) return { error: "imp.uploadHint" };
 
@@ -136,17 +142,33 @@ export async function importEmployeesAction(
   }
 
   const sheet = workbook.worksheets[0];
-  if (!sheet || sheet.rowCount < 2) return { error: "imp.noItems" };
+  if (!sheet || sheet.rowCount < 2) return { error: "empimp.empty" };
 
-  const headerRow = sheet.getRow(1);
-  const header: string[] = [];
-  headerRow.eachCell({ includeEmpty: true }, (cell, col) => {
-    header[col - 1] = cellText(cell.value);
-  });
+  // Real exports often carry a title and a date above the headers, so scan the
+  // first rows for the one that actually names the columns rather than assuming
+  // row 1 and failing the whole file.
+  const SEARCH_DEPTH = Math.min(sheet.rowCount, 15);
+  let headerRowNumber = 0;
+  let map: Record<string, number> = {};
 
-  const map = mapHeaders(header);
-  if (map.nationalId === undefined || map.name === undefined) {
-    return { error: "emp.searchPlaceholder" };
+  for (let r = 1; r <= SEARCH_DEPTH; r++) {
+    const header: string[] = [];
+    sheet.getRow(r).eachCell({ includeEmpty: true }, (cell, col) => {
+      header[col - 1] = cellText(cell.value);
+    });
+    const candidate = mapHeaders(header);
+    if (candidate.nationalId !== undefined && candidate.name !== undefined) {
+      headerRowNumber = r;
+      map = candidate;
+      break;
+    }
+  }
+
+  if (!headerRowNumber) {
+    return {
+      error: "empimp.noHeader",
+      errorDetail: [...new Set(Object.values(HEADERS).map((a) => a[0]))].slice(0, 2).join(" / "),
+    };
   }
 
   const results: ImportRowResult[] = [];
@@ -154,7 +176,7 @@ export async function importEmployeesAction(
   let updated = 0;
   let skipped = 0;
 
-  for (let r = 2; r <= sheet.rowCount; r++) {
+  for (let r = headerRowNumber + 1; r <= sheet.rowCount; r++) {
     const row = sheet.getRow(r);
     const cells: string[] = [];
     row.eachCell({ includeEmpty: true }, (cell, col) => {
@@ -168,7 +190,7 @@ export async function importEmployeesAction(
 
     if (!nationalId && !name) continue; // blank row
     if (!nationalId) {
-      results.push({ row: r, nationalId: "—", name, outcome: "SKIPPED", reason: "emp.invalidId" });
+      results.push({ row: r, nationalId: "—", name, outcome: "SKIPPED", reason: "empimp.missingId" });
       skipped++;
       continue;
     }
@@ -178,7 +200,7 @@ export async function importEmployeesAction(
       continue;
     }
     if (!name) {
-      results.push({ row: r, nationalId, name: "—", outcome: "SKIPPED", reason: "common.required" });
+      results.push({ row: r, nationalId, name: "—", outcome: "SKIPPED", reason: "empimp.missingName" });
       skipped++;
       continue;
     }
@@ -252,6 +274,7 @@ export async function importEmployeesAction(
 
   return {
     dryRun,
+    headerRow: headerRowNumber,
     summary: { created, updated, skipped, total: results.length },
     rows: results.slice(0, 200),
   };

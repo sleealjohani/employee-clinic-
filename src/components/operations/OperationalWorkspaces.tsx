@@ -104,7 +104,7 @@ function MiniTag({ tone, children }: { tone?: "danger" | "warn" | "ok" | "accent
 
 function Metric({ label, value, tone }: { label: string; value: number | string; tone?: "danger" | "warn" | "ok" }) {
   return (
-    <div className={styles.metric} data-tone={tone}>
+    <div className={`${styles.metric} lift specular`} data-tone={tone}>
       <div className={styles.metricTop}><span>{label}</span><span>●</span></div>
       <strong className="num">{value}</strong>
     </div>
@@ -156,13 +156,12 @@ export function VisitsOperationalWorkspace({ records, todayKey }: { records: Vis
       <div className={styles.hero}>
         <div className={styles.heroTop}>
           <div>
-            <p className={styles.kicker}>VISIT OPERATIONS</p>
+            <p className={styles.kicker}>{ar ? "تشغيل الزيارات" : "Visit operations"}</p>
             <h2>{ar ? "مركز تشغيل الزيارات" : "Visit operations center"}</h2>
-            <p className={styles.heroText}>{ar ? "قائمة تشغيل واحدة تجمع نشاط اليوم، المؤشرات الحيوية غير الطبيعية، والمتابعات مع عرض التفاصيل فورًا دون مغادرة الصفحة." : "One operational queue for today's activity, abnormal vitals and follow-ups, with instant detail review."}</p>
           </div>
           <span className={styles.live}>{ar ? "تحديث مباشر" : "Live workspace"}</span>
         </div>
-        <div className={styles.metrics}>
+        <div className={`${styles.metrics} stagger`}>
           <Metric label={ar ? "ضمن الفترة" : "In range"} value={records.length} />
           <Metric label={ar ? "زيارات اليوم" : "Today"} value={todayCount} tone="ok" />
           <Metric label={ar ? "مؤشرات غير طبيعية" : "Abnormal vitals"} value={abnormalCount} tone={abnormalCount ? "warn" : "ok"} />
@@ -192,7 +191,7 @@ export function VisitsOperationalWorkspace({ records, todayKey }: { records: Vis
         <div className={styles.listPane}>
           <div className={styles.listHead}><h3>{ar ? "قائمة التشغيل" : "Operational queue"}</h3><span className="num">{filtered.length}</span></div>
           {filtered.length === 0 ? <EmptyDetail ar={ar} /> : (
-            <div className={styles.list}>
+            <div className={`${styles.list} stagger`}>
               {filtered.map((record) => (
                 <button key={record.id} type="button" className={styles.item} data-active={selected?.id === record.id} onClick={() => setSelectedId(record.id)}>
                   <div className={styles.itemTitle}><b>{record.employeeName}</b><time className="num">{record.dateLabel}</time></div>
@@ -296,13 +295,12 @@ export function LabsOperationalWorkspace({
       <div className={styles.hero}>
         <div className={styles.heroTop}>
           <div>
-            <p className={styles.kicker}>LAB OPERATIONS</p>
+            <p className={styles.kicker}>{ar ? "تشغيل المختبر" : "Lab operations"}</p>
             <h2>{ar ? "مركز تشغيل المختبر" : "Laboratory operations center"}</h2>
-            <p className={styles.heroText}>{ar ? "النتائج الحرجة والمراجعات المطلوبة ترتفع تلقائيًا إلى مقدمة قائمة التشغيل، بينما تبقى كل النتائج قابلة للبحث والتصفية الفورية." : "Critical results and pending reviews rise into dedicated queues while every result remains instantly searchable."}</p>
           </div>
           <span className={styles.live}>{ar ? "قائمة سريرية حية" : "Live clinical queue"}</span>
         </div>
-        <div className={styles.metrics}>
+        <div className={`${styles.metrics} stagger`}>
           <Metric label={ar ? "النتائج المحملة" : "Loaded results"} value={records.length} />
           <Metric label={ar ? "حرجة غير مبلّغة" : "Open critical"} value={criticalCount} tone={criticalCount ? "danger" : "ok"} />
           <Metric label={ar ? "تحتاج مراجعة" : "Needs review"} value={reviewCount} tone={reviewCount ? "warn" : "ok"} />
@@ -334,7 +332,7 @@ export function LabsOperationalWorkspace({
         <div className={styles.listPane}>
           <div className={styles.listHead}><h3>{ar ? "قائمة النتائج" : "Results queue"}</h3><span className="num">{filtered.length}</span></div>
           {filtered.length === 0 ? <EmptyDetail ar={ar} /> : (
-            <div className={styles.list}>
+            <div className={`${styles.list} stagger`}>
               {filtered.map((record) => (
                 <button key={record.id} type="button" className={styles.item} data-active={selected?.id === record.id} onClick={() => setSelectedId(record.id)}>
                   <div className={styles.itemTitle}><b>{record.testName}</b><time className="num">{record.dateLabel}</time></div>
@@ -434,13 +432,12 @@ export function VaccinationsOperationalWorkspace({
       <div className={styles.hero}>
         <div className={styles.heroTop}>
           <div>
-            <p className={styles.kicker}>IMMUNISATION OPERATIONS</p>
+            <p className={styles.kicker}>{ar ? "تشغيل التحصينات" : "Immunisation operations"}</p>
             <h2>{ar ? "مركز تشغيل التحصينات" : "Immunisation operations center"}</h2>
-            <p className={styles.heroText}>{ar ? "التغطية والتحصينات المتأخرة والاستحقاقات القريبة في مساحة واحدة تساعد على التحرك بدل الاكتفاء بعرض سجل الجرعات." : "Coverage, overdue vaccines and upcoming doses live in one action-oriented workspace instead of a passive dose log."}</p>
           </div>
           <span className={styles.live}>{ar ? "جاهزية مهنية" : "Occupational readiness"}</span>
         </div>
-        <div className={styles.metrics}>
+        <div className={`${styles.metrics} stagger`}>
           <Metric label={ar ? "متوسط التغطية" : "Average coverage"} value={`${averageCoverage}%`} tone={averageCoverage >= 90 ? "ok" : "warn"} />
           <Metric label={ar ? "متأخر" : "Overdue"} value={overdueCount} tone={overdueCount ? "danger" : "ok"} />
           <Metric label={ar ? "يستحق قريبًا" : "Due soon"} value={dueSoonCount} tone={dueSoonCount ? "warn" : "ok"} />
@@ -448,11 +445,11 @@ export function VaccinationsOperationalWorkspace({
         </div>
       </div>
 
-      <div className={styles.coverage}>
+      <div className={`${styles.coverage} stagger`}>
         {coverage.map((item) => (
-          <div key={item.code} className={styles.coverageCard}>
+          <div key={item.code} className={`${styles.coverageCard} lift`}>
             <div className={styles.coverageTop}><b>{item.name}</b><strong className="num">{item.percent}%</strong></div>
-            <div className={styles.coverageTrack}><span style={{ width: `${item.percent}%` }} /></div>
+            <div className={styles.coverageTrack}><span className="meter-fill" style={{ width: `${item.percent}%` }} /></div>
             <div className={styles.coverageMeta}><span className="num">{item.complete}/{item.total}</span><span>{item.overdue > 0 ? `${ar ? "متأخر" : "overdue"}: ${item.overdue}` : (ar ? "لا يوجد متأخر" : "No overdue")}</span></div>
           </div>
         ))}
@@ -474,7 +471,7 @@ export function VaccinationsOperationalWorkspace({
         <div className={styles.listPane}>
           <div className={styles.listHead}><h3>{mode === "attention" ? (ar ? "قائمة الاستحقاق" : "Due queue") : (ar ? "آخر الجرعات" : "Recent administrations")}</h3><span className="num">{activeList.length}</span></div>
           {activeList.length === 0 ? <EmptyDetail ar={ar} /> : mode === "attention" ? (
-            <div className={styles.list}>
+            <div className={`${styles.list} stagger`}>
               {filteredAttention.map((record) => (
                 <button key={record.key} type="button" className={styles.item} data-active={selectedAttention?.key === record.key} onClick={() => setSelectedKey(record.key)}>
                   <div className={styles.itemTitle}><b>{record.employeeName}</b><time className="num">{record.dueDateLabel}</time></div>
@@ -484,7 +481,7 @@ export function VaccinationsOperationalWorkspace({
               ))}
             </div>
           ) : (
-            <div className={styles.list}>
+            <div className={`${styles.list} stagger`}>
               {filteredRecent.map((record) => (
                 <button key={record.id} type="button" className={styles.item} data-active={selectedRecent?.id === record.id} onClick={() => setSelectedKey(record.id)}>
                   <div className={styles.itemTitle}><b>{record.employeeName}</b><time className="num">{record.dateLabel}</time></div>

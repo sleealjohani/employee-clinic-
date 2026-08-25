@@ -64,13 +64,6 @@
   letter-spacing: -0.015em;
 }
 
-.heroText {
-  margin: 0.3rem 0 0;
-  max-width: 46rem;
-  color: var(--text-faint);
-  font-size: 0.72rem;
-  line-height: 1.7;
-}
 
 .live {
   display: inline-flex;

@@ -221,7 +221,10 @@ export function Meter({ value, tone = "accent" }: { value: number; tone?: Tone }
       role="img"
       aria-label={`${pct}%`}
     >
-      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      <div
+        className="meter-fill h-full rounded-full"
+        style={{ width: `${pct}%`, background: color }}
+      />
     </div>
   );
 }

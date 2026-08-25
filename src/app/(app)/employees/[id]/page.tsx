@@ -171,7 +171,7 @@ export default async function EmployeeRecordPage({
       )}
 
       {/* summary strip */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <KeyValue label={t("emp.nationalId")} value={<span dir="ltr">{employee.nationalId}</span>} mono />
           <div className="mt-2">
@@ -237,17 +237,19 @@ export default async function EmployeeRecordPage({
                 label={t("emp.dob")}
                 value={
                   employee.dob ? (
-                    <>
-                      <span className="num" dir="ltr">
+                    // Each date is one unbreakable run: a Hijri date split
+                    // across lines reads as two different numbers.
+                    <span className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="num whitespace-nowrap" dir="ltr">
                         {formatDate(employee.dob, t.locale)}
                       </span>
-                      <span className="ms-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                      <span className="whitespace-nowrap text-xs" style={{ color: "var(--text-faint)" }}>
                         <span className="num" dir="ltr">
                           {formatHijri(employee.dob)}
                         </span>{" "}
                         هـ
                       </span>
-                    </>
+                    </span>
                   ) : (
                     "—"
                   )
@@ -321,7 +323,7 @@ export default async function EmployeeRecordPage({
                       <th>{t("rep.to")}</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="row-in">
                     {employee.employmentHistory.map((h) => (
                       <tr key={h.id}>
                         <td>{h.department ?? "—"}</td>
@@ -488,7 +490,7 @@ export default async function EmployeeRecordPage({
                     <th>{t("common.date")}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="row-in">
                   {employee.allergies.map((a) => (
                     <tr key={a.id} style={{ opacity: a.allergyStatus === "ACTIVE" ? 1 : 0.55 }}>
                       <td className="font-semibold">{a.substance}</td>
@@ -593,7 +595,7 @@ export default async function EmployeeRecordPage({
                       <th>{t("vac.provider")}</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="row-in">
                     {employee.vaccinations.map((v) => (
                       <tr key={v.id}>
                         <td className="font-semibold">
@@ -652,7 +654,7 @@ export default async function EmployeeRecordPage({
                     <th>{t("common.notes")}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="row-in">
                   {employee.educations.map((e) => (
                     <tr key={e.id}>
                       <td className="font-semibold">{e.topic}</td>

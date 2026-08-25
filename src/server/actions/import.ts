@@ -282,6 +282,12 @@ function buildItem(
   if (valueNum === null && !result.value_text.trim()) warnings.push("NO_VALUE");
   if (collectedAt && collectedAt.getTime() > Date.now()) warnings.push("FUTURE_DATE");
   if (result.confidence < 0.75 || report.patient.confidence < 0.75) warnings.push("LOW_CONFIDENCE");
+  if (result.carried_identity) warnings.push("CARRIED_ID");
+
+  // A continuation page inherited its patient from the page before; that is a
+  // strong hint, never a confirmed link, so it is always offered for confirmation.
+  const matchStatus =
+    result.carried_identity && identity.matchStatus === "MATCHED" ? "SUGGESTED" : identity.matchStatus;
 
   return {
     batchId,
@@ -290,7 +296,7 @@ function buildItem(
     extractedName: report.patient.full_name || null,
     extractedEmployeeNo: report.patient.employee_no || null,
     nationalIdValid: identity.idValid,
-    matchStatus: identity.matchStatus,
+    matchStatus,
     matchScore: identity.matchScore,
     matchedEmployeeId: identity.matchedEmployeeId,
     testCode: code,

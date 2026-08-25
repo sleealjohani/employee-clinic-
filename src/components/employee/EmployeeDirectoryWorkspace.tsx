@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { IconAllergy, IconEmployees, IconLab, IconSearch, IconVisit } from "@/components/layout/icons";
+import { initials } from "@/lib/format";
 import styles from "./EmployeeDirectoryWorkspace.module.css";
 
 export type DirectoryEmployee = {
@@ -26,15 +27,6 @@ export type DirectoryEmployee = {
 
 type FilterKey = "all" | "attention" | "incomplete";
 type ViewKey = "workspace" | "cards";
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0))
-    .join("");
-}
 
 export function EmployeeDirectoryWorkspace({
   employees,
@@ -111,9 +103,9 @@ export function EmployeeDirectoryWorkspace({
       </div>
 
       {view === "cards" ? (
-        <div className={styles.cardGrid}>
+        <div className={`${styles.cardGrid} stagger`}>
           {filtered.map((employee) => (
-            <Link key={employee.id} href={`/employees/${employee.id}`} className={`${styles.employeeCard} glass`}>
+            <Link key={employee.id} href={`/employees/${employee.id}`} className={`${styles.employeeCard} glass specular`}>
               <div className={styles.cardHead}>
                 <span className={styles.avatar}>{initials(employee.name)}</span>
                 <div>
@@ -133,7 +125,7 @@ export function EmployeeDirectoryWorkspace({
                 )}
               </div>
               <div className={styles.progressTrack} aria-label={`${employee.completeness}%`}>
-                <span style={{ width: `${employee.completeness}%` }} />
+                <span className="meter-fill" style={{ width: `${employee.completeness}%` }} />
               </div>
             </Link>
           ))}
@@ -143,13 +135,13 @@ export function EmployeeDirectoryWorkspace({
           <div className={`${styles.master} glass`}>
             <div className={styles.masterHeader}>
               <div>
-                <span className={styles.eyebrow}>{ar ? "EMPLOYEE DIRECTORY" : "EMPLOYEE DIRECTORY"}</span>
+                <span className={styles.eyebrow}>{ar ? "دليل الموظفين" : "Employee directory"}</span>
                 <h2>{ar ? "دليل الموظفين" : "Employee directory"}</h2>
               </div>
               <IconEmployees size={20} />
             </div>
 
-            <div className={styles.list} role="listbox" aria-label={ar ? "الموظفون" : "Employees"}>
+            <div className={`${styles.list} stagger`} role="listbox" aria-label={ar ? "الموظفون" : "Employees"}>
               {filtered.map((employee) => {
                 const active = selected?.id === employee.id;
                 return (
@@ -185,7 +177,7 @@ export function EmployeeDirectoryWorkspace({
                   <div className={styles.profileIdentity}>
                     <span className={styles.largeAvatar}>{initials(selected.name)}</span>
                     <div>
-                      <span className={styles.eyebrow}>{ar ? "QUICK PREVIEW" : "QUICK PREVIEW"}</span>
+                      <span className={styles.eyebrow}>{ar ? "معاينة سريعة" : "Quick preview"}</span>
                       <h2>{selected.name}</h2>
                       <p>{[selected.jobTitle, selected.department].filter(Boolean).join(" · ") || "—"}</p>
                     </div>
@@ -203,7 +195,7 @@ export function EmployeeDirectoryWorkspace({
                   <div><span>{ar ? "فصيلة الدم" : "Blood group"}</span><b dir="ltr">{selected.bloodType ?? "—"}</b></div>
                 </div>
 
-                <div className={styles.metricGrid}>
+                <div className={`${styles.metricGrid} stagger`}>
                   <div className={styles.metric}>
                     <span className={styles.metricIcon}><IconVisit size={17} /></span>
                     <div><small>{ar ? "الزيارات" : "Visits"}</small><strong className="num">{selected.visitsCount}</strong></div>
@@ -227,7 +219,7 @@ export function EmployeeDirectoryWorkspace({
                     <strong className="num">{selected.completeness}%</strong>
                   </div>
                   <div className={styles.bigProgress}>
-                    <span style={{ width: `${selected.completeness}%` }} />
+                    <span className="meter-fill" style={{ width: `${selected.completeness}%` }} />
                   </div>
                 </section>
 

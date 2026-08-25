@@ -64,7 +64,6 @@ export function Modal({
           >
             <div className={styles.head}>
               <div>
-                <span className={styles.eyebrow}>CLINICAL ACTION</span>
                 <h2>{title}</h2>
                 {description && <p>{description}</p>}
               </div>
