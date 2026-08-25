@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
-import { PageHeader } from "@/components/ui";
 import { EmployeeForm } from "@/components/forms/EmployeeForm";
 
 export const metadata = { title: "موظف جديد" };
@@ -26,10 +26,14 @@ export default async function NewEmployeePage() {
 
   return (
     <>
-      <PageHeader title={t("emp.new")} subtitle={t("emp.subtitle")} />
+      <div className="mb-3 flex items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
+        <Link href="/employees" className="font-bold" style={{ color: "var(--accent-text)" }}>{t("emp.title")}</Link>
+        <span>/</span>
+        <span>{t("emp.new")}</span>
+      </div>
       <EmployeeForm
-        departments={departments.map((d) => d.department!).filter(Boolean)}
-        jobTitles={jobTitles.map((j) => j.jobTitle!).filter(Boolean)}
+        departments={departments.map((department) => department.department!).filter(Boolean)}
+        jobTitles={jobTitles.map((jobTitle) => jobTitle.jobTitle!).filter(Boolean)}
       />
     </>
   );
