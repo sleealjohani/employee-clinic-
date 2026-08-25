@@ -9,7 +9,7 @@ import { OCCUPATIONAL_VACCINES, VACCINE_BY_CODE } from "@/lib/catalog/vaccines";
 import { Card, Chip, Empty, Meter, PageHeader, SectionTitle } from "@/components/ui";
 import { DownloadLink } from "@/components/ui/DownloadLink";
 import { Modal } from "@/components/ui/Modal";
-import { VaccinationForm } from "@/components/forms/RecordForms";
+import { QuickVaccinationForm } from "@/components/forms/QuickClinicalForms";
 import { IconPlus } from "@/components/layout/icons";
 
 export const metadata = { title: "التحصينات" };
@@ -48,7 +48,6 @@ export default async function VaccinationsPage() {
       : Promise.resolve([]),
   ]);
 
-  // Coverage = employees whose series for that vaccine has nothing outstanding.
   const coverage = OCCUPATIONAL_VACCINES.map((vac) => {
     let complete = 0;
     let overdue = 0;
@@ -79,7 +78,7 @@ export default async function VaccinationsPage() {
                   </button>
                 }
               >
-                <VaccinationForm employees={pickList} />
+                <QuickVaccinationForm employees={pickList} />
               </Modal>
             )}
           </>
@@ -93,12 +92,8 @@ export default async function VaccinationsPage() {
             <Card key={vac.code}>
               <p className="text-sm font-bold">{t.locale === "ar" ? vac.nameAr : vac.nameEn}</p>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="num text-2xl font-bold" style={{ color: "var(--text)" }}>
-                  {pct}%
-                </span>
-                <span className="num text-xs" style={{ color: "var(--text-faint)" }}>
-                  {complete} / {total}
-                </span>
+                <span className="num text-2xl font-bold" style={{ color: "var(--text)" }}>{pct}%</span>
+                <span className="num text-xs" style={{ color: "var(--text-faint)" }}>{complete} / {total}</span>
               </div>
               <div className="mt-2">
                 <Meter value={pct} tone={pct >= 90 ? "ok" : pct >= 60 ? "warn" : "danger"} />
@@ -106,9 +101,7 @@ export default async function VaccinationsPage() {
               {overdue > 0 && (
                 <p className="mt-2">
                   <Link href="/due">
-                    <Chip tone="danger" dot>
-                      {t("vac.overdue")}: {overdue}
-                    </Chip>
+                    <Chip tone="danger" dot>{t("vac.overdue")}: {overdue}</Chip>
                   </Link>
                 </p>
               )}
@@ -118,9 +111,7 @@ export default async function VaccinationsPage() {
       </div>
 
       <Card pad={false}>
-        <div className="px-4 py-3">
-          <SectionTitle>{t("vac.title")}</SectionTitle>
-        </div>
+        <div className="px-4 py-3"><SectionTitle>{t("vac.title")}</SectionTitle></div>
         {recent.length === 0 ? (
           <Empty title={t("common.empty")} hint={t("common.emptyHint")} />
         ) : (
@@ -140,11 +131,7 @@ export default async function VaccinationsPage() {
                 {recent.map((v) => (
                   <tr key={v.id}>
                     <td>
-                      <Link
-                        href={`/employees/${v.employee.id}?tab=vaccines`}
-                        className="font-semibold"
-                        style={{ color: "var(--accent-text)" }}
-                      >
+                      <Link href={`/employees/${v.employee.id}?tab=vaccines`} className="font-semibold" style={{ color: "var(--accent-text)" }}>
                         {v.employee.name}
                       </Link>
                     </td>
@@ -157,9 +144,7 @@ export default async function VaccinationsPage() {
                     </td>
                     <td className="num">{v.doseNumber}</td>
                     <td className="num">{formatDate(v.givenAt, t.locale)}</td>
-                    <td className="num" dir="ltr">
-                      {v.lotNumber ?? "—"}
-                    </td>
+                    <td className="num" dir="ltr">{v.lotNumber ?? "—"}</td>
                     <td>{v.provider ?? "—"}</td>
                   </tr>
                 ))}
