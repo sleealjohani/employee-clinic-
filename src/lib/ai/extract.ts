@@ -20,7 +20,12 @@ import { TESTS } from "@/lib/catalog/tests";
 export const EXTRACTION_MODEL = "claude-opus-5";
 export const PROMPT_VERSION = "lab-extract-2026-08-1";
 
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+/**
+ * A full occupational-screening batch runs to tens of megabytes. The upload is
+ * chunked, so this is a policy limit rather than a transport one — it bounds
+ * what a single attachment row may grow to.
+ */
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export type ExtractedResult = {
   test_name: string;

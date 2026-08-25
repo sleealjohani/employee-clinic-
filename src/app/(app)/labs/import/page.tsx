@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
-import { importAvailability } from "@/lib/ai/extract";
+import { MAX_UPLOAD_BYTES, importAvailability } from "@/lib/ai/extract";
 import { Alert, Card, Chip, Empty, PageHeader, SectionTitle } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 import { UploadForm } from "./UploadForm";
@@ -53,7 +53,7 @@ export default async function ImportPage() {
 
       <Reveal className="mb-4">
         <Card className="specular">
-          <UploadForm allowImages={aiFallback.enabled} />
+          <UploadForm allowImages={aiFallback.enabled} maxBytes={MAX_UPLOAD_BYTES} />
         </Card>
       </Reveal>
 
