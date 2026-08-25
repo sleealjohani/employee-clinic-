@@ -1,8 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
-import { PageHeader } from "@/components/ui";
 import { EmployeeForm } from "@/components/forms/EmployeeForm";
 
 export const dynamic = "force-dynamic";
@@ -30,11 +30,17 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
 
   return (
     <>
-      <PageHeader title={t("emp.edit")} subtitle={employee.name} />
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
+        <Link href="/employees" className="font-bold" style={{ color: "var(--accent-text)" }}>{t("emp.title")}</Link>
+        <span>/</span>
+        <Link href={`/employees/${employee.id}`} className="font-bold" style={{ color: "var(--text-muted)" }}>{employee.name}</Link>
+        <span>/</span>
+        <span>{t("emp.edit")}</span>
+      </div>
       <EmployeeForm
         values={employee}
-        departments={departments.map((d) => d.department!).filter(Boolean)}
-        jobTitles={jobTitles.map((j) => j.jobTitle!).filter(Boolean)}
+        departments={departments.map((department) => department.department!).filter(Boolean)}
+        jobTitles={jobTitles.map((jobTitle) => jobTitle.jobTitle!).filter(Boolean)}
       />
     </>
   );
