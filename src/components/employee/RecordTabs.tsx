@@ -4,9 +4,18 @@ import { getT } from "@/lib/i18n";
 import { ageFrom, formatDate } from "@/lib/format";
 import { hbvStatus, hbvTone } from "@/lib/clinical/hbv";
 import { Chip, Meter } from "@/components/ui";
+import { Modal } from "@/components/ui/Modal";
+import { IconPlus } from "@/components/layout/icons";
+import {
+  QuickAllergyForm,
+  QuickEducationForm,
+  QuickNoteForm,
+  QuickVaccinationForm,
+} from "@/components/forms/QuickClinicalForms";
 import { EmployeeVisitWorkspace } from "./EmployeeVisitWorkspace";
 import { EmployeeLabWorkspace } from "./EmployeeLabWorkspace";
 import styles from "./RecordTabs.module.css";
+import quickStyles from "./QuickActionDock.module.css";
 
 export type TabKey =
   | "overview"
@@ -40,6 +49,7 @@ export async function RecordTabs({
   const ar = t.locale === "ar";
   const tabs: TabKey[] = ["overview", "visits", "labs", "allergies", "vaccines", "education", "notes"];
   const masterActive = active === "visits" || active === "labs";
+  const quickActive = active === "allergies" || active === "vaccines" || active === "education" || active === "notes";
 
   const snapshot = await db.employee.findUnique({
     where: { id: employeeId },
@@ -96,7 +106,7 @@ export async function RecordTabs({
     },
   });
 
-  const hepBDoses = snapshot?.vaccinations.filter((v) => v.vaccineCode === "HEP_B").length ?? 0;
+  const hepBDoses = snapshot?.vaccinations.filter((item) => item.vaccineCode === "HEP_B").length ?? 0;
   const hbv = hbvStatus(
     (snapshot?.labResults ?? []).map((lab) => ({
       testCode: lab.testCode,
@@ -108,16 +118,15 @@ export async function RecordTabs({
     t.locale,
   );
 
-  const severeAllergy =
-    snapshot?.allergies.some((a) => a.severity === "SEVERE" || a.severity === "LIFE_THREATENING") ?? false;
-  const openCritical =
-    snapshot?.labResults.filter(
-      (lab) =>
-        (lab.flag === "CRITICAL_HIGH" || lab.flag === "CRITICAL_LOW") &&
-        lab.criticalNotifiedAt === null,
-    ).length ?? 0;
-  const pendingReview =
-    snapshot?.labResults.filter((lab) => lab.requiresReview && lab.reviewedAt === null).length ?? 0;
+  const severeAllergy = snapshot?.allergies.some(
+    (item) => item.severity === "SEVERE" || item.severity === "LIFE_THREATENING",
+  ) ?? false;
+  const openCritical = snapshot?.labResults.filter(
+    (lab) => (lab.flag === "CRITICAL_HIGH" || lab.flag === "CRITICAL_LOW") && lab.criticalNotifiedAt === null,
+  ).length ?? 0;
+  const pendingReview = snapshot?.labResults.filter(
+    (lab) => lab.requiresReview && lab.reviewedAt === null,
+  ).length ?? 0;
 
   const timeline: TimelineItem[] = [];
   const lastVisit = snapshot?.visits[0];
@@ -163,13 +172,33 @@ export async function RecordTabs({
   }
   timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
+  const quickAction = active === "allergies" ? (
+    <Modal title={t("allergy.new")} wide trigger={<button className="btn btn-primary btn-sm"><IconPlus /> {t("allergy.new")}</button>}>
+      <QuickAllergyForm employeeId={employeeId} />
+    </Modal>
+  ) : active === "vaccines" ? (
+    <Modal title={t("vac.new")} wide trigger={<button className="btn btn-primary btn-sm"><IconPlus /> {t("vac.new")}</button>}>
+      <QuickVaccinationForm employeeId={employeeId} />
+    </Modal>
+  ) : active === "education" ? (
+    <Modal title={t("edu.new")} wide trigger={<button className="btn btn-primary btn-sm"><IconPlus /> {t("edu.new")}</button>}>
+      <QuickEducationForm employeeId={employeeId} />
+    </Modal>
+  ) : active === "notes" ? (
+    <Modal title={t("note.new")} trigger={<button className="btn btn-primary btn-sm"><IconPlus /> {t("note.new")}</button>}>
+      <QuickNoteForm employeeId={employeeId} />
+    </Modal>
+  ) : null;
+
   return (
-    <div className={styles.anchors} data-master-active={masterActive ? "true" : "false"}>
+    <div
+      className={`${styles.anchors} ${quickStyles.bridge}`}
+      data-master-active={masterActive ? "true" : "false"}
+      data-active-tab={active}
+    >
       <nav className={`${styles.navigator} glass no-print`} aria-label={ar ? "أقسام ملف الموظف" : "Employee record sections"}>
         <div className={styles.identity}>
-          <span className={styles.avatar} aria-hidden>
-            {snapshot?.name.trim().charAt(0) || "•"}
-          </span>
+          <span className={styles.avatar} aria-hidden>{snapshot?.name.trim().charAt(0) || "•"}</span>
           <div className={styles.identityText}>
             <p className={styles.kicker}>{ar ? "ملف الموظف 360°" : "Employee 360°"}</p>
             <p className={styles.name}>{snapshot?.name ?? (ar ? "ملف الموظف" : "Employee record")}</p>
@@ -198,6 +227,8 @@ export async function RecordTabs({
           })}
         </div>
 
+        {quickActive && quickAction && <div className={quickStyles.dock}>{quickAction}</div>}
+
         <div className={styles.navFoot}>
           <span className={styles.liveDot} />
           <span>{ar ? "ملف حي ومتصل بالسجل السريري" : "Live clinical record"}</span>
@@ -214,46 +245,19 @@ export async function RecordTabs({
         </div>
 
         <div className={styles.signalGrid}>
-          <div className={styles.signal}>
-            <span>{ar ? "العمر" : "Age"}</span>
-            <strong className="num">{ageFrom(snapshot?.dob ?? null) ?? "—"}</strong>
-          </div>
-          <div className={styles.signal}>
-            <span>{ar ? "فصيلة الدم" : "Blood"}</span>
-            <strong dir="ltr">{snapshot?.bloodType ?? "—"}</strong>
-          </div>
-          <div className={styles.signal}>
-            <span>{ar ? "الزيارات" : "Visits"}</span>
-            <strong className="num">{counts.visits ?? 0}</strong>
-          </div>
-          <div className={styles.signal}>
-            <span>{ar ? "التحاليل" : "Labs"}</span>
-            <strong className="num">{counts.labs ?? 0}</strong>
-          </div>
+          <div className={styles.signal}><span>{ar ? "العمر" : "Age"}</span><strong className="num">{ageFrom(snapshot?.dob ?? null) ?? "—"}</strong></div>
+          <div className={styles.signal}><span>{ar ? "فصيلة الدم" : "Blood"}</span><strong dir="ltr">{snapshot?.bloodType ?? "—"}</strong></div>
+          <div className={styles.signal}><span>{ar ? "الزيارات" : "Visits"}</span><strong className="num">{counts.visits ?? 0}</strong></div>
+          <div className={styles.signal}><span>{ar ? "التحاليل" : "Labs"}</span><strong className="num">{counts.labs ?? 0}</strong></div>
         </div>
 
         {(openCritical > 0 || pendingReview > 0 || severeAllergy) && (
           <div className={styles.attention}>
             <p>{ar ? "يحتاج الانتباه" : "Needs attention"}</p>
             <div className={styles.attentionRows}>
-              {openCritical > 0 && (
-                <Link href={`/employees/${employeeId}?tab=labs`} prefetch={false}>
-                  <span>{ar ? "نتائج حرجة غير مبلّغة" : "Unnotified critical labs"}</span>
-                  <b className="num">{openCritical}</b>
-                </Link>
-              )}
-              {pendingReview > 0 && (
-                <Link href={`/employees/${employeeId}?tab=labs`} prefetch={false}>
-                  <span>{ar ? "تحاليل تحتاج مراجعة" : "Labs awaiting review"}</span>
-                  <b className="num">{pendingReview}</b>
-                </Link>
-              )}
-              {severeAllergy && (
-                <Link href={`/employees/${employeeId}?tab=allergies`} prefetch={false}>
-                  <span>{ar ? "حساسية شديدة مسجلة" : "Severe allergy recorded"}</span>
-                  <b>!</b>
-                </Link>
-              )}
+              {openCritical > 0 && <Link href={`/employees/${employeeId}?tab=labs`} prefetch={false}><span>{ar ? "نتائج حرجة غير مبلّغة" : "Unnotified critical labs"}</span><b className="num">{openCritical}</b></Link>}
+              {pendingReview > 0 && <Link href={`/employees/${employeeId}?tab=labs`} prefetch={false}><span>{ar ? "تحاليل تحتاج مراجعة" : "Labs awaiting review"}</span><b className="num">{pendingReview}</b></Link>}
+              {severeAllergy && <Link href={`/employees/${employeeId}?tab=allergies`} prefetch={false}><span>{ar ? "حساسية شديدة مسجلة" : "Severe allergy recorded"}</span><b>!</b></Link>}
             </div>
           </div>
         )}
@@ -261,9 +265,7 @@ export async function RecordTabs({
         <div className={styles.section}>
           <div className={styles.sectionTitle}>
             <span>{ar ? "المناعة ضد التهاب الكبد B" : "Hepatitis B immunity"}</span>
-            <Chip tone={hbvTone(hbv.status)} dot>
-              {t(`hbv.${hbv.status}`)}
-            </Chip>
+            <Chip tone={hbvTone(hbv.status)} dot>{t(`hbv.${hbv.status}`)}</Chip>
           </div>
           <Meter value={hbv.status === "PROTECTED" ? 100 : hepBDoses > 0 ? Math.min(90, hepBDoses * 30) : 8} tone={hbv.status === "PROTECTED" ? "ok" : "warn"} />
         </div>
@@ -273,10 +275,7 @@ export async function RecordTabs({
             <p className={styles.sectionLabel}>{ar ? "الحساسية النشطة" : "Active allergies"}</p>
             <div className={styles.chipStack}>
               {snapshot.allergies.map((allergy) => (
-                <Chip
-                  key={allergy.id}
-                  tone={allergy.severity === "SEVERE" || allergy.severity === "LIFE_THREATENING" ? "danger" : "warn"}
-                >
+                <Chip key={allergy.id} tone={allergy.severity === "SEVERE" || allergy.severity === "LIFE_THREATENING" ? "danger" : "warn"}>
                   {allergy.substance}
                 </Chip>
               ))}
@@ -287,18 +286,8 @@ export async function RecordTabs({
         {(snapshot?.chronicConditions.length || snapshot?.currentMedications.length) ? (
           <div className={styles.section}>
             <p className={styles.sectionLabel}>{ar ? "خلفية سريرية" : "Clinical background"}</p>
-            {snapshot.chronicConditions.length > 0 && (
-              <p className={styles.clinicalLine}>
-                <span>{ar ? "مزمنة" : "Chronic"}</span>
-                <b>{snapshot.chronicConditions.slice(0, 2).join("، ")}</b>
-              </p>
-            )}
-            {snapshot.currentMedications.length > 0 && (
-              <p className={styles.clinicalLine}>
-                <span>{ar ? "أدوية" : "Meds"}</span>
-                <b>{snapshot.currentMedications.slice(0, 2).join("، ")}</b>
-              </p>
-            )}
+            {snapshot.chronicConditions.length > 0 && <p className={styles.clinicalLine}><span>{ar ? "مزمنة" : "Chronic"}</span><b>{snapshot.chronicConditions.slice(0, 2).join("، ")}</b></p>}
+            {snapshot.currentMedications.length > 0 && <p className={styles.clinicalLine}><span>{ar ? "أدوية" : "Meds"}</span><b>{snapshot.currentMedications.slice(0, 2).join("، ")}</b></p>}
           </div>
         ) : null}
 
@@ -312,10 +301,7 @@ export async function RecordTabs({
                 <li key={item.key} data-tone={item.tone}>
                   <span className={styles.timelineDot} />
                   <div>
-                    <div className={styles.timelineTop}>
-                      <b>{item.label}</b>
-                      <time className="num">{formatDate(item.date, t.locale)}</time>
-                    </div>
+                    <div className={styles.timelineTop}><b>{item.label}</b><time className="num">{formatDate(item.date, t.locale)}</time></div>
                     <p>{item.detail}</p>
                   </div>
                 </li>
