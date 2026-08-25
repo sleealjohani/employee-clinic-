@@ -126,17 +126,18 @@ export function ResetPassword({ userId, username }: { userId: string; username: 
 
   return (
     <Modal
-      title={`${t("user.resetPassword")} — ${username}`}
+      title={t("user.resetPassword")}
+      description={username}
       trigger={<button className="btn btn-ghost btn-sm">{t("user.resetPassword")}</button>}
     >
       <form action={formAction}>
         <input type="hidden" name="id" value={userId} />
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          {t("user.tempPasswordHint")}
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+          {t("user.resetEffect")}
         </p>
         <TempPassword value={state.tempPassword} />
         <FormError error={state.error} />
-        <SubmitRow submitLabel={t("user.resetPassword")} />
+        <SubmitRow submitLabel={t("user.resetPassword")} danger />
       </form>
     </Modal>
   );
@@ -148,7 +149,8 @@ export function ClearTotp({ userId, username }: { userId: string; username: stri
 
   return (
     <Modal
-      title={`${t("user.disable2fa")} — ${username}`}
+      title={t("user.disable2fa")}
+      description={username}
       trigger={<button className="btn btn-ghost btn-sm">{t("user.disable2fa")}</button>}
     >
       <form action={formAction}>
