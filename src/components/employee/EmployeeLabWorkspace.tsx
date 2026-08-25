@@ -7,7 +7,7 @@ import { flagTone, isCritical } from "@/lib/clinical/rules";
 import { formatDate, formatValue } from "@/lib/format";
 import { Empty } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
-import { LabForm } from "@/components/forms/RecordForms";
+import { SmartLabForm } from "@/components/forms/SmartClinicalForms";
 import { IconPlus } from "@/components/layout/icons";
 import { LabResultDetails } from "./LabResultRow";
 import { ClinicalMasterDetail, type MasterDetailItem } from "./ClinicalMasterDetail";
@@ -81,7 +81,7 @@ export async function EmployeeLabWorkspace({
               </button>
             }
           >
-            <LabForm employeeId={employeeId} sex={sex} />
+            <SmartLabForm employeeId={employeeId} sex={sex} />
           </Modal>
         )}
       </div>
