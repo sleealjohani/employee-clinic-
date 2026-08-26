@@ -4,6 +4,19 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ["exceljs", "pdfjs-dist"],
+  /**
+   * pdf.js reaches for two things at runtime that no bundler can see: its
+   * worker, loaded through an import it marks `webpackIgnore`, and the base-14
+   * font data it reads from disk. Both are named here so they are packaged
+   * with the deployment; without the worker every report fails with
+   * "Setting up fake worker failed".
+   */
+  outputFileTracingIncludes: {
+    "/**": [
+      "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+      "./node_modules/pdfjs-dist/standard_fonts/**",
+    ],
+  },
   experimental: { serverActions: { bodySizeLimit: "12mb" } },
   async headers() {
     return [

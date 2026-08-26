@@ -1,79 +1,13 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/auth/current-user";
-import { EXTRACTION_MODEL, MAX_UPLOAD_BYTES, PROMPT_VERSION, importAvailability } from "@/lib/ai/extract";
-import { LOCAL_EXTRACTION_MODEL, LOCAL_PROMPT_VERSION } from "@/lib/import/local-pdf";
 import { TEST_BY_CODE, refFor } from "@/lib/catalog/tests";
 import { computeFlag, requiresReview } from "@/lib/clinical/rules";
-import { ACCEPTED_UPLOAD_TYPES, parseResultDate, stageBatch } from "@/lib/import/stage-batch";
+import { parseResultDate } from "@/lib/import/stage-batch";
 import type { ActionState } from "./employees";
-
-export type UploadState = ActionState & { batchId?: string };
-
-export async function uploadAndExtractAction(
-  _prev: UploadState,
-  formData: FormData,
-): Promise<UploadState> {
-  const user = await requirePermission("import.run");
-  const aiAvailability = importAvailability();
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "common.required" };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: "imp.uploadHint" };
-  if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) return { error: "imp.uploadHint" };
-  // Images need the optional external fallback; digital PDFs work fully locally.
-  if (file.type !== "application/pdf" && !aiAvailability.enabled) return { error: "imp.uploadHint" };
-
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const startsLocal = file.type === "application/pdf";
-
-  const attachment = await db.attachment.create({
-    data: {
-      filename: file.name,
-      mimeType: file.type,
-      size: bytes.byteLength,
-      sha256,
-      data: bytes,
-      uploadedById: user.id,
-    },
-  });
-
-  const batch = await db.labImportBatch.create({
-    data: {
-      attachmentId: attachment.id,
-      filename: file.name,
-      status: "EXTRACTING",
-      model: startsLocal ? LOCAL_EXTRACTION_MODEL : EXTRACTION_MODEL,
-      promptVersion: startsLocal ? LOCAL_PROMPT_VERSION : PROMPT_VERSION,
-      uploadedById: user.id,
-    },
-  });
-
-  await writeAudit({
-    user,
-    action: "IMPORT_UPLOAD",
-    entity: "LabImportBatch",
-    entityId: batch.id,
-    summary: `رفع تقرير مختبر للاستخراج: ${file.name}`,
-    meta: {
-      sha256,
-      size: bytes.byteLength,
-      mimeType: file.type,
-      preferredExtractor: startsLocal ? LOCAL_EXTRACTION_MODEL : EXTRACTION_MODEL,
-    },
-  });
-
-  await stageBatch({ batchId: batch.id, bytes, mimeType: file.type, user });
-
-  revalidatePath("/labs/import");
-  redirect(`/labs/import/${batch.id}`);
-}
 
 /** Reviewer edits one candidate row and approves or rejects it. Nothing is saved yet. */
 export async function reviewItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

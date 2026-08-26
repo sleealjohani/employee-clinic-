@@ -1,5 +1,7 @@
 import { TESTS, type TestDef } from "@/lib/catalog/tests";
 import { validateNationalId } from "@/lib/validation";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
 import { installDomMatrix } from "./dom-matrix";
 import type { ExtractedReport, ExtractedResult, ExtractionOutput } from "@/lib/ai/extract";
 
@@ -72,15 +74,45 @@ function rows(items: { str: string; transform: number[] }[]) {
     .filter(Boolean);
 }
 
+
+/**
+ * Filesystem location of pdf.js's base-14 font data. The package is external
+ * to the bundle, so it is resolved the same way Node would at runtime.
+ */
+function standardFontsDir(): string | undefined {
+  try {
+    const require = createRequire(import.meta.url);
+    return `${dirname(require.resolve("pdfjs-dist/package.json"))}/standard_fonts/`;
+  } catch {
+    // Extraction still works for embedded fonts, which is the common case.
+    return undefined;
+  }
+}
+
 async function readPages(bytes: Buffer): Promise<PageText[]> {
   // Must precede the import: pdf.js decides at module load whether it has a
   // DOMMatrix, and a scanned report reaches code that needs one even though
   // we only ever ask for text.
   installDomMatrix();
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
+  // pdf.js loads its worker with a runtime import it marks `webpackIgnore`, so
+  // no bundler can see it and the file is left out of a deployment — the
+  // document then fails with "Setting up fake worker failed". Importing the
+  // worker here instead makes it an ordinary dependency that ships with
+  // everything else, and handing it over as `pdfjsWorker` stops pdf.js
+  // reaching for the copy that is not there.
+  const [{ getDocument }, worker] = await Promise.all([
+    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    import("pdfjs-dist/legacy/build/pdf.worker.mjs"),
+  ]);
+  (globalThis as { pdfjsWorker?: unknown }).pdfjsWorker = worker;
   const task = getDocument({
     data: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
     useSystemFonts: true,
+    // A report that uses Helvetica or Times without embedding it needs the
+    // base-14 data to map glyph codes back to characters; without it the text
+    // of such a page can come out as nonsense rather than not at all.
+    standardFontDataUrl: standardFontsDir(),
   });
   const pdf = await task.promise;
   const pages: PageText[] = [];
