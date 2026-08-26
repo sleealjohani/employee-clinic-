@@ -258,11 +258,16 @@ export async function stageBatch({
 
     if (rows.length > 0) await db.labImportItem.createMany({ data: rows });
 
+    // Nothing extracted has two quite different causes, and the reader can only
+    // act on the right one: a scan carries no text to read, whereas a digital
+    // report that yielded nothing means the layout was not recognised.
+    const noTextLayer = extractionMode === "LOCAL" && output.textPages === 0;
+
     await db.labImportBatch.update({
       where: { id: batchId },
       data: {
         status: rows.length > 0 ? "NEEDS_REVIEW" : "FAILED",
-        error: rows.length > 0 ? null : "imp.noItems",
+        error: rows.length > 0 ? null : noTextLayer ? "imp.noTextLayer" : "imp.noItems",
         pageCount,
         model: output.model,
         promptVersion,

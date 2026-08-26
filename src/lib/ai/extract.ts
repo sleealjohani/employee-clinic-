@@ -70,6 +70,12 @@ export type ExtractionOutput = {
   reports: ExtractedReport[];
   usage: { inputTokens: number; outputTokens: number };
   model: string;
+  /**
+   * Pages that carried readable text. Zero means the document is a scan with
+   * no text layer — a different problem from "text, but nothing recognisable
+   * in it", and one the reader needs told plainly.
+   */
+  textPages?: number;
 };
 
 const TEST_CODE_ENUM = [...TESTS.map((t) => t.code), "OTHER"];

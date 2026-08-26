@@ -1,5 +1,6 @@
 import { TESTS, type TestDef } from "@/lib/catalog/tests";
 import { validateNationalId } from "@/lib/validation";
+import { installDomMatrix } from "./dom-matrix";
 import type { ExtractedReport, ExtractedResult, ExtractionOutput } from "@/lib/ai/extract";
 
 export const LOCAL_EXTRACTION_MODEL = "local-pdf-rules-v1";
@@ -72,6 +73,10 @@ function rows(items: { str: string; transform: number[] }[]) {
 }
 
 async function readPages(bytes: Buffer): Promise<PageText[]> {
+  // Must precede the import: pdf.js decides at module load whether it has a
+  // DOMMatrix, and a scanned report reaches code that needs one even though
+  // we only ever ask for text.
+  installDomMatrix();
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const task = getDocument({
     data: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
@@ -271,6 +276,8 @@ function results(page: PageText) {
 export async function extractLocalPdfReport(bytes: Buffer): Promise<ExtractionOutput> {
   const pages = await readPages(bytes);
   const reports: ExtractedReport[] = [];
+  // A page of pure image data yields a handful of stray characters at most.
+  const textPages = pages.filter((page) => page.text.replace(/\s/g, "").length >= 24).length;
 
   // A batch of reports usually runs one patient per page, but a long panel spills
   // onto a continuation page that repeats no header. Those pages used to lose the
@@ -312,5 +319,5 @@ export async function extractLocalPdfReport(bytes: Buffer): Promise<ExtractionOu
     open = headed ? report : null;
   }
 
-  return { reports, usage: { inputTokens: 0, outputTokens: 0 }, model: LOCAL_EXTRACTION_MODEL };
+  return { reports, usage: { inputTokens: 0, outputTokens: 0 }, model: LOCAL_EXTRACTION_MODEL, textPages };
 }
