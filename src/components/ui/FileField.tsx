@@ -46,8 +46,16 @@ export function FileField({
           setDragging(false);
           const dropped = event.dataTransfer.files?.[0];
           if (!dropped || !inputRef.current) return;
-          inputRef.current.files = event.dataTransfer.files;
-          setFilename(dropped.name);
+          // Not every engine lets `files` be assigned — Safari treats it as
+          // read-only, and an unguarded write throws in module strict mode.
+          try {
+            inputRef.current.files = event.dataTransfer.files;
+            setFilename(dropped.name);
+          } catch {
+            // Fall back to the picker rather than showing a file the form
+            // would not actually submit.
+            inputRef.current.click();
+          }
         }}
       >
         <input

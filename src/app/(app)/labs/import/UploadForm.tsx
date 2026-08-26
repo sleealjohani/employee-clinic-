@@ -7,6 +7,18 @@ import { FileField } from "@/components/ui/FileField";
 import { IconImport } from "@/components/layout/icons";
 import { CHUNK_BYTES } from "@/lib/import/chunk";
 
+
+/** A failing response is not always JSON — a gateway may answer with HTML. */
+async function readError(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { error?: string };
+    if (body.error) return body.error;
+  } catch {
+    // fall through
+  }
+  return response.status === 413 ? "imp.tooLarge" : "common.error";
+}
+
 type Phase =
   | { kind: "idle" }
   | { kind: "uploading"; sent: number; total: number }
@@ -51,24 +63,44 @@ export function UploadForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
       });
-      const init = (await started.json()) as { batchId?: string; attachmentId?: string; error?: string };
-      if (!started.ok || !init.attachmentId || !init.batchId) {
-        setPhase({ kind: "error", message: init.error ?? "common.error" });
+      if (!started.ok) {
+        setPhase({ kind: "error", message: await readError(started) });
+        return;
+      }
+      const init = (await started.json().catch(() => ({}))) as { batchId?: string; attachmentId?: string };
+      if (!init.attachmentId || !init.batchId) {
+        setPhase({ kind: "error", message: "common.error" });
         return;
       }
 
-      // Sequential, so the chunks append in order.
+      // Sequential, so the chunks append in order. A phone on mobile data
+      // drops requests; one lost chunk should cost a retry, not the upload.
       for (let offset = 0; offset < file.size; offset += CHUNK_BYTES) {
         const slice = file.slice(offset, Math.min(offset + CHUNK_BYTES, file.size));
-        const response = await fetch(`/api/import/upload?step=chunk&id=${init.attachmentId}`, {
-          method: "POST",
-          headers: { "content-type": "application/octet-stream" },
-          body: slice,
-        });
-        if (!response.ok) {
-          const failed = (await response.json().catch(() => ({}))) as { error?: string };
-          setPhase({ kind: "error", message: failed.error ?? "common.error" });
-          return;
+        let sent = false;
+        for (let attempt = 0; attempt < 3 && !sent; attempt++) {
+          try {
+            const response = await fetch(`/api/import/upload?step=chunk&id=${init.attachmentId}`, {
+              method: "POST",
+              headers: { "content-type": "application/octet-stream" },
+              body: slice,
+            });
+            if (response.ok) {
+              sent = true;
+              break;
+            }
+            // A refusal from the server is final — retrying cannot help.
+            const failed = await readError(response);
+            setPhase({ kind: "error", message: failed });
+            return;
+          } catch {
+            // Network-level failure: wait a moment and try this chunk again.
+            if (attempt === 2) {
+              setPhase({ kind: "error", message: "imp.uploadInterrupted" });
+              return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+          }
         }
         setPhase({ kind: "uploading", sent: Math.min(offset + CHUNK_BYTES, file.size), total: file.size });
       }
@@ -79,9 +111,13 @@ export function UploadForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ batchId: init.batchId }),
       });
-      const result = (await done.json()) as { batchId?: string; error?: string };
-      if (!done.ok || !result.batchId) {
-        setPhase({ kind: "error", message: result.error ?? "common.error" });
+      if (!done.ok) {
+        setPhase({ kind: "error", message: await readError(done) });
+        return;
+      }
+      const result = (await done.json().catch(() => ({}))) as { batchId?: string };
+      if (!result.batchId) {
+        setPhase({ kind: "error", message: "common.error" });
         return;
       }
 
@@ -139,7 +175,7 @@ export function UploadForm({
           style={{ background: "var(--danger-soft)", color: "var(--danger)" }}
           role="alert"
         >
-          {t(phase.message)}
+          {t(phase.message, { mb: Math.round(maxBytes / (1024 * 1024)) })}
         </p>
       )}
     </form>

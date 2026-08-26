@@ -5,7 +5,7 @@ import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/auth/current-user";
 import { MAX_UPLOAD_BYTES, EXTRACTION_MODEL, PROMPT_VERSION, importAvailability } from "@/lib/ai/extract";
 import { LOCAL_EXTRACTION_MODEL, LOCAL_PROMPT_VERSION } from "@/lib/import/local-pdf";
-import { ACCEPTED_UPLOAD_TYPES, stageBatch } from "@/lib/import/stage-batch";
+import { resolveUploadType, stageBatch } from "@/lib/import/stage-batch";
 import { CHUNK_BYTES } from "@/lib/import/chunk";
 
 /**
@@ -44,20 +44,20 @@ async function init(request: NextRequest, user: Actor) {
 
   if (!filename || !size) return NextResponse.json({ error: "common.required" }, { status: 400 });
   if (size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "imp.tooLarge" }, { status: 413 });
-  if (!ACCEPTED_UPLOAD_TYPES.includes(mimeType)) {
-    return NextResponse.json({ error: "imp.uploadHint" }, { status: 415 });
-  }
+
+  const type = resolveUploadType(mimeType, filename);
+  if (!type) return NextResponse.json({ error: "imp.badFormat" }, { status: 415 });
   // Images have no text layer, so they can only be read by the optional
   // external fallback. Refuse them up front rather than after a long upload.
-  if (mimeType !== "application/pdf" && !importAvailability().enabled) {
-    return NextResponse.json({ error: "imp.uploadHint" }, { status: 415 });
+  if (type !== "application/pdf" && !importAvailability().enabled) {
+    return NextResponse.json({ error: "imp.scansNeedKey" }, { status: 415 });
   }
 
-  const local = mimeType === "application/pdf";
+  const local = type === "application/pdf";
   const attachment = await db.attachment.create({
     data: {
       filename,
-      mimeType,
+      mimeType: type,
       // Filled in as the chunks land; the finish step reconciles both.
       size: 0,
       sha256: "",
