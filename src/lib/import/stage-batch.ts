@@ -25,6 +25,34 @@ import {
 
 export const ACCEPTED_UPLOAD_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 
+const EXTENSION_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+/**
+ * Settle what a file actually is.
+ *
+ * A phone picking a report out of Files or iCloud Drive frequently hands over
+ * an empty type, or application/octet-stream, even for an ordinary PDF —
+ * trusting the browser's label alone rejects a perfectly good report with a
+ * message about unsupported formats. The extension decides when the label is
+ * missing or generic; a label we recognise still wins.
+ */
+export function resolveUploadType(mimeType: string, filename: string): string | null {
+  const declared = (mimeType ?? "").trim().toLowerCase();
+  if (ACCEPTED_UPLOAD_TYPES.includes(declared)) return declared;
+
+  const generic = !declared || declared === "application/octet-stream" || declared === "binary/octet-stream";
+  if (!generic) return null;
+
+  const extension = (filename ?? "").toLowerCase().split(".").pop() ?? "";
+  return EXTENSION_TYPES[extension] ?? null;
+}
+
 type Actor = Parameters<typeof writeAudit>[0]["user"];
 
 function num(value: string): number | null {
