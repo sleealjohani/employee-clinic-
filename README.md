@@ -148,6 +148,12 @@ npm run dev
 `src/instrumentation.ts` عند إقلاع الخادم — قبل تحميل أي وحدة، لأن pdf.js ينشئ
 `DOMMatrix` أثناء تقييم وحدته هو.
 
+ويحمّل pdf.js عامله (`pdf.worker.mjs`) باستيراد وقت-تشغيل معلَّم
+`webpackIgnore`، فلا يراه أي مجمِّع ولا يُشحن مع النشر — والنتيجة
+`Setting up fake worker failed`. لذلك يُستورَد العامل صراحةً في
+`src/lib/import/local-pdf.ts` ويُسلَّم عبر `globalThis.pdfjsWorker`، مع تثبيته
+هو وبيانات الخطوط الأساسية في `outputFileTracingIncludes` ضماناً.
+
 ### الدفعات الكبيرة
 
 دفعة الفحص الدوري لكامل المنسوبين تصل إلى عشرات الميجابايتات ومئات الصفحات، وحدّ
