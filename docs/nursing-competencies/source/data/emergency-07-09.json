@@ -1,0 +1,48 @@
+[
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"CAST APPLICATION","src":"PDF_003 p12",
+ "knowledge":[
+  "States the nurse's responsibilities with regards to application of cast.",
+  "Verbalizes the potential complications for patient with cast.",
+  "Verbalizes the educational needs of the patient with cast."],
+ "skills":[
+  "Demonstrates the preparation of equipment, correct procedure for application and removal of cast.",
+  "Demonstrates holistic assessment and care of the patient with cast.",
+  "Demonstrates related assessment, interventions and care of the patient with cast."],
+ "attitude":[
+  "Maintains patient's privacy and confidentiality before and after the procedure.",
+  "Answers patient and family questions politely."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"CAST CARE APPLICATION AND REMOVAL","src":"PDF_003 p13",
+ "knowledge":[
+  "States the nurse's responsibility in regard to care, application and removal of cast.",
+  "Verbalizes the potential complications for patient with a cast.",
+  "Verbalizes the educational needs of a patient with a cast."],
+ "skills":[
+  "Provides age specific patient teaching culturally sensitive patient teaching.",
+  "Demonstrates procedures for application/adaptation and removal of casts.",
+  "Demonstrates holistic assessment and care of the patient with a cast.",
+  "Documents related assessment, interventions and care of patient with a cast.",
+  "Facilitate the application of the cast for the safety of the pt. and health care providers."],
+ "attitude":[
+  "Provides introduction of self and explain the procedure appropriately and privately",
+  "Respect patient's response to care and provide answer to patient's inquiries pertaining to cast"]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"CONTINUOUS MONITORING","src":"PDF_003 p14-15",
+ "knowledge":[
+  "States the nursing responsibilities associated with initiation of continuous bedside monitoring.",
+  "Verbalizes rationale for initiating continuous bedside monitoring.",
+  "Verbalizes and identifies 5 life threatening cardiac arrhythmias in paediatrics.",
+  "States the normal values of heart rate, respiratory rate and blood pressure in age specific during sleeping and awake mode."],
+ "skills":[
+  "Utilizes assessment skills to identify those children who require continuos bedside monitoring.",
+  "Demonstrates application of chest electrodes.",
+  "Demonstrates correct connection of all sensors and leads from the monitor to the child.",
+  "Demonstrates recognition of bradycardia, SVT, VT,VF, Asystole and PEA.",
+  "Utilizes culturally sensitive age specific child/ family teaching.",
+  "Responds immediately to any alarms from the monitoring system.",
+  "Demonstrates use of monitor and its available functions.",
+  "Demonstrates appropriate alarm settings for individual child.",
+  "Documents related assessment, interventions and care on patient record."],
+ "attitude":[
+  "Shows vigilance in performing continuous monitoring of critically ill paediatric patients."]}
+]

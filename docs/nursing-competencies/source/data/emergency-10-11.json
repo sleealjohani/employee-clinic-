@@ -1,0 +1,38 @@
+[
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"DEFIBRILLATION/ CARDIOVERSION","src":"PDF_003 p16-17 (original knowledge list skips number 5; renumbered sequentially)",
+ "knowledge":[
+  "Verbalizes principles and reasons for defibrillation or cardioversion.",
+  "States standard and electrical safety precautions when defibrillating or performing cardioversion on a patient.",
+  "Verifies \"shockable rhythms\" on EKG and correlates with clinical state of patient.",
+  "Verbalizes joule settings used for defibrillation sequence as per PALS standard (Monophasic/Biphasic) ordered by physician.",
+  "Verbalizes correct call to “stand clear” of patient and bed prior to defibrillation.",
+  "States procedure modifications required if patient has a pacemaker.",
+  "States the age specific and culturally sensitive teaching required."],
+ "skills":[
+  "Demonstrates placing patient on crash cart monitor.",
+  "Administers sedation as prescribed, if the patient's condition permits.",
+  "Demonstrates measures to decrease thoracic impedance.",
+  "For Cardioversion places defibrillator in ‘sync’ mode and verifies QRS complexes appear with R wave marker on monitor for correct synchronization.",
+  "Places paddles or hands-off electrodes in proper location and charges to appropriate joules required or requested.",
+  "Follows safety precautions during the procedure, ensuring that the patient and staff are safe prior to and during the delivery of shock(s).",
+  "Demonstrates use of defibrillator paddles for “quick look”.",
+  "Demonstrates methods to discharge defibrillator of unwanted charge.",
+  "Documents defibrillation on Code Blue Form.",
+  "Documents defibrillation/Cardioversion procedure to include patient preparation, treatment and response."],
+ "attitude":[
+  "Recognizes safety precautions in performing defibrillation/cardioversion."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"DIABETIC EMERGENCIES","src":"PDF_003 p18",
+ "knowledge":[
+  "Define and differentiate the following diabetic emergencies:\n    Hypoglycemia\n    Hyperglycemia\n    Diabetic Ketoacidosis\n    Hyperosmolar Hyperglycemic Nonketotic Syndrome",
+  "List the clinical manifestations of diabetic emergencies",
+  "List the diagnostic evaluations and state its importance in managing diabetic emergencies",
+  "State the complications of diabetic emergencies, its prevention and appropriate management"],
+ "skills":[
+  "Demonstrate the assessment that includes the mental status of diabetic patient in the emergency department.",
+  "Demonstrate the steps of diagnostic evaluation of blood glucose level.",
+  "Demonstrate the steps in the administration of glucose parenterally.",
+  "Demonstrate evaluation of patient's response to emergency medical care rendered."],
+ "attitude":[
+  "Identify the diabetic patient with confidentiality and be able to deal in a professional manner."]}
+]

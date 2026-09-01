@@ -1,0 +1,52 @@
+[
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"PAIN AND DISCOMFORT: PATIENT MANAGEMENT GUIDELINES","src":"PDF_003 p20-21","note":"Source scan contains only the KNOWLEDGE section for this competency; the SKILLS and ATTITUDE pages are not present in the supplied PDF.",
+ "knowledge":[
+  "Explain why it is important for a nurse to accept that pain is what the patient says it is, and exist when he/ she says it does.",
+  "Discuss the rationale for the World Health Organization making the recommendation that pain is the fifth vital signs.",
+  "Explain why it is important for a nurse to pay special attention to Vulnerable Patients when their inability to communicate verbally does not negate the possibility that an individual is experiencing pain and is in need of appropriate pain relieving treatment.",
+  "Describe what acute pain is i.e. it has a sudden onset and commonly reduces over the short period of time (days, hours, minutes) and often follows injury to the body and generally disappears when the injury heals.",
+  "Describe the objective physical signs associated with acute pain e.g. tachycardia, hypertension, diaphoresis, mydriasis (dilation of the pupil) and pallor.",
+  "Describe the chronic pain is i.e. pain which persists a month beyond the usual course of an acute disease or a reasonable time for an injury to heal, or that is associated with a chronic pathologic process that causes continuous pain or the pain recurs at intervals for month or years.",
+  "Describe procedural pain i.e. pain and/ or discomfort from diagnostic or therapeutic procedures, such as lumbar puncture, wound and burn debridement etc.",
+  "Describe discomfort i.e. mental or physical uneasiness, including nauseas, which occurs as a result of acute or chronic conditions, diagnostic or therapeutic procedures or anticipation of them, or as side effects of analgesia.",
+  "Explain how to complete a full pain assessment i.e.\n    • Pain intensity\n    • Location\n    • Duration\n    • Character\n    • Frequency\n    • Pain score\n    • Pain relief taken and effect\nFor vulnerable or patients unable to communicate verbally use the appropriate objective Pain assessment tool (modified FLACC and FRAAC)\n    1. Adult patient is 14 years and older\n    2. Pediatric – patient is younger than 14\n    3. Neonate – patient younger than 40 weeks corrected gestational age, plus 28 days",
+  "State the various measures for pain control i.e. pharmacological and non-pharmacological.",
+  "Describe the elements of Pain management that patient need to be educated about when it is part of the treatment, such as:\n    • Understanding Pain and other symptoms\n    • The risk of Pain and other symptoms\n    • The importance of effective pain and symptom management\n    • The assessment process for pain and symptoms\n    • Methods for managing Pain and other symptoms",
+  "Explain how often a full pain assessment needs to be done i.e.\n    • In- patients at least every shift\n    • Out-patients at every encounter\n    • Patients in labor, on admission, at least to understand if their pain is typical or atypical of an individual in labor and if there are other pain sites unrelated to the labor and delivery process",
+  "Discuss the requirements for reassessment of pain i.e.\n    • Patients with a pain score ≤ 2 or 2.5 in neonates for 24 hours should be reassessed for every shift\n    • Patients with pain score of 2 or more are reassessed every 4 hours\n    • 30-60 minutes after an implementation of an intervention for pain or more frequently as required\n    • Patients receiving IV pain medication with titrated dose ranges will be reassessed and documented every 10-15 minutes until the pain is relieved\n    • Reassessment must include frequency, duration, character, location and intensity of pain e.g. for women"],
+ "skills":[],
+ "attitude":[]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"HEAD TRAUMA","src":"PDF_003 p23-24",
+ "knowledge":[
+  "Relate mechanism of injury to potential injuries of the head.",
+  "List the different types of traumatic brain injury.",
+  "Describe the clinical manifestations patients with head trauma.",
+  "List diagnostic evaluation and management in Emergency Department.",
+  "Establish the relationship between airway management and patient with head injury.",
+  "States methods of prevention, assessment and management of complications associated with head injuries."],
+ "skills":[
+  "Demonstrate the rapid assessment and management of patients with head injuries.",
+  "Performs nursing interventions towards maintaining adequate cerebral perfusion and promoting cognitive function.",
+  "Prepare and assist in insertion of artificial airway as necessary."],
+ "attitude":[
+  "Document patient's status and interventions performed with veracity",
+  "Confidentially identify patients with head injury",
+  "Performing emergency resuscitation with respect to the dignity of the patient"]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"HEMORRHAGE","src":"PDF_003 p25-26",
+ "knowledge":[
+  "Differentiate between arterial, venous and capillary bleeding.",
+  "Establish the relationship between mechanism of injury and bleeding.",
+  "Discuss the primary assessment and interventions of patients with active bleeding.",
+  "List the clinical manifestations of internal bleeding.",
+  "Discuss the subsequent assessment and general interventions of injured patients including pharmacological interventions and patient education."],
+ "skills":[
+  "Demonstrate direct pressure as a method of emergency medical care of external bleeding.",
+  "Demonstrate the use of pressure points and tourniquets as a method of emergency.",
+  "Demonstrate the care of patient exhibiting signs and symptoms of external and internal bleeding.",
+  "Demonstrate preparation, closure and dressing of open wounds with active bleeding."],
+ "attitude":[
+  "State the importance of privacy of injured patients with active bleeding during assessment and executing interventions.",
+  "Performing emergency intervention with respect to the dignity of the patient."]}
+]

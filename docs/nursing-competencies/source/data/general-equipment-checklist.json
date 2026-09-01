@@ -1,0 +1,13 @@
+[
+{"set":"GENERAL","kind":"GENERAL COMPETENCY","title":"EQUIPMENT CHECKLIST","src":"PDF_006 p11","layout":"equipment",
+ "legend":[
+  ["VT","Training given to staff by the vendor"],
+  ["RD","Employee is able to repeat a demonstration of equipment with little supervision. Refers malfunctioning equipment to the relevant department. For example BIOMED department with minimal guidance and supervision"],
+  ["UEC","Employee is able to independently use the equipment in their clinical area of practice. Initiate referral of malfunctioning equipment to the relevant personnel, for example BIOMED without any guidance or supervision."],
+  ["NA","Not applicable. Equipment is not available in the area of practice"]],
+ "equipment":[
+  "Defibrillator","Vital Signs Monitor","Pulse Oximeter","Glucometer","Suction Machine",
+  "Infusion Pump","Syringe Pump","ECG machine","Air mattress and machine","Steam Inhalation",
+  "Ophthalmoscope","Otoscope","Blood Warmer","Cardiotocogram","Feeding bottle sterilizer",
+  "Warmer","Photolight","Patients Bed"]}
+]

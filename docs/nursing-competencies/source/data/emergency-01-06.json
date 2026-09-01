@@ -1,0 +1,128 @@
+[
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"AMBULANCE TRANSPORT","src":"PDF_003 p1-2",
+ "knowledge":[
+  "Discuss the different levels of TRANSPORT applicable to area of practice.",
+  "Verbalize the role and responsibilities of the nurse and driver during the AMBULANCE TRANSFER.",
+  "Discuss the policy for checking the AMBULANCE and the equipment required to meet specific individual patient needs e.g. Emergency Transport Bag.",
+  "Explain how to prepare the AMBULANCE according to patient needs e.g. compartment temperature needs to be low for blood transfusions.",
+  "Discuss rationale for having any back-up switches for alternative power sources should the normal ones fail for any reason e.g. electrical power.",
+  "Explain the importance of seatbelts and what to do if emergency care needs to be given and the seatbelt prevents this.",
+  "Explain rational for knowing the level of oxygen PsI needed for each TRANSPORT.",
+  "Discuss the rationale for having the TRANSFER Acceptance Form and the need for the Shift Supervisor/Designee to give the official \"go ahead\" to leave.",
+  "Explain reporting process for diverting or stopping an AMBULANCE during a trip.",
+  "Discuss the documentation needed for an AMBULANCE TRANSPORT for area of practice."],
+ "skills":[
+  "Demonstrate checking the AMBULANCE and the equipment required to meet specific individual patient needs e.g. Emergency Transport Bag",
+  "Demonstrate loading and unloading AMBULANCE stretcher or isolate depending on area of practice",
+  "Demonstrate use of AMBULANCE equipment and any standby switches for alternative power sources",
+  "Demonstrate use of AMBULANCE communication equipment as appropriate",
+  "Demonstrate how to check oxygen cylinders including the spare ones",
+  "Demonstrate the reporting process for diverting or stopping an AMBULANCE during a trip",
+  "Complete the documentation needed for an AMBULANCE TRANSPORT for area of practice"],
+ "attitude":[
+  "To be calm and able to think critically and creatively with limited resources as required to care for the patient during the AMBULANCE TRANSPORT",
+  "To be self-aware of limitation in knowledge and skills",
+  "Ability of nurse to respond professionally and calmly if patient should deteriorate during the TRANSFER",
+  "Ability to communicate with EMS/ER physician and Shift Supervisor/Designee and respond to instruction as relevant and appropriate",
+  "Demonstrate ability to organize and facilitate a Reflection Session in and on practice should an unexpected situation occur during an AMBULANCE TRANSFER and activate findings to improve future practice and response",
+  "To be approachable and open to answer patient and family's questions"]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"ARTERIAL BLOOD GAS COLLECTION","src":"PDF_003 p3-4",
+ "knowledge":[
+  "Verbalize the rationale for noting the percentage of oxygen administration and the core temperature (oral or rectal) prior to taking sample.",
+  "State the supplies needed for the route of collection identified and the preparation of the puncture site prior to taking the sample.",
+  "Discuss the application of the Allen's Test prior to taking a radial sample",
+  "Verbalize the aftercare required both arterial line and puncture sampling e.g. applying pressure on the site for at least 5 minutes post sample collection.",
+  "Discuss the preparation of the arterial line for taking a sample e.g. removal of 5-10 ml depending on length of tubing.",
+  "State the procedure for transportation of the sample to either local machine or laboratory is 20 minutes or more.",
+  "Discuss the risk and complications associated with arterial puncture and use of arterial line e.g. tissue ischemia or necrosis, infection, hemorrhage and incidental intra-arterial drug injection.",
+  "State the role and responsibility of the nurse when the sample results are abnormal."],
+ "skills":[
+  "Demonstrate how to prepare for the taking of an arterial sample from either a puncture site or arterial line.",
+  "Complete the entire collection procedure of taking a sample according to the relevant route e.g. demonstrates Allen's test and completes the correct labeling procedure for the sample collected.",
+  "Demonstrate the aftercare required for both arterial line and puncture sampling e.g. apply pressure to puncture site for a minimum 5-10 minutes as appropriate to individual patient or flushing arterial line and 3 way stopcocks and closure of all portals.",
+  "Demonstrate appropriate action when results are abnormal including the documentation of the results and action taken.",
+  "Document the procedure and outcome in the patient's records."],
+ "attitude":[
+  "Accept constrictive criticism as learning opportunity.",
+  "To be self-aware of limitation in knowledge and skills.",
+  "To be approachable and open to answer patient and family's questions.",
+  "Attentive to overall patient experience e.g. pain, anxiety and have ability to provide comfort and emotional support as needed.",
+  "Ability to organize and facilitate a Reflection session and on practice after an Arterial Blood Gas learning opportunity occurs and activate findings to improve future practice and response."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"ASSESSMENT OF CRITICALLY ILL CHILD","src":"PDF_003 p5-6",
+ "knowledge":[
+  "Verbalizes importance of history taking.",
+  "Describes in detail full assessment of Respiratory system by observation, auscultation of air entry and interpretation of data obtained and states normal parameters.",
+  "Describes in detail recognition of potential respiratory failure and its effects on other systems.",
+  "Describes assessment of cardiovascular system using data from monitor, skin perfusion, capillary refill, palpation of pulses and states normal parameters of same.",
+  "Describe in detail recognition of potential circulatory failure and its effect on other systems.",
+  "Describes in detail assessment of Central Nervous system: level of consciousness, pupil reaction and anterior fontanel in babies.",
+  "Describes assessment of gastrointestinal system including palpation and auscultation of abdomen and indication for girth measurement.",
+  "States assessment of Genito-Urinary system and states normal urinary output.",
+  "States assessment of skin integrity and risk of skin breakdown.",
+  "States Psychosocial assessment including pain.",
+  "Identifies need for immediate notification of clinician and immediate nursing action.",
+  "States need for continuing assessment and evaluation."],
+ "skills":[
+  "Obtains a full history from other healthcare professional and/or family.",
+  "Demonstrates a full assessment of critically ill infant or child using physical assessment, data obtained from monitoring equipment, and patient or parent complaint.",
+  "Demonstrates use of equipment used on critically ill child.",
+  "Notifies clinician of abnormal findings immediately.",
+  "Documents related to assessment, interventions, and evaluation of care made available on PICU flow sheet and the Medical Record.",
+  "Demonstrates continued assessment and re-evaluation of patient post intervention.",
+  "Provides age specific, culturally sensitive education to child and family."],
+ "attitude":[
+  "Allows the child and family to verbalize concerns on the disease and the treatment options.",
+  "Recognizes the child and the family's needs for continuous updates on prognosis and treatment given."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"ASSISTING IN ENDOTRACHEAL INTUBATION","src":"PDF_003 p7",
+ "knowledge":[
+  "States the indications/purpose of endotracheal intubations.",
+  "Verbalizes the nurses role and responsibilities pre , during and post intubation.",
+  "States possible complications of intubation"],
+ "skills":[
+  "Assembles equipment needed for intubations and emergency management.",
+  "Selects appropriate size and knows approximate depth level.",
+  "Follows standard precautions and patient safety during procedure.",
+  "Documents and records intubations process"],
+ "attitude":[
+  "Recognizes child's safety and comfort level in the performance of the procedure.",
+  "Informs patient or parents of the impeding inability to talk."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"BASIC CARDIAC MONITORING","src":"PDF_003 p8-9",
+ "knowledge":[
+  "Discuss the correct placement of the electrodes required for BASIC CARDIAC MONITORING e.g. Red, Yellow and Green/Black.",
+  "State the landmarks for the electrodes e.g. Green/Black at mid axilla which is between the 4th and 5th intercostal space below the nipple.",
+  "Discuss how to correctly prepare the skin for the electrode application e.g. wipe the skin with alcohol swabs and dry, shave the hair from the area and clean with alcohol swabs and dry.",
+  "Discuss the rationale for taking a baseline printed strip of the cardiac rhythm and why it is important to compare this baseline strip with any previous strips or ECG reading/s.",
+  "Explore the reasons that would necessitate calling the Physician to examine the patient due to a rhythm change e.g. explain the normal PQRST complex.",
+  "Explain how to document BASIC CARDIAC MONITORING findings correctly."],
+ "skills":[
+  "Demonstrate the correct placement of the electrodes required for BASIC CARDIAC MONITORING e.g. Red, Yellow and Green/Black.",
+  "Show how to find the landmarks for the electrodes e.g. Green/Black at mid axilla which is between the 4th and 5th intercostal space below the nipple.",
+  "Demonstrate how to correctly prepare the skin for the electrode application e.g. wipe the skin with alcohol swabs and dry, shave the hair from the area and clean with alcohol swabs and dry.",
+  "Show how to take a baseline printed strip of the cardiac rhythm and how to compare this baseline strip with any previous strips or ECG reading/s.",
+  "Demonstrate what the components of the by drawing a normal PQRST complex."],
+ "attitude":[
+  "Accept constrictive criticism as learning opportunity.",
+  "To be self-aware of limitation in knowledge and skills.",
+  "To be approachable and open to answer patients and family's questions.",
+  "Attentive to overall patient experience e.g. pain, anxiety and have ability to provide comfort and emotional support as needed.",
+  "Ability to organize and facilitate a Reflection session in and on practice after a BASIC CARDIAC MONITORING learning opportunity occurs and activates findings to improve future practice and response."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"BURNS","src":"PDF_003 p10-11",
+ "knowledge":[
+  "States assessment of burns in terms of :\n    Depth and severity\n    Extent of body surface\n    Source of burns",
+  "Define and list the characteristics of different types of burns: superficial, partial, full-thickness burns",
+  "Describe the emergency care of the patient with the following types of burns:\n    Thermal\n    Chemical\n    Electrical",
+  "List the functions of dressing and bandaging and the effects of improperly applied dressing.",
+  "Discuss the potential complications of burn and its prevention and interventions"],
+ "skills":[
+  "Demonstrate the steps in emergency care of a patient with superficial, partial and full-thickness burns",
+  "Able to prioritized interventions in emergency care of patients with chemical and electrical burns.",
+  "Demonstrate dressing of burn-affected parts aseptically."],
+ "attitude":[
+  "State the importance of privacy of patients during assessment and interventions of patients with burns",
+  "Demonstrate intervention with respect to the dignity of the patient."]}
+]

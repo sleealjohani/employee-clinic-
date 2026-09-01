@@ -1,0 +1,74 @@
+[
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"NEBULIZER THERAPY","src":"PDF_003 p30",
+ "knowledge":["Verbalizes knowledge of nebulizer therapy."],
+ "skills":[
+  "Makes a complete assessment of patient.",
+  "Explains procedure to patient/parents.",
+  "Observes standard precautions.",
+  "Places patient in a comfortable sitting/semi-fowler's position.",
+  "Carries out physician's orders appropriately.",
+  "Instructs patient to take deep breaths during nebulization.",
+  "Encourages patient to cough and expectorate secretions if applicable.",
+  "Provides health teachings to patient and family.",
+  "Documents all nursing measures rendered.",
+  "Provide oral hygiene after nebulization.",
+  "Provide adequate oral fluid with aspiration precautions"],
+ "attitude":[
+  "Introduces self to patient/family.",
+  "Respects patient's right and responses during any procedure.",
+  "Answers patiently and correctly patient questions regarding hospitalization."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"OBSTETRIC EMERGENCIES","src":"PDF_003 p31-32",
+ "knowledge":[
+  "Defines the most common obstetric emergencies with identification of the major causes.",
+  "Verbalizes clinical guidelines and recommendations for the management of shoulder dystocia, ante partum hemorrhage, post-partum hemorrhage, cord prolapse & eclampsia.",
+  "Discusses the emotional/psychological consequences for the woman and her family following an obstetric emergency.",
+  "Discusses clinical risk management in relation to obstetric emergencies & importance of debriefing sessions.",
+  "Discusses the importance of clear, comprehensive, accurate record keeping."],
+ "skills":[
+  "Provides specific, culturally sensitive patient assessment and education.",
+  "Provides support and information to women and their families during and after obstetric emergencies.",
+  "Demonstrates the ability to check apparatus.",
+  "Provide age specific & culturally sensitive patient teaching to patient/family.",
+  "Provides an opportunity for the woman and her family to be counselled following an obstetric emergency.",
+  "Demonstrates using a systemic approach in the management of each obstetric emergency.",
+  "Demonstrates correct first line management of each obstetric emergency.",
+  "Demonstrates assembly of the obstetric bed to facilitate the management of obstetric emergencies."],
+ "attitude":[
+  "Responds to obstetric emergencies promptly & manage situation appropriately in a calm, systematic manner.",
+  "Understands and respect patient/family response to plan of care following an obstetric emergency & addresses issues and concerns in a polite manner."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"SHOCK","src":"PDF_003 p33",
+ "knowledge":[
+  "List the structure and function of the circulatory system.",
+  "Enumerate and define different classifications of shock.",
+  "List signs and symptoms of shock.",
+  "State the steps in the emergency medical care of the patient with signs and symptoms of shock (hypo perfusion).",
+  "Discuss the primary and subsequent assessment of patients in level of priority (Airway, Breathing, and Circulation).",
+  "Discuss the primary and general interventions of resuscitation in restoring adequate tissue perfusion."],
+ "skills":[
+  "Demonstrate the rapid steps of care of patients exhibiting signs and symptoms of shock.",
+  "Performs fluid resuscitation as appropriate depending on the assessment of the patient.",
+  "Demonstration of correct transfusion of blood in accordance to guidelines provided."],
+ "attitude":[
+  "Confidentially identify patients exhibiting signs and symptoms of shock",
+  "Performing emergency resuscitation with respect to the dignity of the patient"]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"TRIAGE","src":"PDF_003 p34-35",
+ "knowledge":[
+  "Defines the purpose of triage and the roles of each persons involved during the process.",
+  "States the nursing responsibility regarding triage process",
+  "Identifies the tools that are utilized during triage process.",
+  "Discusses patient categories for triage.",
+  "Identifies situations that require immediate attention."],
+ "skills":[
+  "Performs primary survey for immediate patient screening",
+  "Utilizes the appropriate Triage system implemented in the institution.",
+  "Performs secondary survey for thorough patient screening.",
+  "Demonstrates procedures for assisting physicians.",
+  "Utilizes all associated forms and documents."],
+ "attitude":[
+  "Balances and prioritizes patient needs and promotes flexibility in emergent situations.",
+  "Maintains an open, approachable manner and treats other fairy and respectfully.",
+  "Preserves privacy and confidentiality and shows regard on individuals' feelings."]}
+]
