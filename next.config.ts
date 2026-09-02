@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
    */
   outputFileTracingIncludes: {
     "/**": [
+      // Prisma's JavaScript engine loads this file through fs at runtime.
+      // Keep it explicit: successful local builds can otherwise omit it on Vercel.
+      "./node_modules/.prisma/client/query_compiler_bg.wasm",
       "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
       "./node_modules/pdfjs-dist/standard_fonts/**",
     ],

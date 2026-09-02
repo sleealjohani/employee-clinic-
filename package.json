@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && node scripts/migrate.mjs && next build",
+    "build": "prisma generate && next build && node scripts/check-deployment.mjs",
+    "vercel-build": "prisma generate && node scripts/migrate.mjs && next build && node scripts/check-deployment.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
