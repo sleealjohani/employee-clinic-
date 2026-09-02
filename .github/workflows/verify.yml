@@ -1,0 +1,30 @@
+name: Verify clinic platform
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      CHECKPOINT_DISABLE: "1"
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5140/postgres
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5140/postgres
+      AUTH_SECRET: synthetic-ci-key-only-no-production-access-0000000000
+      ENABLE_AI_IMPORT: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:production

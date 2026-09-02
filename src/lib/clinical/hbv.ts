@@ -1,98 +1,115 @@
-import type { LabFlag } from "@prisma/client";
-
+import type { LabFlag, Comparison } from "@prisma/client";
+import { sameUnit } from "./numeric";
 /**
- * Hepatitis B protection status for a healthcare worker.
- *
- * Counting doses is not enough: protection is decided by the Anti-HBs titre.
- * ≥ 10 mIU/mL is protective; below that after two complete series the worker is
- * a non-responder and must be flagged permanently, because they stay
- * susceptible after any exposure no matter how many further doses they get.
+ * Conservative record summary, not a diagnosis or occupational clearance.
+ * Standard three-dose series only; alternative products require clinician review.
+ * References: CDC hepatitis-b/hcp/infection-control and Pink Book chapter 10.
+ * Never infer infection from a reactive screening test, or non-response from row counts.
  */
-
 export type HbvStatus =
   | "PROTECTED"
-  | "NON_RESPONDER"
-  | "SUSCEPTIBLE"
-  | "INFECTED"
+  | "REVIEW_REQUIRED"
   | "SERIES_INCOMPLETE"
   | "NO_DATA";
-
 export type HbvLab = {
   testCode: string;
   flag: LabFlag;
   valueNum: number | null;
   collectedAt: Date | null;
+  unit?: string | null;
+  comparator?: Comparison;
+  reviewedAt?: Date | null;
 };
-
+export type HbvDose = { doseNumber: number; givenAt: Date };
 export type HbvResult = {
   status: HbvStatus;
   basis: string[];
   antiHbsValue: number | null;
   doses: number;
 };
-
-const PROTECTIVE_TITRE = 10;
-
-function latest(labs: HbvLab[], code: string): HbvLab | undefined {
-  return labs
-    .filter((l) => l.testCode === code)
-    .sort((a, b) => (b.collectedAt?.getTime() ?? 0) - (a.collectedAt?.getTime() ?? 0))[0];
+const DAY = 86400000;
+export function hbvStatus(
+  labs: HbvLab[],
+  doseInput: HbvDose[] | number,
+  locale: "ar" | "en" = "ar",
+): HbvResult {
+  const ar = locale === "ar",
+    doses = typeof doseInput === "number" ? [] : doseInput;
+  const ordered = [...labs].sort(
+    (a, b) => (b.collectedAt?.getTime() || 0) - (a.collectedAt?.getTime() || 0),
+  );
+  const anti = ordered.find((l) => l.testCode === "ANTI_HBS"),
+    hbsag = ordered.find((l) => l.testCode === "HBSAG");
+  const recorded = new Set(doses.map((d) => d.doseNumber)).size;
+  const result = (status: HbvStatus, basis: string[]): HbvResult => ({
+    status,
+    basis,
+    antiHbsValue: anti?.valueNum ?? null,
+    doses: recorded,
+  });
+  if (hbsag?.flag === "REACTIVE")
+    return result("REVIEW_REQUIRED", [
+      ar
+        ? "فحص HBsAg تفاعلي؛ يلزم تقييم الطبيب والتأكيد."
+        : "Reactive HBsAg screening requires clinical assessment and confirmation.",
+    ]);
+  if (!doses.length && !anti) return result("NO_DATA", []);
+  const series = [1, 2, 3].map(
+    (n) =>
+      doses
+        .filter(
+          (d) => d.doseNumber === n && Number.isFinite(d.givenAt.getTime()),
+        )
+        .sort((a, b) => a.givenAt.getTime() - b.givenAt.getTime())[0],
+  );
+  const complete =
+    series.every(Boolean) &&
+    series[1].givenAt.getTime() - series[0].givenAt.getTime() >= 28 * DAY &&
+    series[2].givenAt.getTime() - series[1].givenAt.getTime() >= 56 * DAY &&
+    series[2].givenAt.getTime() - series[0].givenAt.getTime() >= 112 * DAY;
+  if (complete) {
+    // Preserve a documented historical response when a later titre has waned.
+    const response = ordered.find(
+      (l) =>
+        l.testCode === "ANTI_HBS" &&
+        l.reviewedAt &&
+        l.collectedAt &&
+        l.valueNum !== null &&
+        Number.isFinite(l.valueNum) &&
+        (sameUnit(l.unit, "mIU/mL") || sameUnit(l.unit, "IU/L")) &&
+        (!l.comparator ||
+          l.comparator === "EQ" ||
+          l.comparator === "GE" ||
+          l.comparator === "GT") &&
+        l.valueNum >= 10 &&
+        l.collectedAt.getTime() - series[2].givenAt.getTime() >= 28 * DAY &&
+        l.collectedAt.getTime() - series[2].givenAt.getTime() <= 62 * DAY,
+    );
+    if (response)
+      return result("PROTECTED", [
+        ar
+          ? "استجابة موثقة بعد سلسلة من ثلاث جرعات؛ تُراجع الظروف السريرية عند الحاجة."
+          : "Documented response after a three-dose series; clinical circumstances require individual assessment.",
+      ]);
+  }
+  if (anti || recorded >= 3)
+    return result("REVIEW_REQUIRED", [
+      ar
+        ? "يلزم التحقق من توقيت الفحص والوحدة وسجل الجرعات قبل تقرير الحالة."
+        : "Verify test timing, units and vaccination history before determining status.",
+    ]);
+  return result("SERIES_INCOMPLETE", [
+    ar
+      ? "سجل سلسلة التطعيم غير مكتمل."
+      : "Vaccination series documentation is incomplete.",
+  ]);
 }
-
-export function hbvStatus(labs: HbvLab[], hepBDoses: number, locale: "ar" | "en" = "ar"): HbvResult {
-  const ar = locale === "ar";
-  const basis: string[] = [];
-
-  const hbsag = latest(labs, "HBSAG");
-  const antiHbs = latest(labs, "ANTI_HBS");
-  const antiHbsValue = antiHbs?.valueNum ?? null;
-
-  if (hbsag?.flag === "REACTIVE") {
-    basis.push(ar ? "HBsAg إيجابي" : "HBsAg reactive");
-    return { status: "INFECTED", basis, antiHbsValue, doses: hepBDoses };
-  }
-
-  if (antiHbsValue !== null) {
-    basis.push(`Anti-HBs = ${antiHbsValue} mIU/mL`);
-    if (antiHbsValue >= PROTECTIVE_TITRE) {
-      return { status: "PROTECTED", basis, antiHbsValue, doses: hepBDoses };
-    }
-    basis.push(ar ? `عدد الجرعات المسجّلة: ${hepBDoses}` : `${hepBDoses} recorded doses`);
-    // Two full series (6 doses) with a titre still under 10 defines a non-responder.
-    if (hepBDoses >= 6) {
-      return { status: "NON_RESPONDER", basis, antiHbsValue, doses: hepBDoses };
-    }
-    if (hepBDoses >= 3) {
-      return { status: "SUSCEPTIBLE", basis, antiHbsValue, doses: hepBDoses };
-    }
-    return { status: "SERIES_INCOMPLETE", basis, antiHbsValue, doses: hepBDoses };
-  }
-
-  if (hepBDoses > 0) {
-    basis.push(ar ? `عدد الجرعات المسجّلة: ${hepBDoses}` : `${hepBDoses} recorded doses`);
-    basis.push(ar ? "لا يوجد فحص Anti-HBs" : "No Anti-HBs result");
-    return {
-      status: hepBDoses >= 3 ? "SUSCEPTIBLE" : "SERIES_INCOMPLETE",
-      basis,
-      antiHbsValue,
-      doses: hepBDoses,
-    };
-  }
-
-  return { status: "NO_DATA", basis, antiHbsValue, doses: hepBDoses };
-}
-
-export function hbvTone(status: HbvStatus): "ok" | "warn" | "danger" | "neutral" {
-  switch (status) {
-    case "PROTECTED":
-      return "ok";
-    case "INFECTED":
-    case "NON_RESPONDER":
-      return "danger";
-    case "SUSCEPTIBLE":
-    case "SERIES_INCOMPLETE":
-      return "warn";
-    default:
-      return "neutral";
-  }
+export function hbvTone(
+  status: HbvStatus,
+): "ok" | "warn" | "danger" | "neutral" {
+  return status === "PROTECTED"
+    ? "ok"
+    : status === "NO_DATA"
+      ? "neutral"
+      : "warn";
 }

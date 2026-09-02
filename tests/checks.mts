@@ -1,0 +1,296 @@
+import assert from "node:assert/strict";
+import ExcelJS from "exceljs";
+import { parseLabNumber } from "../src/lib/clinical/numeric";
+import {
+  computeFlag,
+  normaliseQualitative,
+  isCritical,
+} from "../src/lib/clinical/rules";
+import { hbvStatus } from "../src/lib/clinical/hbv";
+import { nextVaccineDue } from "../src/lib/clinical/due";
+import { availableSlots } from "../src/lib/scheduling";
+import {
+  DEFAULT_CLINIC_CONFIG,
+  clinicDateTime,
+  validDay,
+  profileCompletion,
+} from "../src/lib/clinic-config";
+import { employeeSchema, validateNationalId } from "../src/lib/validation";
+import { can, canOpenPath } from "../src/lib/auth/rbac";
+import { extractLocalPdfReport } from "../src/lib/import/local-pdf";
+import { readEmployeeSpreadsheet } from "../src/lib/import/employees";
+// @ts-expect-error Synthetic fixture intentionally shared with the Node integration runner.
+import { syntheticId, syntheticPdf } from "./fixtures.mjs";
+let count = 0;
+async function check(name: string, fn: () => unknown | Promise<unknown>) {
+  await fn();
+  count++;
+  console.log("PASS", name);
+}
+await check(
+  "comparison signs, scientific notation and Arabic digits remain exact",
+  () => {
+    assert.deepEqual(parseLabNumber("≤ ١٠٫٥"), {
+      value: 10.5,
+      comparator: "LE",
+      raw: "≤ ١٠٫٥",
+    });
+    assert.equal(parseLabNumber("2.1e3").value, 2100);
+    assert.equal(parseLabNumber("1,234.5").value, 1234.5);
+    for (const value of ["NaN", "Infinity", "1,2", "12 mg/dL", ""])
+      assert.equal(parseLabNumber(value).value, null);
+  },
+);
+await check("negative qualitative phrases never become reactive", () => {
+  for (const s of [
+    "non-reactive",
+    "not detected",
+    "not reactive",
+    "غير متفاعل",
+  ])
+    assert.equal(normaliseQualitative(s), "NON_REACTIVE");
+  assert.equal(normaliseQualitative("abnormal"), "REACTIVE");
+  assert.equal(normaliseQualitative("indeterminate"), "INDETERMINATE");
+});
+await check(
+  "different units never inherit an unrelated critical threshold",
+  () => {
+    assert.equal(
+      computeFlag({
+        testCode: "FBS",
+        resultType: "QUANTITATIVE",
+        valueNum: 5.2,
+        unit: "mmol/L",
+        refLow: 3.9,
+        refHigh: 5.5,
+      }),
+      "NORMAL",
+    );
+    assert.equal(
+      computeFlag({
+        testCode: "FBS",
+        resultType: "QUANTITATIVE",
+        valueNum: 5.2,
+        unit: "mmol/L",
+      }),
+      "UNKNOWN",
+    );
+    assert.equal(
+      computeFlag({
+        testCode: "FBS",
+        resultType: "QUANTITATIVE",
+        valueNum: 450,
+        unit: "mg/dL",
+      }),
+      "CRITICAL_HIGH",
+    );
+    assert.equal(
+      computeFlag({
+        testCode: "FBS",
+        resultType: "QUANTITATIVE",
+        valueNum: 90,
+        unit: "mg/dL",
+        comparator: "LT",
+      }),
+      "UNKNOWN",
+    );
+    assert.equal(isCritical("REACTIVE", "HBSAG"), true);
+  },
+);
+await check(
+  "HBV requires documented doses, unit, timing and human review",
+  () => {
+    const doses = [
+      { doseNumber: 1, givenAt: new Date("2024-01-01") },
+      { doseNumber: 2, givenAt: new Date("2024-02-01") },
+      { doseNumber: 3, givenAt: new Date("2024-07-01") },
+    ];
+    const lab = {
+      testCode: "ANTI_HBS",
+      valueNum: 35,
+      flag: "NORMAL" as const,
+      collectedAt: new Date("2024-08-05"),
+      reviewedAt: new Date("2024-08-06"),
+      unit: "mIU/mL",
+      comparator: "EQ" as const,
+    };
+    assert.equal(hbvStatus([lab], []).status, "REVIEW_REQUIRED");
+    assert.equal(
+      hbvStatus([{ ...lab, unit: "unknown" }], doses).status,
+      "REVIEW_REQUIRED",
+    );
+    assert.equal(
+      hbvStatus([{ ...lab, reviewedAt: null }], doses).status,
+      "REVIEW_REQUIRED",
+    );
+    assert.equal(hbvStatus([lab], doses).status, "PROTECTED");
+    assert.equal(
+      hbvStatus(
+        [lab, { ...lab, valueNum: 2, collectedAt: new Date("2025-08-05") }],
+        doses,
+      ).status,
+      "PROTECTED",
+    );
+    assert.equal(
+      hbvStatus([{ ...lab, testCode: "HBSAG", flag: "REACTIVE" }], doses)
+        .status,
+      "REVIEW_REQUIRED",
+    );
+    assert.equal(
+      hbvStatus(
+        [{ ...lab, valueNum: 2 }],
+        Array.from({ length: 6 }, () => doses[0]),
+      ).status,
+      "REVIEW_REQUIRED",
+    );
+  },
+);
+await check("duplicate vaccine rows cannot complete a series", () => {
+  const date = new Date("2024-01-01");
+  const next = nextVaccineDue(
+    "HEP_B",
+    Array.from({ length: 3 }, () => ({
+      doseNumber: 1,
+      givenAt: date,
+      nextDueAt: null,
+    })),
+  );
+  assert.equal(next?.nextDose, 2);
+});
+await check(
+  "scheduling respects Riyadh time, overlap, simultaneous capacity and closures",
+  () => {
+    const config = {
+      ...DEFAULT_CLINIC_CONFIG,
+      workingDays: [0, 1, 2, 3, 4, 5, 6],
+      minimumNoticeHours: 0,
+      capacity: 2,
+    };
+    const now = new Date("2026-09-02T00:00:00Z"),
+      day = "2026-09-02",
+      at = (t: string) => clinicDateTime(day, t);
+    const rows = availableSlots(
+      day,
+      40,
+      config,
+      [
+        { startsAt: at("08:00"), endsAt: at("08:20") },
+        { startsAt: at("08:20"), endsAt: at("08:40") },
+      ],
+      [],
+      now,
+    );
+    assert.equal(rows[0].available, true);
+    assert.equal(rows[0].start, "2026-09-02T05:00:00.000Z");
+    assert.equal(
+      availableSlots(
+        day,
+        20,
+        { ...config, capacity: 1 },
+        [{ startsAt: at("08:00"), endsAt: at("08:20") }],
+        [],
+        now,
+      )[0].available,
+      false,
+    );
+    assert.equal(
+      availableSlots(
+        day,
+        20,
+        config,
+        [],
+        [{ startsAt: at("08:00"), endsAt: at("09:00") }],
+        now,
+      )[0].available,
+      false,
+    );
+    assert.equal(validDay("2026-02-30"), false);
+  },
+);
+await check("employee and aggregate viewer permissions stay isolated", () => {
+  assert.equal(can("EMPLOYEE", "clinical.read"), false);
+  assert.equal(can("VIEWER", "employee.read"), false);
+  assert.equal(canOpenPath("EMPLOYEE", "/employees"), false);
+  assert.equal(canOpenPath("EMPLOYEE", "/portal/profile"), true);
+  assert.equal(canOpenPath("STAFF", "/settings"), false);
+  assert.equal(
+    profileCompletion({ phone: "0500000001" }, ["phone", "email"]).percent,
+    50,
+  );
+  assert.equal(
+    employeeSchema.safeParse({
+      name: "Test",
+      nationalId: syntheticId(),
+      dob: "2026-02-30",
+    }).success,
+    false,
+  );
+  assert.equal(validateNationalId(syntheticId()).valid, true);
+});
+await check(
+  "real PDF text extraction preserves number limits, units and negative screening",
+  async () => {
+    const pdf = syntheticPdf([
+      "Patient Name: SYNTHETIC EMPLOYEE",
+      "National ID: " + syntheticId(),
+      "Collected: 2026-08-20",
+      "Fasting Blood Sugar 5.2 mmol/L (3.9 - 5.5)",
+      "Anti-HBs < 10 mIU/mL",
+      "HBsAg Non-Reactive",
+    ]);
+    const output = await extractLocalPdfReport(pdf);
+    const rows = output.reports.flatMap((r) => r.results);
+    assert.equal(rows.find((r) => r.test_code === "FBS")?.unit, "mmol/L");
+    assert.match(
+      rows.find((r) => r.test_code === "ANTI_HBS")?.value_number || "",
+      /^</,
+    );
+    assert.equal(
+      normaliseQualitative(
+        rows.find((r) => r.test_code === "HBSAG")?.value_text,
+      ),
+      "NON_REACTIVE",
+    );
+    assert.equal(output.pageCount, 1);
+    assert.deepEqual(output.unreadPages, []);
+  },
+);
+await check(
+  "spreadsheet parsing handles quoted CSV, Arabic dates, missing zero and duplicate IDs",
+  async () => {
+    const w = new ExcelJS.Workbook(),
+      s = w.addWorksheet("Test");
+    s.addRow([
+      "الاسم",
+      "السجل المدني",
+      "تاريخ الميلاد",
+      "رقم الجوال",
+      "الايميل",
+      "نوع البرنامج ( تشغيل - خدمه مدنيه )",
+    ]);
+    s.addRow([
+      "Synthetic Employee",
+      syntheticId(),
+      "19/02/1411",
+      500000001,
+      {
+        text: "test@example.invalid",
+        hyperlink: "mailto:test@example.invalid",
+      },
+      "تشغيل",
+    ]);
+    s.addRow(["Duplicate", syntheticId(), "31/02/2024", "", "", ""]);
+    const bytes = await w.xlsx.writeBuffer(),
+      result = await readEmployeeSpreadsheet(bytes as Uint8Array, "test.xlsx");
+    assert.equal(result.rows[0].data?.phone, "0500000001");
+    assert.equal(result.rows[0].data?.dob?.getUTCFullYear(), 1990);
+    assert.equal(result.rows[0].data?.employmentType, "تشغيل");
+    assert.equal(result.rows[1].reason, "v2.importDuplicate");
+    const csv = await readEmployeeSpreadsheet(
+      Buffer.from('name,national id\n"Synthetic, Employee",' + syntheticId()),
+      "test.csv",
+    );
+    assert.equal(csv.rows[0].name, "Synthetic, Employee");
+  },
+);
+console.log("Completed", count, "regression checks.");

@@ -13,6 +13,7 @@ export type CurrentUser = {
   role: Role;
   totpEnabled: boolean;
   mustChangePassword: boolean;
+  employeeId: string | null;
 };
 
 /**
@@ -35,11 +36,20 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       tokenVersion: true,
       totpEnabled: true,
       mustChangePassword: true,
+      employeeId: true,
+      employee: { select: { isArchived: true, employmentStatus: true } },
     },
   });
 
   if (!user || !user.isActive) return null;
   if (user.tokenVersion !== claims.ver) return null;
+  if (
+    user.role === "EMPLOYEE" &&
+    (!user.employee ||
+      user.employee.isArchived ||
+      user.employee.employmentStatus === "TERMINATED")
+  )
+    return null;
 
   return {
     id: user.id,
@@ -48,6 +58,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     role: user.role,
     totpEnabled: user.totpEnabled,
     mustChangePassword: user.mustChangePassword,
+    employeeId: user.employeeId,
   };
 });
 
@@ -58,7 +69,9 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
-export async function requirePermission(permission: Permission): Promise<CurrentUser> {
+export async function requirePermission(
+  permission: Permission,
+): Promise<CurrentUser> {
   const user = await requireUser();
   if (!can(user.role, permission)) redirect("/denied");
   return user;
@@ -70,7 +83,10 @@ export async function requirePath(pathname: string): Promise<CurrentUser> {
   return user;
 }
 
-export async function requestContext(): Promise<{ ip: string | null; userAgent: string | null }> {
+export async function requestContext(): Promise<{
+  ip: string | null;
+  userAgent: string | null;
+}> {
   const h = await headers();
   const forwarded = h.get("x-forwarded-for");
   return {

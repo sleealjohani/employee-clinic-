@@ -47,6 +47,7 @@ const MATRIX: Record<Role, Permission[]> = {
     "reports.detailed",
   ],
   VIEWER: ["reports.aggregate"],
+  EMPLOYEE: [],
 };
 
 export function can(role: Role, permission: Permission): boolean {
@@ -72,9 +73,14 @@ export function allowedPaths(role: Role): string[] {
         "/due",
         "/reports",
         "/account",
+        "/appointments",
+        "/requests",
+        "/notifications",
       ];
     case "VIEWER":
-      return ["/dashboard", "/reports", "/account"];
+      return ["/dashboard", "/reports", "/account", "/notifications"];
+    case "EMPLOYEE":
+      return ["/portal", "/account", "/notifications"];
   }
 }
 
@@ -84,4 +90,4 @@ export function canOpenPath(role: Role, pathname: string): boolean {
   return allowedPaths(role).some((p) => path === p || path.startsWith(`${p}/`));
 }
 
-export const ROLES: Role[] = ["ADMIN", "STAFF", "VIEWER"];
+export const ROLES: Role[] = ["ADMIN", "STAFF", "VIEWER", "EMPLOYEE"];
