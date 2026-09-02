@@ -343,14 +343,14 @@ const columnNumber = (ref: string) =>
 export function patchCells(xml: string, updates: Map<string, string>): string {
   const pending = new Map(updates);
   let result = xml.replace(
-    /<row\b[^>]*\br="(\d+)"[^>]*(?:\/>|>[\s\S]*?<\/row>)/g,
+    /<row\b[^>]*\br="(\d+)"[^>]*?(?:\/>|>[\s\S]*?<\/row>)/g,
     (rowXml, rowNum: string) => {
       const cells = [...pending.keys()].filter(
         (ref) => ref.match(/\d+$/)?.[0] === rowNum,
       );
       if (!cells.length) return rowXml;
       let changed = rowXml.replace(
-        /<c\b[^>]*\br="([A-Z]+\d+)"[^>]*(?:\/>|>[\s\S]*?<\/c>)/g,
+        /<c\b[^>]*\br="([A-Z]+\d+)"[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g,
         (cellXml: string, ref: string) => {
           if (!pending.has(ref)) return cellXml;
           const value = pending.get(ref)!;
