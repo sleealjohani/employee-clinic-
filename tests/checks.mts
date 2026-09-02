@@ -301,6 +301,31 @@ await check(
   },
 );
 await check(
+  "Arabia Standard Time never becomes a liver enzyme result",
+  async () => {
+    const pdf = syntheticPdf([
+      "Patient Name: SYNTHETIC EMPLOYEE",
+      "National ID: " + syntheticId(3),
+      // Every line a Saudi MOH report stamps with a timezone, including the
+      // shapes a scan produces when it breaks the stamp across rows.
+      "Req Date 28/04/2026 10:57 AST",
+      "Collected Date/Time: 28/04/2026 11:16 AST 30/04/2026 10:03 AST",
+      "AST",
+      "AST Nationality Saudi Arabia",
+      "Report Request ID 87525370 Page 1 of 1 Reported Date 03/05/2026 09:34 AST",
+      // A genuine result on the same report must still come through.
+      "AST (SGOT) 34 U/L (10 - 40)",
+    ]);
+    const rows = (await extractLocalPdfReport(pdf)).reports.flatMap(
+      (r) => r.results,
+    );
+    const ast = rows.filter((r) => r.test_code === "AST");
+    assert.equal(ast.length, 1, "only the measured AST may be reported");
+    assert.equal(ast[0].value_number, "34");
+    assert.equal(ast[0].unit, "U/L");
+  },
+);
+await check(
   "spreadsheet parsing handles quoted CSV, Arabic dates, missing zero and duplicate IDs",
   async () => {
     const w = new ExcelJS.Workbook(),

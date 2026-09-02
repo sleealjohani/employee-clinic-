@@ -71,6 +71,25 @@ const MATCHERS: Match[] = TESTS.flatMap((def) => {
   });
 }).sort((a, b) => b.weight - a.weight);
 
+/**
+ * A few test abbreviations are also timezone names. "AST" is both aspartate
+ * aminotransferase and Arabia Standard Time, and every MOH report stamps its
+ * times "09:34 AST" — which matched the liver enzyme and paired it with
+ * whatever number sat nearby, fabricating a plausible-looking result on a
+ * report that never measured it. A match is only the timezone when a clock
+ * time runs into it, so that is what is rejected.
+ */
+const TIMEZONE_NAME = /^(?:ast|cst|est|pst|mst|gmt|utc)$/i;
+
+function isTimezone(line: string, start: number, printedName: string) {
+  return (
+    TIMEZONE_NAME.test(printedName) &&
+    /\d{1,2}\s*[:.]\s*\d{2}(?:\s*[:.]\s*\d{2})?\s*(?:am|pm)?\s*$/i.test(
+      line.slice(0, start),
+    )
+  );
+}
+
 function findTest(line: string) {
   let best: {
     def: TestDef;
@@ -85,6 +104,7 @@ function findTest(line: string) {
     const prefix = hit[1]?.length ?? 0;
     const printedName = hit[2] ?? "";
     const start = hit.index + prefix;
+    if (isTimezone(line, start, printedName)) continue;
     const candidate = {
       def: matcher.def,
       start,
@@ -453,9 +473,16 @@ function results(page: PageText) {
   for (let i = 0; i < page.lines.length; i += 1) {
     let source = page.lines[i];
     let item = parse(source, page.page, metadata);
+    const head = findTest(source);
     if (
       !item &&
-      findTest(source) &&
+      head &&
+      // A scan can break "09:34 AST" across rows, leaving the timezone stranded
+      // on a line of its own. Joining the next line to hunt for a value then
+      // lifts an unrelated number — a request ID, the minutes of a timestamp —
+      // and reports it as a liver enzyme. For a name that doubles as a timezone,
+      // no value on its own line means it was never a result.
+      !TIMEZONE_NAME.test(head.printedName) &&
       page.lines[i + 1] &&
       !findTest(page.lines[i + 1])
     ) {
