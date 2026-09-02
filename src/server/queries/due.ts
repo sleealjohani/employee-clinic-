@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { completeness } from "@/lib/clinical/rules";
+import { profileCompletion } from "@/lib/clinic-config";
+import { getClinicConfig } from "./settings";
 import { computeDueItems, type DueItem } from "@/lib/clinical/due";
 import type { Locale } from "@/lib/i18n/core";
 
@@ -9,6 +10,7 @@ import type { Locale } from "@/lib/i18n/core";
  * bookkeeping, and it can never drift out of sync with the records.
  */
 export async function loadDueItems(locale: Locale): Promise<DueItem[]> {
+  const config = await getClinicConfig();
   const employees = await db.employee.findMany({
     where: { isArchived: false, employmentStatus: { not: "TERMINATED" } },
     select: {
@@ -19,13 +21,23 @@ export async function loadDueItems(locale: Locale): Promise<DueItem[]> {
       dob: true,
       gender: true,
       phone: true,
+      email: true,
+      nationality: true,
+      qualification: true,
+      employmentType: true,
+      workLocation: true,
       employeeNo: true,
       jobTitle: true,
       hireDate: true,
       bloodType: true,
       vaccinations: {
         where: { status: "ACTIVE" },
-        select: { vaccineCode: true, doseNumber: true, givenAt: true, nextDueAt: true },
+        select: {
+          vaccineCode: true,
+          doseNumber: true,
+          givenAt: true,
+          nextDueAt: true,
+        },
       },
       labResults: {
         where: { status: { not: "ENTERED_IN_ERROR" } },
@@ -47,7 +59,8 @@ export async function loadDueItems(locale: Locale): Promise<DueItem[]> {
       id: emp.id,
       name: emp.name,
       department: emp.department,
-      missingFields: completeness(emp).missing,
+      missingFields: profileCompletion(emp, config.requiredProfileFields)
+        .missing,
       vaccinations: emp.vaccinations,
       labs: emp.labResults,
     })),

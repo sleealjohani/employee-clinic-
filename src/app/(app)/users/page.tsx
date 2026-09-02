@@ -3,7 +3,13 @@ import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
 import { Alert, Card, Chip, PageHeader } from "@/components/ui";
-import { ClearTotp, NewUserButton, ResetPassword, RoleSelect, ToggleActive } from "./UserControls";
+import {
+  ClearTotp,
+  NewUserButton,
+  ResetPassword,
+  RoleSelect,
+  ToggleActive,
+} from "./UserControls";
 
 export const metadata = { title: "المستخدمون" };
 export const dynamic = "force-dynamic";
@@ -12,15 +18,24 @@ export default async function UsersPage() {
   const admin = await requirePermission("users.manage");
   const t = await getT();
 
-  const users = await db.user.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] });
-  const adminsWithout2fa = users.filter((u) => u.role === "ADMIN" && u.isActive && !u.totpEnabled);
+  const users = await db.user.findMany({
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+  });
+  const adminsWithout2fa = users.filter(
+    (u) => u.role === "ADMIN" && u.isActive && !u.totpEnabled,
+  );
+  const employees = await db.employee.findMany({
+    where: { isArchived: false, account: null },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <>
       <PageHeader
         title={t("user.title")}
         badge={<Chip tone="neutral">{users.length}</Chip>}
-        actions={<NewUserButton />}
+        actions={<NewUserButton employees={employees} />}
       />
 
       {adminsWithout2fa.length > 0 && (
@@ -62,7 +77,11 @@ export default async function UsersPage() {
                       {user.username}
                     </td>
                     <td>
-                      <RoleSelect userId={user.id} role={user.role} disabled={isSelf} />
+                      <RoleSelect
+                        userId={user.id}
+                        role={user.role}
+                        disabled={isSelf}
+                      />
                     </td>
                     <td>
                       <Chip tone={user.isActive ? "ok" : "neutral"} dot>
@@ -79,12 +98,28 @@ export default async function UsersPage() {
                         {user.totpEnabled ? t("common.yes") : t("common.no")}
                       </Chip>
                     </td>
-                    <td className="num">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, t.locale) : "—"}</td>
+                    <td className="num">
+                      {user.lastLoginAt
+                        ? formatDateTime(user.lastLoginAt, t.locale)
+                        : "—"}
+                    </td>
                     <td>
                       <div className="flex flex-wrap gap-1.5">
-                        <ResetPassword userId={user.id} username={user.username} />
-                        {user.totpEnabled && <ClearTotp userId={user.id} username={user.username} />}
-                        <ToggleActive userId={user.id} isActive={user.isActive} disabled={isSelf} />
+                        <ResetPassword
+                          userId={user.id}
+                          username={user.username}
+                        />
+                        {user.totpEnabled && (
+                          <ClearTotp
+                            userId={user.id}
+                            username={user.username}
+                          />
+                        )}
+                        <ToggleActive
+                          userId={user.id}
+                          isActive={user.isActive}
+                          disabled={isSelf}
+                        />
                       </div>
                     </td>
                   </tr>

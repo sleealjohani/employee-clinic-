@@ -4,27 +4,44 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
 import { writeAudit } from "@/lib/audit";
 import { getT } from "@/lib/i18n";
-import { buildAggregateSummary, buildReport, reportById } from "@/server/queries/reports";
-import { addDays, startOfDay, toDateInput } from "@/lib/format";
+import {
+  buildAggregateSummary,
+  buildReport,
+  reportById,
+} from "@/server/queries/reports";
+import { addDays, toDateInput } from "@/lib/format";
+import { clinicDateTime, clinicDay, validDay } from "@/lib/clinic-config";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ report: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ report: string }> },
+) {
   const user = await getCurrentUser();
-  if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  if (!user || user.mustChangePassword)
+    return new NextResponse("Unauthorized", { status: 401 });
 
   const { report: reportId } = await params;
   const meta = reportById(reportId);
   if (!meta) return new NextResponse("Not found", { status: 404 });
-  if (!can(user.role, meta.permission)) return new NextResponse("Forbidden", { status: 403 });
+  if (!can(user.role, meta.permission))
+    return new NextResponse("Forbidden", { status: 403 });
 
   const t = await getT();
   const url = new URL(request.url);
-  const from = url.searchParams.get("from")
-    ? new Date(url.searchParams.get("from")!)
-    : addDays(startOfDay(), -90);
-  const to = url.searchParams.get("to") ? new Date(`${url.searchParams.get("to")}T23:59:59`) : new Date();
+  const fromRaw = url.searchParams.get("from"),
+    toRaw = url.searchParams.get("to");
+  if ((fromRaw && !validDay(fromRaw)) || (toRaw && !validDay(toRaw)))
+    return new NextResponse("Invalid dates", { status: 400 });
+  const from = fromRaw
+    ? clinicDateTime(fromRaw)
+    : addDays(clinicDateTime(clinicDay()), -90);
+  const to = toRaw
+    ? new Date(clinicDateTime(toRaw).getTime() + 86400000 - 1)
+    : new Date();
+  if (from > to) return new NextResponse("Invalid date range", { status: 400 });
 
   // The administrative viewer never receives a row-level export.
   const table = can(user.role, "reports.detailed")
@@ -56,7 +73,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const header = sheet.addRow([]);
   header.values = table.columns;
   header.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1489BD" } };
+  header.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF1489BD" },
+  };
   header.alignment = { vertical: "middle", wrapText: true };
   header.height = 22;
 
@@ -68,7 +89,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       Math.max(
         12,
         column.length + 4,
-        ...table.rows.slice(0, 200).map((r) => String(r[index] ?? "").length + 2),
+        ...table.rows
+          .slice(0, 200)
+          .map((r) => String(r[index] ?? "").length + 2),
       ),
     );
     sheet.getColumn(index + 1).width = width;
@@ -93,7 +116,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   return new NextResponse(buffer as ArrayBuffer, {
     headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "private, no-store",
     },

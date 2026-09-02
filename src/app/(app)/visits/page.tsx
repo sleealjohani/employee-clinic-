@@ -1,99 +1,103 @@
+import Link from "next/link";
+import { Prisma, VisitType } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requirePath } from "@/lib/auth/current-user";
+import { requirePermission } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
 import { getT } from "@/lib/i18n";
-import { bmi, formatDate, startOfDay, toDateInput } from "@/lib/format";
-import { vitalOutOfRange } from "@/lib/clinical/rules";
-import { Card, Chip, PageHeader } from "@/components/ui";
-import { DownloadLink } from "@/components/ui/DownloadLink";
+import { clinicDay, clinicDateTime, validDay } from "@/lib/clinic-config";
+import { formatDateTime } from "@/lib/format";
+import { PageHeader, Card, Chip, Empty } from "@/components/ui";
+import { Pagination, safePage } from "@/components/ui/Pagination";
 import { Modal } from "@/components/ui/Modal";
 import { SmartVisitForm } from "@/components/forms/SmartClinicalForms";
-import { VisitsOperationalWorkspace } from "@/components/operations/OperationalWorkspaces";
-import { IconPlus } from "@/components/layout/icons";
-
-export const metadata = { title: "الزيارات" };
+import { DownloadLink } from "@/components/ui/DownloadLink";
 export const dynamic = "force-dynamic";
-
 export default async function VisitsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; type?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+    type?: string;
+    state?: string;
+  }>;
 }) {
-  const user = await requirePath("/visits");
-  const t = await getT();
-  const params = await searchParams;
-
-  const from = params.from ? new Date(params.from) : startOfDay(new Date(Date.now() - 29 * 86_400_000));
-  const to = params.to ? new Date(`${params.to}T23:59:59`) : new Date();
-  const initialType = params.type ?? "";
-
-  const [visits, employees] = await Promise.all([
+  const user = await requirePermission("clinical.read"),
+    t = await getT(),
+    p = await searchParams,
+    page = safePage(p.page);
+  const from = validDay(p.from || "")
+      ? p.from!
+      : clinicDay(new Date(Date.now() - 29 * 86400000)),
+    to = validDay(p.to || "") ? p.to! : clinicDay(),
+    q = (p.q || "").trim().slice(0, 160);
+  const type = Object.values(VisitType).includes(p.type as VisitType)
+    ? (p.type as VisitType)
+    : undefined;
+  const where: Prisma.VisitWhereInput = {
+    status: "ACTIVE",
+    visitDate: {
+      gte: clinicDateTime(from),
+      lt: new Date(clinicDateTime(to).getTime() + 86400000),
+    },
+    type,
+    ...(p.state === "open"
+      ? { completedAt: null }
+      : p.state === "complete"
+        ? { completedAt: { not: null } }
+        : {}),
+    ...(q
+      ? {
+          employee: {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { nationalId: { contains: q } },
+              { employeeNo: { contains: q } },
+            ],
+          },
+        }
+      : {}),
+  };
+  const [visits, total, employees] = await Promise.all([
     db.visit.findMany({
-      where: {
-        status: { not: "ENTERED_IN_ERROR" },
-        visitDate: { gte: from, lte: to },
+      where,
+      orderBy: [{ visitDate: "desc" }, { id: "asc" }],
+      skip: (page - 1) * 25,
+      take: 25,
+      include: {
+        employee: { select: { name: true, id: true, department: true } },
       },
-      orderBy: { visitDate: "desc" },
-      take: 300,
-      include: { employee: { select: { id: true, name: true, department: true } } },
     }),
+    db.visit.count({ where }),
     can(user.role, "clinical.write")
       ? db.employee.findMany({
-          where: { isArchived: false },
+          where: { isArchived: false, employmentStatus: { not: "TERMINATED" } },
           orderBy: { name: "asc" },
           select: { id: true, name: true, nationalId: true, gender: true },
         })
       : Promise.resolve([]),
   ]);
-
-  const records = visits.map((visit) => {
-    const abnormal =
-      vitalOutOfRange("tempC", visit.tempC) ||
-      vitalOutOfRange("systolic", visit.systolic) ||
-      vitalOutOfRange("diastolic", visit.diastolic) ||
-      vitalOutOfRange("pulse", visit.pulse) ||
-      vitalOutOfRange("spo2", visit.spo2);
-    return {
-      id: visit.id,
-      employeeId: visit.employee.id,
-      employeeName: visit.employee.name,
-      department: visit.employee.department,
-      dateKey: toDateInput(visit.visitDate),
-      dateLabel: formatDate(visit.visitDate, t.locale),
-      type: visit.type,
-      chiefComplaint: visit.chiefComplaint,
-      diagnosis: visit.diagnosis,
-      plan: visit.plan,
-      notes: visit.notes,
-      tempC: visit.tempC,
-      systolic: visit.systolic,
-      diastolic: visit.diastolic,
-      pulse: visit.pulse,
-      respRate: visit.respRate,
-      spo2: visit.spo2,
-      weightKg: visit.weightKg,
-      heightCm: visit.heightCm,
-      bmi: bmi(visit.weightKg, visit.heightCm),
-      abnormal,
-    };
-  });
-
   return (
     <>
       <PageHeader
         title={t("visit.title")}
-        subtitle={`${formatDate(from, t.locale)} — ${formatDate(to, t.locale)}`}
-        badge={<Chip tone="neutral">{visits.length}</Chip>}
+        badge={<Chip>{total}</Chip>}
         actions={
           <>
-            <DownloadLink href={`/api/export/visits?from=${toDateInput(from)}&to=${toDateInput(to)}`}>
+            <DownloadLink
+              href={"/api/export/visits?from=" + from + "&to=" + to}
+            >
               {t("action.export")}
             </DownloadLink>
             {can(user.role, "clinical.write") && (
               <Modal
-                title={t("visit.new")}
                 wide
-                trigger={<button className="btn btn-primary"><IconPlus /> {t("visit.new")}</button>}
+                title={t("visit.new")}
+                trigger={
+                  <button className="btn btn-primary">{t("visit.new")}</button>
+                }
               >
                 <SmartVisitForm employees={employees} />
               </Modal>
@@ -101,23 +105,115 @@ export default async function VisitsPage({
           </>
         }
       />
-
-      <Card className="mb-4 glass">
-        <form method="get" className="flex flex-wrap items-end gap-2.5">
-          <div>
-            <label className="label" htmlFor="from">{t("rep.from")}</label>
-            <input id="from" className="input" type="date" name="from" defaultValue={toDateInput(from)} />
-          </div>
-          <div>
-            <label className="label" htmlFor="to">{t("rep.to")}</label>
-            <input id="to" className="input" type="date" name="to" defaultValue={toDateInput(to)} />
-          </div>
-          {initialType && <input type="hidden" name="type" value={initialType} />}
-          <button type="submit" className="btn btn-ghost">{t("action.filter")}</button>
+      <Card className="mb-5">
+        <form method="get" className="filter-bar">
+          <label>
+            {t("v2.searchEmployee")}
+            <input className="input" name="q" defaultValue={q} />
+          </label>
+          <label>
+            {t("rep.from")}
+            <input
+              className="input"
+              name="from"
+              type="date"
+              defaultValue={from}
+            />
+          </label>
+          <label>
+            {t("rep.to")}
+            <input className="input" name="to" type="date" defaultValue={to} />
+          </label>
+          <label>
+            {t("visit.type")}
+            <select name="type" className="select" defaultValue={type || ""}>
+              <option value="">{t("common.all")}</option>
+              {Object.values(VisitType).map((v) => (
+                <option key={v} value={v}>
+                  {t("visitType." + v)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t("common.status")}
+            <select
+              name="state"
+              className="select"
+              defaultValue={p.state || ""}
+            >
+              <option value="">{t("common.all")}</option>
+              <option value="open">{t("v2.inProgress")}</option>
+              <option value="complete">{t("v2.completed")}</option>
+            </select>
+          </label>
+          <button className="btn btn-primary" type="submit">
+            {t("action.filter")}
+          </button>
         </form>
       </Card>
-
-      <VisitsOperationalWorkspace records={records} todayKey={toDateInput(new Date())} />
+      <Card pad={false}>
+        {visits.length ? (
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  {[
+                    "visit.date",
+                    "emp.name",
+                    "visit.type",
+                    "visit.chief",
+                    "common.status",
+                    "action.open",
+                  ].map((k) => (
+                    <th key={k}>{t(k)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visits.map((v) => (
+                  <tr key={v.id}>
+                    <td className="num">
+                      {formatDateTime(v.visitDate, t.locale)}
+                    </td>
+                    <td>
+                      <Link
+                        className="text-link"
+                        href={"/employees/" + v.employeeId}
+                      >
+                        {v.employee.name}
+                      </Link>
+                      <small className="block muted">
+                        {v.employee.department}
+                      </small>
+                    </td>
+                    <td>{t("visitType." + v.type)}</td>
+                    <td className="max-w-xs">{v.chiefComplaint || "—"}</td>
+                    <td>
+                      <Chip tone={v.completedAt ? "ok" : "accent"}>
+                        {t(v.completedAt ? "v2.completed" : "v2.inProgress")}
+                      </Chip>
+                    </td>
+                    <td>
+                      <Link className="btn btn-ghost" href={"/visits/" + v.id}>
+                        {t("v2.openVisit")}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <Empty title={t("common.empty")} />
+        )}
+      </Card>
+      <Pagination
+        base="/visits"
+        page={page}
+        total={total}
+        params={{ q, from, to, type, state: p.state }}
+      />
     </>
   );
 }

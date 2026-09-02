@@ -4,9 +4,17 @@ import { requirePermission } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
 import { MAX_UPLOAD_BYTES, importAvailability } from "@/lib/ai/extract";
-import { Alert, Card, Chip, Empty, PageHeader, SectionTitle } from "@/components/ui";
+import {
+  Alert,
+  Card,
+  Chip,
+  Empty,
+  PageHeader,
+  SectionTitle,
+} from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 import { UploadForm } from "./UploadForm";
+import { Pagination, safePage } from "@/components/ui/Pagination";
 
 export const metadata = { title: "استيراد تقارير المختبر" };
 export const dynamic = "force-dynamic";
@@ -21,22 +29,31 @@ const STATUS_TONE = {
   FAILED: "danger",
 } as const;
 
-export default async function ImportPage() {
+export default async function ImportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   await requirePermission("import.run");
   const t = await getT();
   const ar = t.locale === "ar";
   const aiFallback = importAvailability();
+  const page = safePage((await searchParams).page);
 
-  const [batches, unmatched] = await Promise.all([
+  const [batches, unmatched, total] = await Promise.all([
     db.labImportBatch.findMany({
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 25,
+      skip: (page - 1) * 25,
       include: {
         uploadedBy: { select: { name: true } },
         _count: { select: { items: true } },
       },
     }),
-    db.labImportItem.count({ where: { matchStatus: "UNMATCHED", review: "PENDING" } }),
+    db.labImportItem.count({
+      where: { matchStatus: "UNMATCHED", review: "PENDING" },
+    }),
+    db.labImportBatch.count(),
   ]);
 
   return (
@@ -46,14 +63,19 @@ export default async function ImportPage() {
         badge={
           <div className="flex flex-wrap gap-1.5">
             <Chip tone="ok">{ar ? "PDF محلي" : "Local PDF"}</Chip>
-            {aiFallback.enabled && <Chip tone="accent">{ar ? "دعم المسح مفعّل" : "Scan fallback ready"}</Chip>}
+            {aiFallback.enabled && (
+              <Chip tone="accent">
+                {ar ? "دعم المسح مفعّل" : "Scan fallback ready"}
+              </Chip>
+            )}
           </div>
         }
       />
 
       <Reveal className="mb-4">
         <Card className="specular">
-          <UploadForm allowImages={aiFallback.enabled} maxBytes={MAX_UPLOAD_BYTES} />
+          <UploadForm allowImages maxBytes={MAX_UPLOAD_BYTES} />
+          <p className="muted mt-3">{t("v2.extractionFallback")}</p>
         </Card>
       </Reveal>
 
@@ -91,7 +113,10 @@ export default async function ImportPage() {
                     <td className="font-semibold">
                       {batch.filename}
                       {batch.model?.startsWith("local-pdf-rules") && (
-                        <span className="ms-2 text-[0.65rem] font-semibold" style={{ color: "var(--ok)" }}>
+                        <span
+                          className="ms-2 text-[0.65rem] font-semibold"
+                          style={{ color: "var(--ok)" }}
+                        >
                           {ar ? "محلي" : "local"}
                         </span>
                       )}
@@ -101,17 +126,26 @@ export default async function ImportPage() {
                         {t(`importStatus.${batch.status}`)}
                       </Chip>
                       {batch.error && (
-                        <span className="ms-2 text-xs" style={{ color: "var(--danger)" }}>
-                          {batch.error.startsWith("imp.") ? t(batch.error) : batch.error}
+                        <span
+                          className="ms-2 text-xs"
+                          style={{ color: "var(--danger)" }}
+                        >
+                          {t("imp.extractFailed")}
                         </span>
                       )}
                     </td>
                     <td className="num">{batch._count.items}</td>
                     <td className="num">{batch.pageCount || "—"}</td>
                     <td>{batch.uploadedBy?.name ?? "—"}</td>
-                    <td className="num">{formatDateTime(batch.createdAt, t.locale)}</td>
+                    <td className="num">
+                      {formatDateTime(batch.createdAt, t.locale)}
+                    </td>
                     <td>
-                      <Link href={`/labs/import/${batch.id}`} prefetch={false} className="btn btn-ghost btn-sm">
+                      <Link
+                        href={`/labs/import/${batch.id}`}
+                        prefetch={false}
+                        className="btn btn-ghost btn-sm"
+                      >
                         {t("imp.review")}
                       </Link>
                     </td>
@@ -122,6 +156,7 @@ export default async function ImportPage() {
           </div>
         )}
       </Card>
+      <Pagination base="/labs/import" total={total} page={page} />
     </>
   );
 }

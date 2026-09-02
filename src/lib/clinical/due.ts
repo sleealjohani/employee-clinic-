@@ -11,7 +11,12 @@ import { requiresReview, isCritical } from "./rules";
  * of names and actions rather than a percentage nobody can act on.
  */
 
-export type DueKind = "VACCINE" | "LAB_FOLLOWUP" | "CRITICAL" | "REVIEW" | "PROFILE";
+export type DueKind =
+  | "VACCINE"
+  | "LAB_FOLLOWUP"
+  | "CRITICAL"
+  | "REVIEW"
+  | "PROFILE";
 export type DueUrgency = "OVERDUE" | "DUE" | "SOON";
 
 export type DueItem = {
@@ -33,7 +38,12 @@ export type DueEmployeeInput = {
   name: string;
   department: string | null;
   missingFields: string[];
-  vaccinations: { vaccineCode: string; doseNumber: number; givenAt: Date; nextDueAt: Date | null }[];
+  vaccinations: {
+    vaccineCode: string;
+    doseNumber: number;
+    givenAt: Date;
+    nextDueAt: Date | null;
+  }[];
   labs: {
     id: string;
     testCode: string;
@@ -63,24 +73,37 @@ export function nextVaccineDue(
   const def = VACCINE_BY_CODE[vaccineCode];
   if (!def) return null;
 
-  const sorted = [...doses].sort((a, b) => a.givenAt.getTime() - b.givenAt.getTime());
-  const given = sorted.length;
+  const sorted = [...doses].sort(
+    (a, b) => a.givenAt.getTime() - b.givenAt.getTime(),
+  );
+  const doseNumbers = new Set(sorted.map((d) => d.doseNumber));
+  let given = 0;
+  while (doseNumbers.has(given + 1)) given++;
 
-  if (given === 0) {
+  if (sorted.length === 0) {
     return { dueDate: startOfDay(), nextDose: 1 };
   }
 
   const last = sorted[sorted.length - 1];
   // An explicit clinician-set date always wins over the computed schedule.
-  if (last.nextDueAt) return { dueDate: last.nextDueAt, nextDose: given + 1 };
+  if (last.nextDueAt)
+    return {
+      dueDate: last.nextDueAt,
+      nextDose: Math.max(given, ...doseNumbers) + 1,
+    };
 
   if (given < def.doses) {
+    if (given === 0) return { dueDate: startOfDay(), nextDose: 1 };
+    const previous = sorted.filter((d) => d.doseNumber === given).at(-1)!;
     const gap = def.intervalsMonths[given - 1] ?? 1;
-    return { dueDate: addMonths(last.givenAt, gap), nextDose: given + 1 };
+    return { dueDate: addMonths(previous.givenAt, gap), nextDose: given + 1 };
   }
 
   if (def.boosterMonths) {
-    return { dueDate: addMonths(last.givenAt, def.boosterMonths), nextDose: given + 1 };
+    return {
+      dueDate: addMonths(last.givenAt, def.boosterMonths),
+      nextDose: given + 1,
+    };
   }
 
   return null;
@@ -123,7 +146,8 @@ export function computeDueItems(
 
     // --- unclosed critical results
     for (const lab of emp.labs) {
-      if (!isCritical(lab.flag, lab.testCode) || lab.criticalNotifiedAt) continue;
+      if (!isCritical(lab.flag, lab.testCode) || lab.criticalNotifiedAt)
+        continue;
       const def = TEST_BY_CODE[lab.testCode];
       items.push({
         ...base,
@@ -133,7 +157,9 @@ export function computeDueItems(
         title: ar ? "نتيجة حرجة لم تُبلَّغ" : "Critical result not notified",
         detail: def ? (ar ? def.nameAr : def.nameEn) : lab.testCode,
         dueDate: lab.collectedAt,
-        daysLate: lab.collectedAt ? Math.max(0, daysBetween(today, startOfDay(lab.collectedAt))) : 0,
+        daysLate: lab.collectedAt
+          ? Math.max(0, daysBetween(today, startOfDay(lab.collectedAt)))
+          : 0,
         href: `/employees/${emp.id}?tab=labs`,
       });
     }
@@ -141,8 +167,10 @@ export function computeDueItems(
     // --- results still waiting on a clinician
     for (const lab of emp.labs) {
       if (lab.reviewedAt) continue;
-      if (!lab.requiresReview && !requiresReview(lab.flag, lab.testCode)) continue;
-      if (isCritical(lab.flag, lab.testCode) && !lab.criticalNotifiedAt) continue; // already listed above
+      if (!lab.requiresReview && !requiresReview(lab.flag, lab.testCode))
+        continue;
+      if (isCritical(lab.flag, lab.testCode) && !lab.criticalNotifiedAt)
+        continue; // already listed above
       const def = TEST_BY_CODE[lab.testCode];
       items.push({
         ...base,
@@ -152,7 +180,9 @@ export function computeDueItems(
         title: ar ? "بانتظار مراجعة الطبيب" : "Awaiting clinician review",
         detail: def ? (ar ? def.nameAr : def.nameEn) : lab.testCode,
         dueDate: lab.collectedAt,
-        daysLate: lab.collectedAt ? Math.max(0, daysBetween(today, startOfDay(lab.collectedAt))) : 0,
+        daysLate: lab.collectedAt
+          ? Math.max(0, daysBetween(today, startOfDay(lab.collectedAt)))
+          : 0,
         href: `/employees/${emp.id}?tab=labs`,
       });
     }
@@ -162,7 +192,8 @@ export function computeDueItems(
     for (const lab of emp.labs) {
       if (!lab.collectedAt) continue;
       const prev = latestByTest.get(lab.testCode);
-      if (!prev || lab.collectedAt > prev) latestByTest.set(lab.testCode, lab.collectedAt);
+      if (!prev || lab.collectedAt > prev)
+        latestByTest.set(lab.testCode, lab.collectedAt);
     }
     for (const [code, when] of latestByTest) {
       const def = TEST_BY_CODE[code];
@@ -176,7 +207,9 @@ export function computeDueItems(
         kind: "LAB_FOLLOWUP",
         urgency,
         title: ar ? `إعادة ${def.nameAr}` : `Repeat ${def.nameEn}`,
-        detail: ar ? `آخر فحص قبل ${def.repeatMonths} شهراً` : `Last done ${def.repeatMonths} months ago`,
+        detail: ar
+          ? `آخر فحص قبل ${def.repeatMonths} شهراً`
+          : `Last done ${def.repeatMonths} months ago`,
         dueDate,
         daysLate: Math.max(0, daysBetween(today, startOfDay(dueDate))),
         href: `/employees/${emp.id}?tab=labs`,

@@ -7,6 +7,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "client"
 }
 
 datasource db {
@@ -21,20 +22,25 @@ enum Role {
   ADMIN // clinic manager: everything, including imports and user management
   STAFF // nurse / technician: clinical data entry, no deletion, no imports
   VIEWER // HR: aggregate indicators only, no clinical detail
+  EMPLOYEE // personal portal; scope is always resolved from the linked account
 }
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  name         String
-  email        String?
-  role         Role     @default(STAFF)
-  passwordHash String
-  isActive     Boolean  @default(true)
+  id                 String  @id @default(cuid())
+  username           String  @unique
+  name               String
+  email              String?
+  role               Role    @default(STAFF)
+  passwordHash       String
+  isActive           Boolean @default(true)
   mustChangePassword Boolean @default(false)
 
-  totpSecret  String?
-  totpEnabled Boolean @default(false)
+  totpSecret           String?
+  totpEnabled          Boolean   @default(false)
+  pendingTotpSecret    String?
+  pendingTotpExpiresAt DateTime?
+  employeeId           String?   @unique
+  employee             Employee? @relation("EmployeeAccount", fields: [employeeId], references: [id], onDelete: Restrict)
 
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
@@ -44,16 +50,18 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdEmployees Employee[]     @relation("EmployeeCreatedBy")
+  createdEmployees Employee[]        @relation("EmployeeCreatedBy")
   createdVisits    Visit[]
-  createdLabs      LabResult[]    @relation("LabCreatedBy")
-  reviewedLabs     LabResult[]    @relation("LabReviewedBy")
+  createdLabs      LabResult[]       @relation("LabCreatedBy")
+  reviewedLabs     LabResult[]       @relation("LabReviewedBy")
   allergies        Allergy[]
   vaccinations     Vaccination[]
   educations       HealthEducation[]
   notes            ClinicalNote[]
   attachments      Attachment[]
   importBatches    LabImportBatch[]
+  importReviews    LabImportItem[]   @relation("ImportReviewedBy")
+  notifications    Notification[]
 
   @@index([role])
 }
@@ -101,7 +109,7 @@ model Employee {
   id String @id @default(cuid())
 
   // identity — stable
-  nationalId String  @unique
+  nationalId String    @unique
   name       String
   nameEn     String?
   dob        DateTime?
@@ -115,6 +123,12 @@ model Employee {
   jobTitle         String?
   employmentStatus EmploymentStatus @default(ACTIVE)
   hireDate         DateTime?
+  nationality      String?
+  qualification    String?
+  employmentType   String?
+  assignedFacility String?
+  workLocation     String?
+  personnelNotes   String?
 
   // health summary
   bloodType          String?
@@ -139,10 +153,14 @@ model Employee {
   notes             ClinicalNote[]
   attachments       Attachment[]
   importItems       LabImportItem[]
+  account           User?               @relation("EmployeeAccount")
+  appointments      Appointment[]
+  serviceRequests   ServiceRequest[]
 
   @@index([department])
   @@index([isArchived])
   @@index([name])
+  @@index([createdById])
 }
 
 model EmploymentHistory {
@@ -187,14 +205,18 @@ model Visit {
   notes          String?
 
   // vitals — columns, not JSON, so reports can aggregate them
-  tempC     Float?
-  systolic  Int?
-  diastolic Int?
-  pulse     Int?
-  respRate  Int?
-  spo2      Int?
-  weightKg  Float?
-  heightCm  Float?
+  tempC       Float?
+  systolic    Int?
+  diastolic   Int?
+  pulse       Int?
+  respRate    Int?
+  spo2        Int?
+  weightKg    Float?
+  heightCm    Float?
+  completedAt DateTime?
+  revision    Int          @default(0)
+  appointment Appointment?
+  labResults  LabResult[]
 
   status      RecordStatus @default(ACTIVE)
   voidReason  String?
@@ -205,6 +227,7 @@ model Visit {
 
   @@index([employeeId, visitDate])
   @@index([visitDate])
+  @@index([createdById])
 }
 
 // ---------------------------------------------------------------- laboratory
@@ -212,6 +235,14 @@ model Visit {
 enum ResultType {
   QUANTITATIVE
   QUALITATIVE
+}
+
+enum Comparison {
+  EQ
+  LT
+  LE
+  GT
+  GE
 }
 
 enum LabFlag {
@@ -234,13 +265,20 @@ model LabResult {
   testCode String // controlled vocabulary — see src/lib/catalog/tests.ts
   testName String
 
-  resultType ResultType @default(QUANTITATIVE)
-  valueNum   Float?
-  valueText  String?
-  unit       String?
-  refLow     Float?
-  refHigh    Float?
-  refText    String?
+  resultType  ResultType     @default(QUANTITATIVE)
+  valueNum    Float?
+  valueText   String?
+  comparator  Comparison     @default(EQ)
+  rawValue    String?
+  ruleVersion String         @default("clinical-v2")
+  releasedAt  DateTime?
+  visitId     String?
+  visit       Visit?         @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  importItem  LabImportItem?
+  unit        String?
+  refLow      Float?
+  refHigh     Float?
+  refText     String?
 
   /// Computed by the rules engine at write time; recomputed on edit. Never taken from a model.
   flag LabFlag @default(UNKNOWN)
@@ -264,6 +302,7 @@ model LabResult {
 
   // provenance when the row came from an imported report
   sourceAttachmentId   String?
+  sourceFingerprint    String? @unique
   sourceAttachment     Attachment? @relation(fields: [sourceAttachmentId], references: [id])
   sourcePage           Int?
   extractionConfidence Float?
@@ -279,6 +318,10 @@ model LabResult {
   @@index([employeeId, testCode, collectedAt])
   @@index([requiresReview])
   @@index([collectedAt])
+  @@index([createdById])
+  @@index([reviewedById])
+  @@index([sourceAttachmentId])
+  @@index([visitId])
 }
 
 // ---------------------------------------------------------------- allergies
@@ -311,18 +354,18 @@ enum Certainty {
 }
 
 model Allergy {
-  id         String        @id @default(cuid())
-  employeeId String
-  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  type       AllergyType
-  substance  String
-  severity   Severity
-  reaction   String?
-  action     String?
-  certainty  Certainty     @default(SUSPECTED)
+  id            String        @id @default(cuid())
+  employeeId    String
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type          AllergyType
+  substance     String
+  severity      Severity
+  reaction      String?
+  action        String?
+  certainty     Certainty     @default(SUSPECTED)
   allergyStatus AllergyStatus @default(ACTIVE)
-  notes      String?
-  recordedAt DateTime      @default(now())
+  notes         String?
+  recordedAt    DateTime      @default(now())
 
   status      RecordStatus @default(ACTIVE)
   createdAt   DateTime     @default(now())
@@ -331,6 +374,7 @@ model Allergy {
   createdBy   User?        @relation(fields: [createdById], references: [id])
 
   @@index([employeeId])
+  @@index([createdById])
 }
 
 // ---------------------------------------------------------------- immunisation
@@ -358,18 +402,19 @@ model Vaccination {
 
   @@index([employeeId, vaccineCode, doseNumber])
   @@index([givenAt])
+  @@index([createdById])
 }
 
 // ---------------------------------------------------------------- education & notes
 
 model HealthEducation {
-  id          String   @id @default(cuid())
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  topic       String
-  providedAt  DateTime @default(now())
-  method      String?
-  notes       String?
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  topic      String
+  providedAt DateTime @default(now())
+  method     String?
+  notes      String?
 
   status      RecordStatus @default(ACTIVE)
   createdAt   DateTime     @default(now())
@@ -377,6 +422,7 @@ model HealthEducation {
   createdBy   User?        @relation(fields: [createdById], references: [id])
 
   @@index([employeeId])
+  @@index([createdById])
 }
 
 model ClinicalNote {
@@ -393,16 +439,19 @@ model ClinicalNote {
   createdBy   User?        @relation(fields: [createdById], references: [id])
 
   @@index([employeeId])
+  @@index([createdById])
 }
 
 // ---------------------------------------------------------------- files
 
 /// Stored in Postgres so the deployment needs no second service. Capped at 10 MB per file.
 model Attachment {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   filename     String
   mimeType     String
   size         Int
+  expectedSize Int?
+  isComplete   Boolean   @default(true)
   sha256       String
   data         Bytes
   employeeId   String?
@@ -411,10 +460,26 @@ model Attachment {
   uploadedBy   User?     @relation(fields: [uploadedById], references: [id])
   createdAt    DateTime  @default(now())
 
-  labResults   LabResult[]
-  importBatch  LabImportBatch?
+  labResults  LabResult[]
+  importBatch LabImportBatch?
+  chunks      AttachmentChunk[]
 
   @@index([employeeId])
+  @@index([uploadedById])
+  @@index([sha256])
+}
+
+model AttachmentChunk {
+  id           String     @id @default(cuid())
+  attachmentId String
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  offset       Int
+  size         Int
+  sha256       String
+  data         Bytes
+  createdAt    DateTime   @default(now())
+
+  @@unique([attachmentId, offset])
 }
 
 // ---------------------------------------------------------------- assisted import
@@ -440,17 +505,20 @@ enum ItemReview {
 }
 
 model LabImportBatch {
-  id           String       @id @default(cuid())
-  attachmentId String       @unique
-  attachment   Attachment   @relation(fields: [attachmentId], references: [id])
-  filename     String
-  pageCount    Int          @default(0)
-  status       ImportStatus @default(UPLOADED)
-  model        String?
-  promptVersion String?
-  error        String?
-  inputTokens  Int?
-  outputTokens Int?
+  id             String       @id @default(cuid())
+  attachmentId   String       @unique
+  attachment     Attachment   @relation(fields: [attachmentId], references: [id])
+  filename       String
+  pageCount      Int          @default(0)
+  status         ImportStatus @default(UPLOADED)
+  model          String?
+  promptVersion  String?
+  error          String?
+  inputTokens    Int?
+  outputTokens   Int?
+  leaseUntil     DateTime?
+  attemptCount   Int          @default(0)
+  extractionNote String?
 
   uploadedById String?
   uploadedBy   User?     @relation(fields: [uploadedById], references: [id])
@@ -460,6 +528,7 @@ model LabImportBatch {
   items LabImportItem[]
 
   @@index([status])
+  @@index([uploadedById])
 }
 
 /// One candidate lab row awaiting human approval. Nothing here is clinical data yet.
@@ -484,6 +553,8 @@ model LabImportItem {
   resultType ResultType @default(QUANTITATIVE)
   valueNum   Float?
   valueText  String?
+  comparator Comparison @default(EQ)
+  rawValue   String?
   unit       String?
   refLow     Float?
   refHigh    Float?
@@ -502,14 +573,130 @@ model LabImportItem {
   rawJson    Json?
   warnings   String[] @default([])
 
-  review              ItemReview @default(PENDING)
-  rejectReason        String?
-  committedLabResultId String?
+  review               ItemReview @default(PENDING)
+  rejectReason         String?
+  committedLabResultId String?    @unique
+  committedLabResult   LabResult? @relation(fields: [committedLabResultId], references: [id], onDelete: Restrict)
+  sourceKey            String?
+  reviewedAt           DateTime?
+  reviewedById         String?
+  reviewedBy           User?      @relation("ImportReviewedBy", fields: [reviewedById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([batchId, sourceKey])
   @@index([batchId, review])
+  @@index([matchedEmployeeId])
+  @@index([reviewedById])
+}
+
+// ---------------------------------------------------------------- clinic services
+
+enum ServiceMode {
+  APPOINTMENT
+  REQUEST
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  DECLINED
+  CANCELLED
+}
+
+model ClinicService {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  nameAr          String
+  nameEn          String
+  descriptionAr   String           @default("")
+  descriptionEn   String           @default("")
+  mode            ServiceMode      @default(APPOINTMENT)
+  visitType       VisitType        @default(CONSULTATION)
+  durationMinutes Int              @default(20)
+  isActive        Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  appointments    Appointment[]
+  requests        ServiceRequest[]
+}
+
+model Appointment {
+  id                 String            @id @default(cuid())
+  employeeId         String
+  employee           Employee          @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  serviceId          String
+  service            ClinicService     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  startsAt           DateTime
+  endsAt             DateTime
+  status             AppointmentStatus @default(CONFIRMED)
+  reason             String?
+  cancellationReason String?
+  visitId            String?           @unique
+  visit              Visit?            @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  requestKey         String            @unique
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([startsAt, status])
+  @@index([employeeId, startsAt])
+  @@index([serviceId])
+}
+
+model ScheduleBlock {
+  id        String   @id @default(cuid())
+  startsAt  DateTime
+  endsAt    DateTime
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@index([startsAt, endsAt])
+}
+
+model ServiceRequest {
+  id         String         @id @default(cuid())
+  employeeId String
+  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  serviceId  String?
+  service    ClinicService? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  kind       String         @default("SERVICE")
+  subject    String
+  message    String
+  payload    Json?
+  status     RequestStatus  @default(OPEN)
+  response   String?
+  resolvedAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([employeeId, createdAt])
+  @@index([status, createdAt])
+  @@index([serviceId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  titleAr   String
+  titleEn   String
+  href      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
 }
 
 // ---------------------------------------------------------------- settings

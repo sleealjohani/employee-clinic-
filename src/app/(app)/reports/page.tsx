@@ -2,11 +2,18 @@ import Link from "next/link";
 import { requirePath } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
 import { getT } from "@/lib/i18n";
-import { addDays, startOfDay, toDateInput } from "@/lib/format";
-import { buildAggregateSummary, buildReport, REPORTS, reportById, type ReportId } from "@/server/queries/reports";
+import { addDays, toDateInput } from "@/lib/format";
+import {
+  buildAggregateSummary,
+  buildReport,
+  REPORTS,
+  type ReportId,
+} from "@/server/queries/reports";
 import { Alert, Card, Chip, Empty, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { DownloadLink } from "@/components/ui/DownloadLink";
+import { clinicDateTime, clinicDay, validDay } from "@/lib/clinic-config";
+import { writeAudit } from "@/lib/audit";
 
 export const metadata = { title: "التقارير" };
 export const dynamic = "force-dynamic";
@@ -23,16 +30,32 @@ export default async function ReportsPage({
 
   const detailed = can(user.role, "reports.detailed");
   const available = REPORTS.filter((r) => can(user.role, r.permission));
-  const meta = reportById(params.report ?? "") ?? available[0];
+  const meta = available.find((r) => r.id === params.report) ?? available[0];
 
-  const from = params.from ? new Date(params.from) : addDays(startOfDay(), -30);
-  const to = params.to ? new Date(`${params.to}T23:59:59`) : new Date();
+  const from = validDay(params.from || "")
+    ? clinicDateTime(params.from!)
+    : addDays(clinicDateTime(clinicDay()), -30);
+  const to = validDay(params.to || "")
+    ? new Date(clinicDateTime(params.to!).getTime() + 86400000 - 1)
+    : new Date();
 
   const table = detailed
-    ? await buildReport((meta?.id ?? "visits") as ReportId, t.locale, { from, to })
+    ? await buildReport((meta?.id ?? "visits") as ReportId, t.locale, {
+        from,
+        to,
+      })
     : await buildAggregateSummary(t.locale);
 
   const exportHref = `/api/export/${meta?.id ?? "visits"}?from=${toDateInput(from)}&to=${toDateInput(to)}`;
+  if (detailed)
+    await writeAudit({
+      user,
+      action: "VIEW_SENSITIVE",
+      entity: "Report",
+      entityId: meta?.id,
+      summary: "عرض تقرير تفصيلي",
+      meta: { rows: table.rows.length },
+    });
 
   return (
     <>
@@ -79,13 +102,25 @@ export default async function ReportsPage({
                   <label className="label" htmlFor="from">
                     {t("rep.from")}
                   </label>
-                  <input id="from" className="input" type="date" name="from" defaultValue={toDateInput(from)} />
+                  <input
+                    id="from"
+                    className="input"
+                    type="date"
+                    name="from"
+                    defaultValue={toDateInput(from)}
+                  />
                 </div>
                 <div>
                   <label className="label" htmlFor="to">
                     {t("rep.to")}
                   </label>
-                  <input id="to" className="input" type="date" name="to" defaultValue={toDateInput(to)} />
+                  <input
+                    id="to"
+                    className="input"
+                    type="date"
+                    name="to"
+                    defaultValue={toDateInput(to)}
+                  />
                 </div>
                 <button type="submit" className="btn btn-ghost">
                   {t("rep.generate")}
@@ -119,7 +154,10 @@ export default async function ReportsPage({
                 {table.rows.slice(0, 500).map((row, i) => (
                   <tr key={i}>
                     {row.map((cell, j) => (
-                      <td key={j} className={typeof cell === "number" ? "num" : undefined}>
+                      <td
+                        key={j}
+                        className={typeof cell === "number" ? "num" : undefined}
+                      >
                         {cell}
                       </td>
                     ))}
@@ -130,7 +168,10 @@ export default async function ReportsPage({
           </div>
         )}
         {table.rows.length > 500 && (
-          <p className="px-4 py-3 text-xs" style={{ color: "var(--text-faint)" }}>
+          <p
+            className="px-4 py-3 text-xs"
+            style={{ color: "var(--text-faint)" }}
+          >
             {t("common.showMore")} — {t("action.export")}
           </p>
         )}

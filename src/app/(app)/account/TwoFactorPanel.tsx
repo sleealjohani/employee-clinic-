@@ -25,21 +25,38 @@ function Submit({ label }: { label: string }) {
 
 export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
   const t = useT();
-  const [setup, setSetup] = useState<{ secret: string; qr: string } | null>(null);
+  const [setup, setSetup] = useState<{ secret: string; qr: string } | null>(
+    null,
+  );
   const [pending, startTransition] = useTransition();
-  const [confirmState, confirmAction] = useActionState<ActionState, FormData>(confirmTotpAction, {});
-  const [disableState, disableAction] = useActionState<ActionState, FormData>(disableTotpAction, {});
+  const [password, setPassword] = useState("");
+  const [setupError, setSetupError] = useState("");
+  const [confirmState, confirmAction] = useActionState<ActionState, FormData>(
+    confirmTotpAction,
+    {},
+  );
+  const [disableState, disableAction] = useActionState<ActionState, FormData>(
+    disableTotpAction,
+    {},
+  );
 
   if (enabled && !disableState.ok) {
     return (
       <div>
         <div className="mb-3">
-          <Alert tone="ok">{t("user.twoFactor")} — {t("user.active")}</Alert>
+          <Alert tone="ok">
+            {t("user.twoFactor")} — {t("user.active")}
+          </Alert>
         </div>
         <form action={disableAction} className="flex flex-wrap items-end gap-2">
           <div className="min-w-[14rem] flex-1">
             <Field label={t("auth.currentPassword")} required>
-              <input className="input" name="password" type="password" required />
+              <input
+                className="input"
+                name="password"
+                type="password"
+                required
+              />
             </Field>
           </div>
           <button type="submit" className="btn btn-danger btn-sm">
@@ -47,7 +64,10 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
           </button>
         </form>
         {disableState.error && (
-          <p className="mt-2 text-xs font-semibold" style={{ color: "var(--danger)" }}>
+          <p
+            className="mt-2 text-xs font-semibold"
+            style={{ color: "var(--danger)" }}
+          >
             {t(disableState.error)}
           </p>
         )}
@@ -56,7 +76,11 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
   }
 
   if (confirmState.ok) {
-    return <Alert tone="ok">{t("user.twoFactor")} — {t("common.saved")}</Alert>;
+    return (
+      <Alert tone="ok">
+        {t("user.twoFactor")} — {t("common.saved")}
+      </Alert>
+    );
   }
 
   if (!setup) {
@@ -67,11 +91,34 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
         </p>
         <button
           className="btn btn-primary btn-sm"
-          disabled={pending}
-          onClick={() => startTransition(async () => setSetup(await beginTotpSetup()))}
+          disabled={pending || !password}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await beginTotpSetup(password);
+              if ("error" in result) setSetupError(result.error);
+              else {
+                setSetup(result);
+                setPassword("");
+              }
+            })
+          }
         >
           {t("user.enable2fa")}
         </button>
+        <Field label={t("auth.currentPassword")} required>
+          <input
+            className="input mt-3"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        {setupError && (
+          <p className="form-error" role="alert">
+            {t(setupError)}
+          </p>
+        )}
       </div>
     );
   }
@@ -82,10 +129,20 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
         {t("user.2faScan")}
       </p>
       <div className="flex flex-wrap items-start gap-4">
-        <img src={setup.qr} alt="" width={180} height={180} className="rounded-lg bg-white p-2" />
+        <img
+          src={setup.qr}
+          alt=""
+          width={180}
+          height={180}
+          className="rounded-lg bg-white p-2"
+        />
         <div className="min-w-[13rem] flex-1">
           <p className="label">{t("setup.token")}</p>
-          <code className="num block select-all break-all rounded-lg p-2 text-xs" style={{ background: "var(--surface-3)" }} dir="ltr">
+          <code
+            className="num block select-all break-all rounded-lg p-2 text-xs"
+            style={{ background: "var(--surface-3)" }}
+            dir="ltr"
+          >
             {setup.secret}
           </code>
           <form action={confirmAction} className="mt-3">
@@ -100,7 +157,10 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
               />
             </Field>
             {confirmState.error && (
-              <p className="mt-2 text-xs font-semibold" style={{ color: "var(--danger)" }}>
+              <p
+                className="mt-2 text-xs font-semibold"
+                style={{ color: "var(--danger)" }}
+              >
                 {t(confirmState.error)}
               </p>
             )}

@@ -1,17 +1,25 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { Alert, Card, Chip, Empty, SectionTitle } from "@/components/ui";
-import { CommitBatch, ReviewItem, type PickEmployee, type ReviewItemData } from "./ReviewItem";
+import {
+  CommitBatch,
+  ReviewItem,
+  type PickEmployee,
+  type ReviewItemData,
+} from "./ReviewItem";
 import { approvePersonAction } from "@/server/actions/import";
 import type { ActionState } from "@/server/actions/employees";
 import styles from "./ReviewWorkspace.module.css";
+import { AttachmentPreview } from "@/components/clinic/AttachmentPreview";
 
-const MATCH_TONE = { MATCHED: "ok", SUGGESTED: "warn", UNMATCHED: "danger" } as const;
+const MATCH_TONE = {
+  MATCHED: "ok",
+  SUGGESTED: "warn",
+  UNMATCHED: "danger",
+} as const;
 
 type Filter = "all" | "attention" | "pending" | "decided";
 
@@ -20,7 +28,9 @@ type Filter = "all" | "attention" | "pending" | "decided";
 const MATCHES: Record<Filter, (item: ReviewItemData) => boolean> = {
   all: () => true,
   attention: (item) =>
-    item.matchStatus !== "MATCHED" || item.warnings.length > 0 || (item.confidence ?? 1) < 0.75,
+    item.matchStatus !== "MATCHED" ||
+    item.warnings.length > 0 ||
+    (item.confidence ?? 1) < 0.75,
   pending: (item) => item.review === "PENDING",
   decided: (item) => item.review !== "PENDING",
 };
@@ -36,7 +46,6 @@ type Person = {
   pending: number;
 };
 
-
 /** How many of a person's pending results the bulk control would actually take. */
 function cleanCount(person: Person): number {
   return person.items.filter(
@@ -50,12 +59,21 @@ function cleanCount(person: Person): number {
   ).length;
 }
 
-function ApproveAllButton({ count, outstanding }: { count: number; outstanding: number }) {
+function ApproveAllButton({
+  count,
+  outstanding,
+}: {
+  count: number;
+  outstanding: number;
+}) {
   const t = useT();
   const { pending } = useFormStatus();
   // When some of the person's results still need a decision of their own, the
   // label says so — "approve 4" next to eight rows would read as "approve all".
-  const label = count === outstanding ? `${t("imp.approvePerson")} (${count})` : t("imp.approveClean", { count, outstanding });
+  const label =
+    count === outstanding
+      ? `${t("imp.approvePerson")} (${count})`
+      : t("imp.approveClean", { count, outstanding });
   return (
     <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
       {pending ? t("action.saving") : label}
@@ -65,17 +83,29 @@ function ApproveAllButton({ count, outstanding }: { count: number; outstanding: 
 
 function ApproveAll({ batchId, person }: { batchId: string; person: Person }) {
   const t = useT();
-  const [state, formAction] = useActionState<ActionState, FormData>(approvePersonAction, {});
+  const [state, formAction] = useActionState<ActionState, FormData>(
+    approvePersonAction,
+    {},
+  );
   const count = cleanCount(person);
-  const outstanding = person.items.filter((item) => item.review === "PENDING").length;
+  const outstanding = person.items.filter(
+    (item) => item.review === "PENDING",
+  ).length;
   if (count === 0) return null;
   return (
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="batchId" value={batchId} />
-      <input type="hidden" name="ids" value={person.items.map((i) => i.id).join(",")} />
+      <input
+        type="hidden"
+        name="ids"
+        value={person.items.map((i) => i.id).join(",")}
+      />
       <ApproveAllButton count={count} outstanding={outstanding} />
       {state.error && (
-        <span className="text-[0.68rem] font-semibold" style={{ color: "var(--danger)" }}>
+        <span
+          className="text-[0.68rem] font-semibold"
+          style={{ color: "var(--danger)" }}
+        >
           {t(state.error)}
         </span>
       )}
@@ -93,8 +123,6 @@ function ApproveAll({ batchId, person }: { batchId: string; person: Person }) {
 export function ReviewWorkspace({
   batchId,
   attachmentId,
-  mimeType,
-  filename,
   items,
   employees,
   approvedCount,
@@ -117,9 +145,6 @@ export function ReviewWorkspace({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showSource, setShowSource] = useState(false);
   const [page, setPage] = useState(items[0]?.page ?? 1);
-
-  const isPdf = mimeType === "application/pdf";
-  const src = `/api/attachments/${attachmentId}${isPdf ? `#page=${page}&view=FitH` : ""}`;
 
   // One entry per person in the batch. Results are keyed on the matched
   // employee where there is one, so a report that spilled onto a continuation
@@ -150,11 +175,16 @@ export function ReviewWorkspace({
       if (item.review === "PENDING") person.pending++;
       // The weakest link in a person's results is the one worth surfacing.
       if (item.matchStatus === "UNMATCHED") person.matchStatus = "UNMATCHED";
-      else if (item.matchStatus === "SUGGESTED" && person.matchStatus === "MATCHED") {
+      else if (
+        item.matchStatus === "SUGGESTED" &&
+        person.matchStatus === "MATCHED"
+      ) {
         person.matchStatus = "SUGGESTED";
       }
     }
-    return [...byKey.values()].sort((a, b) => Math.min(...a.pages) - Math.min(...b.pages));
+    return [...byKey.values()].sort(
+      (a, b) => Math.min(...a.pages) - Math.min(...b.pages),
+    );
   }, [items, t]);
 
   const visible = useMemo(() => {
@@ -162,13 +192,17 @@ export function ReviewWorkspace({
     return people.filter((person) => {
       if (filter === "attention" && person.attention === 0) return false;
       if (filter === "pending" && person.pending === 0) return false;
-      if (filter === "decided" && person.pending === person.items.length) return false;
+      if (filter === "decided" && person.pending === person.items.length)
+        return false;
       if (!q) return true;
-      return `${person.name} ${person.nationalId}`.toLocaleLowerCase().includes(q);
+      return `${person.name} ${person.nationalId}`
+        .toLocaleLowerCase()
+        .includes(q);
     });
   }, [people, filter, query]);
 
-  const selected = visible.find((p) => p.key === selectedKey) ?? visible[0] ?? null;
+  const selected =
+    visible.find((p) => p.key === selectedKey) ?? visible[0] ?? null;
   const attentionTotal = items.filter(MATCHES.attention).length;
 
   function choose(person: Person) {
@@ -183,26 +217,53 @@ export function ReviewWorkspace({
           <div className="flex flex-wrap gap-4 text-xs">
             <span>
               <span className="num text-lg font-bold">{people.length}</span>{" "}
-              <span style={{ color: "var(--text-muted)" }}>{t("imp.peopleCount")}</span>
+              <span style={{ color: "var(--text-muted)" }}>
+                {t("imp.peopleCount")}
+              </span>
             </span>
             <span>
               <span className="num text-lg font-bold">{items.length}</span>{" "}
-              <span style={{ color: "var(--text-muted)" }}>{t("imp.resultCount")}</span>
+              <span style={{ color: "var(--text-muted)" }}>
+                {t("imp.resultCount")}
+              </span>
             </span>
             <span>
-              <span className="num text-lg font-bold" style={{ color: "var(--ok)" }}>{approvedCount}</span>{" "}
-              <span style={{ color: "var(--text-muted)" }}>{t("imp.approvedCount")}</span>
+              <span
+                className="num text-lg font-bold"
+                style={{ color: "var(--ok)" }}
+              >
+                {approvedCount}
+              </span>{" "}
+              <span style={{ color: "var(--text-muted)" }}>
+                {t("imp.approvedCount")}
+              </span>
             </span>
             <span>
-              <span className="num text-lg font-bold" style={{ color: "var(--warn)" }}>{pendingCount}</span>{" "}
-              <span style={{ color: "var(--text-muted)" }}>{t("imp.pendingCount")}</span>
+              <span
+                className="num text-lg font-bold"
+                style={{ color: "var(--warn)" }}
+              >
+                {pendingCount}
+              </span>{" "}
+              <span style={{ color: "var(--text-muted)" }}>
+                {t("imp.pendingCount")}
+              </span>
             </span>
             <span>
-              <span className="num text-lg font-bold" style={{ color: "var(--text-faint)" }}>{rejectedCount}</span>{" "}
-              <span style={{ color: "var(--text-muted)" }}>{t("imp.rejectedCount")}</span>
+              <span
+                className="num text-lg font-bold"
+                style={{ color: "var(--text-faint)" }}
+              >
+                {rejectedCount}
+              </span>{" "}
+              <span style={{ color: "var(--text-muted)" }}>
+                {t("imp.rejectedCount")}
+              </span>
             </span>
           </div>
-          {approvedCount > 0 && <CommitBatch batchId={batchId} approvedCount={approvedCount} />}
+          {approvedCount > 0 && (
+            <CommitBatch batchId={batchId} approvedCount={approvedCount} />
+          )}
         </div>
       </Card>
 
@@ -221,21 +282,29 @@ export function ReviewWorkspace({
               aria-label={t("imp.searchPeople")}
             />
             <div className={styles.filters}>
-              {(["all", "attention", "pending", "decided"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter(key)}
-                  className={`btn btn-sm ${filter === key ? "btn-primary" : "btn-ghost"}`}
-                >
-                  {t(`imp.filter.${key}`)}
-                  {key === "attention" && attentionTotal > 0 && <span className="num"> · {attentionTotal}</span>}
-                </button>
-              ))}
+              {(["all", "attention", "pending", "decided"] as const).map(
+                (key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFilter(key)}
+                    className={`btn btn-sm ${filter === key ? "btn-primary" : "btn-ghost"}`}
+                  >
+                    {t(`imp.filter.${key}`)}
+                    {key === "attention" && attentionTotal > 0 && (
+                      <span className="num"> · {attentionTotal}</span>
+                    )}
+                  </button>
+                ),
+              )}
             </div>
           </div>
 
-          <div className={styles.rosterList} role="listbox" aria-label={t("imp.peopleCount")}>
+          <div
+            className={styles.rosterList}
+            role="listbox"
+            aria-label={t("imp.peopleCount")}
+          >
             {visible.length === 0 ? (
               <p className={styles.empty}>{t("imp.noItems")}</p>
             ) : (
@@ -252,12 +321,19 @@ export function ReviewWorkspace({
                 >
                   <span className={styles.personBody}>
                     <strong dir="auto">{person.name}</strong>
-                    <small className="num" dir="ltr">{person.nationalId}</small>
+                    <small className="num" dir="ltr">
+                      {person.nationalId}
+                    </small>
                   </span>
                   <span className={styles.personTags}>
-                    <span className="num" title={t("imp.resultCount")}>{person.items.length}</span>
+                    <span className="num" title={t("imp.resultCount")}>
+                      {person.items.length}
+                    </span>
                     {person.attention > 0 && (
-                      <span className={styles.attentionDot} title={t("imp.filter.attention")} />
+                      <span
+                        className={styles.attentionDot}
+                        title={t("imp.filter.attention")}
+                      />
                     )}
                   </span>
                 </button>
@@ -276,13 +352,22 @@ export function ReviewWorkspace({
               <Card className="mb-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-base font-black" dir="auto">{selected.name}</h3>
-                    <p className="num mt-0.5 text-xs" style={{ color: "var(--text-faint)" }} dir="ltr">
-                      {selected.nationalId} · {t("imp.pages")} {selected.pages.join(", ")}
+                    <h3 className="text-base font-black" dir="auto">
+                      {selected.name}
+                    </h3>
+                    <p
+                      className="num mt-0.5 text-xs"
+                      style={{ color: "var(--text-faint)" }}
+                      dir="ltr"
+                    >
+                      {selected.nationalId} · {t("imp.pages")}{" "}
+                      {selected.pages.join(", ")}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Chip tone={MATCH_TONE[selected.matchStatus]}>{t(`imp.match.${selected.matchStatus}`)}</Chip>
+                    <Chip tone={MATCH_TONE[selected.matchStatus]}>
+                      {t(`imp.match.${selected.matchStatus}`)}
+                    </Chip>
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
@@ -302,7 +387,7 @@ export function ReviewWorkspace({
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <SectionTitle>{t("imp.source")}</SectionTitle>
                       <a
-                        href={`/api/attachments/${attachmentId}`}
+                        href={`/documents/${attachmentId}?page=${page}`}
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-ghost btn-sm"
@@ -310,34 +395,22 @@ export function ReviewWorkspace({
                         {t("action.open")}
                       </a>
                     </div>
-                    <div style={{ height: "60vh", background: "var(--surface-2)", borderRadius: "0.9rem", overflow: "hidden" }}>
-                      {isPdf ? (
-                        <object key={page} data={src} type="application/pdf" className="h-full w-full">
-                          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-                            <p className="text-sm font-semibold">{filename}</p>
-                            <a
-                              href={`/api/attachments/${attachmentId}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-primary btn-sm"
-                            >
-                              {t("action.open")}
-                            </a>
-                          </div>
-                        </object>
-                      ) : (
-                        <div className="h-full overflow-auto p-2">
-                          <img src={src} alt={filename} className="mx-auto max-w-full" />
-                        </div>
-                      )}
-                    </div>
+                    <AttachmentPreview id={attachmentId} page={page} />
                   </div>
                 )}
               </Card>
 
               <ul className="space-y-3">
                 {selected.items.map((item) => (
-                  <ReviewItem key={item.id} item={item} employees={employees} onFocusPage={setPage} />
+                  <ReviewItem
+                    key={item.id}
+                    item={item}
+                    employees={employees}
+                    onFocusPage={(p) => {
+                      setPage(p);
+                      setShowSource(true);
+                    }}
+                  />
                 ))}
               </ul>
             </>

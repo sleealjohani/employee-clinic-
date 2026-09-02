@@ -5,7 +5,12 @@ build/
 .env
 .env.local
 .env*.local
+.env.*
+!.env.example
 .vercel
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Synthetic development database
+.test-database/

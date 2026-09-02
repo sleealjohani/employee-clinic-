@@ -4,7 +4,12 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { Alert, Field } from "@/components/ui";
-import { CloseOnSuccess, FormError, Modal, SubmitRow } from "@/components/ui/Modal";
+import {
+  CloseOnSuccess,
+  FormError,
+  Modal,
+  SubmitRow,
+} from "@/components/ui/Modal";
 import {
   clearUserTotpAction,
   createUserAction,
@@ -31,9 +36,16 @@ function TempPassword({ value }: { value?: string }) {
   );
 }
 
-export function NewUserButton() {
+export function NewUserButton({
+  employees = [],
+}: {
+  employees?: { id: string; name: string }[];
+}) {
   const t = useT();
-  const [state, formAction] = useActionState<UserState, FormData>(createUserAction, {});
+  const [state, formAction] = useActionState<UserState, FormData>(
+    createUserAction,
+    {},
+  );
 
   return (
     <Modal
@@ -65,6 +77,16 @@ export function NewUserButton() {
               ))}
             </select>
           </Field>
+          <Field label={t("v2.linkEmployee")} hint={t("v2.linkEmployeeHint")}>
+            <select className="select" name="employeeId" defaultValue="">
+              <option value="">—</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
         <TempPassword value={state.tempPassword} />
         <FormError error={state.error} />
@@ -77,20 +99,41 @@ export function NewUserButton() {
 function InlineSubmit({ label, danger }: { label: string; danger?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={`btn btn-sm ${danger ? "btn-danger" : "btn-ghost"}`} disabled={pending}>
+    <button
+      type="submit"
+      className={`btn btn-sm ${danger ? "btn-danger" : "btn-ghost"}`}
+      disabled={pending}
+    >
       {label}
     </button>
   );
 }
 
-export function RoleSelect({ userId, role, disabled }: { userId: string; role: string; disabled: boolean }) {
+export function RoleSelect({
+  userId,
+  role,
+  disabled,
+}: {
+  userId: string;
+  role: string;
+  disabled: boolean;
+}) {
   const t = useT();
-  const [state, formAction] = useActionState<UserState, FormData>(updateUserRoleAction, {});
+  const [state, formAction] = useActionState<UserState, FormData>(
+    updateUserRoleAction,
+    {},
+  );
 
   return (
     <form action={formAction} className="flex items-center gap-1.5">
       <input type="hidden" name="id" value={userId} />
-      <select className="select" name="role" defaultValue={role} disabled={disabled} style={{ minWidth: "9rem" }}>
+      <select
+        className="select"
+        name="role"
+        defaultValue={role}
+        disabled={disabled}
+        style={{ minWidth: "9rem" }}
+      >
         {ROLES.map((r) => (
           <option key={r} value={r}>
             {t(`role.${r}`)}
@@ -107,32 +150,62 @@ export function RoleSelect({ userId, role, disabled }: { userId: string; role: s
   );
 }
 
-export function ToggleActive({ userId, isActive, disabled }: { userId: string; isActive: boolean; disabled: boolean }) {
+export function ToggleActive({
+  userId,
+  isActive,
+  disabled,
+}: {
+  userId: string;
+  isActive: boolean;
+  disabled: boolean;
+}) {
   const t = useT();
-  const [, formAction] = useActionState<UserState, FormData>(toggleUserActiveAction, {});
+  const [, formAction] = useActionState<UserState, FormData>(
+    toggleUserActiveAction,
+    {},
+  );
   if (disabled) return null;
 
   return (
     <form action={formAction}>
       <input type="hidden" name="id" value={userId} />
-      <InlineSubmit label={isActive ? t("user.deactivate") : t("user.activate")} danger={isActive} />
+      <InlineSubmit
+        label={isActive ? t("user.deactivate") : t("user.activate")}
+        danger={isActive}
+      />
     </form>
   );
 }
 
-export function ResetPassword({ userId, username }: { userId: string; username: string }) {
+export function ResetPassword({
+  userId,
+  username,
+}: {
+  userId: string;
+  username: string;
+}) {
   const t = useT();
-  const [state, formAction] = useActionState<UserState, FormData>(resetUserPasswordAction, {});
+  const [state, formAction] = useActionState<UserState, FormData>(
+    resetUserPasswordAction,
+    {},
+  );
 
   return (
     <Modal
       title={t("user.resetPassword")}
       description={username}
-      trigger={<button className="btn btn-ghost btn-sm">{t("user.resetPassword")}</button>}
+      trigger={
+        <button className="btn btn-ghost btn-sm">
+          {t("user.resetPassword")}
+        </button>
+      }
     >
       <form action={formAction}>
         <input type="hidden" name="id" value={userId} />
-        <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+        <p
+          className="text-sm leading-relaxed"
+          style={{ color: "var(--text-muted)" }}
+        >
           {t("user.resetEffect")}
         </p>
         <TempPassword value={state.tempPassword} />
@@ -143,15 +216,26 @@ export function ResetPassword({ userId, username }: { userId: string; username: 
   );
 }
 
-export function ClearTotp({ userId, username }: { userId: string; username: string }) {
+export function ClearTotp({
+  userId,
+  username,
+}: {
+  userId: string;
+  username: string;
+}) {
   const t = useT();
-  const [state, formAction] = useActionState<UserState, FormData>(clearUserTotpAction, {});
+  const [state, formAction] = useActionState<UserState, FormData>(
+    clearUserTotpAction,
+    {},
+  );
 
   return (
     <Modal
       title={t("user.disable2fa")}
       description={username}
-      trigger={<button className="btn btn-ghost btn-sm">{t("user.disable2fa")}</button>}
+      trigger={
+        <button className="btn btn-ghost btn-sm">{t("user.disable2fa")}</button>
+      }
     >
       <form action={formAction}>
         <CloseOnSuccess ok={state.ok} />

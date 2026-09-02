@@ -1,454 +1,315 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Role } from "@prisma/client";
-import { initials } from "@/lib/format";
-import { Logo, LogoMark } from "@/components/brand/Logo";
+import type { ClinicConfig } from "@/lib/clinic-config";
 import { useT } from "@/lib/i18n/client";
-import { canOpenPath } from "@/lib/auth/rbac";
+import { initials } from "@/lib/format";
+import { canOpenPath, can } from "@/lib/auth/rbac";
+import { LogoMark } from "@/components/brand/Logo";
+import { SessionGuard } from "./SessionGuard";
 import {
-  IconAudit,
   IconDashboard,
-  IconDue,
   IconEmployees,
-  IconImport,
+  IconVisit,
   IconLab,
-  IconLogout,
-  IconMenu,
-  IconMoon,
+  IconVaccine,
+  IconDue,
+  IconImport,
   IconReports,
+  IconUsers,
+  IconAudit,
   IconSearch,
   IconSun,
-  IconUsers,
-  IconVaccine,
-  IconVisit,
+  IconMoon,
+  IconMenu,
   IconX,
+  IconLogout,
 } from "./icons";
-
-type NavItem = { href: string; labelKey: string; icon: ReactNode; badge?: number };
-
+const nav = [
+  { href: "/dashboard", key: "nav.dashboard", icon: IconDashboard },
+  { href: "/appointments", key: "v2.appointments", icon: IconVisit },
+  { href: "/employees", key: "nav.employees", icon: IconEmployees },
+  { href: "/visits", key: "nav.visits", icon: IconVisit },
+  { href: "/labs", key: "nav.labs", icon: IconLab },
+  { href: "/vaccinations", key: "nav.vaccinations", icon: IconVaccine },
+  { href: "/due", key: "nav.due", icon: IconDue },
+  { href: "/requests", key: "v2.requests", icon: IconImport },
+  { href: "/labs/import", key: "nav.import", icon: IconImport },
+  { href: "/reports", key: "nav.reports", icon: IconReports },
+];
+const adminNav = [
+  { href: "/users", key: "nav.users", icon: IconUsers },
+  { href: "/audit", key: "nav.audit", icon: IconAudit },
+  { href: "/settings", key: "v2.settings", icon: IconDashboard },
+];
+const portalNav = [
+  { href: "/portal", key: "v2.portal", icon: IconDashboard },
+  { href: "/portal/appointments", key: "v2.myAppointments", icon: IconVisit },
+  { href: "/portal/records", key: "v2.myRecords", icon: IconLab },
+  { href: "/portal/requests", key: "v2.requests", icon: IconImport },
+  { href: "/portal/profile", key: "v2.myProfile", icon: IconEmployees },
+];
 export function Shell({
   user,
   locale,
   theme,
-  actionCount,
+  notificationCount,
+  config,
   children,
 }: {
   user: { name: string; role: Role };
   locale: "ar" | "en";
   theme: "light" | "dark";
-  actionCount: number;
+  notificationCount: number;
+  config: ClinicConfig;
   children: ReactNode;
 }) {
-  const t = useT();
-  const pathname = usePathname();
-  const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [commandOpen, setCommandOpen] = useState(false);
-  const [commandQuery, setCommandQuery] = useState("");
-  const [currentTheme, setCurrentTheme] = useState(theme);
-
-  const clinical: NavItem[] = useMemo(
-    () => [
-      { href: "/dashboard", labelKey: "nav.dashboard", icon: <IconDashboard /> },
-      { href: "/employees", labelKey: "nav.employees", icon: <IconEmployees /> },
-      { href: "/visits", labelKey: "nav.visits", icon: <IconVisit /> },
-      { href: "/labs", labelKey: "nav.labs", icon: <IconLab /> },
-      { href: "/vaccinations", labelKey: "nav.vaccinations", icon: <IconVaccine /> },
-    ],
-    [],
-  );
-
-  const oversight: NavItem[] = useMemo(
-    () => [
-      { href: "/due", labelKey: "nav.due", icon: <IconDue />, badge: actionCount },
-      { href: "/labs/import", labelKey: "nav.import", icon: <IconImport /> },
-      { href: "/reports", labelKey: "nav.reports", icon: <IconReports /> },
-      { href: "/users", labelKey: "nav.users", icon: <IconUsers /> },
-      { href: "/audit", labelKey: "nav.audit", icon: <IconAudit /> },
-    ],
-    [actionCount],
-  );
-
-  const visibleClinical = clinical.filter((item) => canOpenPath(user.role, item.href));
-  const visibleOversight = oversight.filter((item) => canOpenPath(user.role, item.href));
-  const allVisible = [...visibleClinical, ...visibleOversight];
-
+  const t = useT(),
+    pathname = usePathname(),
+    router = useRouter();
+  const [open, setOpen] = useState(false),
+    [dark, setDark] = useState(theme === "dark"),
+    [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null),
+    employee = user.role === "EMPLOYEE",
+    home = employee ? "/portal" : "/dashboard";
+  const items = (employee ? portalNav : nav).filter((n) =>
+      canOpenPath(user.role, n.href),
+    ),
+    management = adminNav.filter((n) => canOpenPath(user.role, n.href));
+  const active = (href: string) =>
+    pathname === href ||
+    (href !== home &&
+      pathname.startsWith(href + "/") &&
+      !(href === "/labs" && pathname.startsWith("/labs/import")));
   useEffect(() => {
-    setMobileOpen(false);
-    setCommandOpen(false);
+    setOpen(false);
   }, [pathname]);
-
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setCommandOpen(true);
-        return;
+    document.documentElement.dataset.accent = config.accent;
+    document.documentElement.dataset.motion = config.motion ? "on" : "off";
+  }, [config.accent, config.motion]);
+  useEffect(() => {
+    function key(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
       }
-
-      if (event.key === "Escape") {
-        setCommandOpen(false);
-        setMobileOpen(false);
-        return;
-      }
-
-      if (!typing && event.key === "/") {
-        event.preventDefault();
-        setCommandOpen(true);
-      }
+      if (e.key === "Escape") setOpen(false);
     }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
   }, []);
-
-  function toggleTheme() {
-    const next = currentTheme === "dark" ? "light" : "dark";
-    setCurrentTheme(next);
-    document.documentElement.dataset.theme = next;
-    document.cookie = `clinic_theme=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  function changeTheme() {
+    const value = !dark;
+    setDark(value);
+    document.documentElement.dataset.theme = value ? "dark" : "light";
+    document.cookie =
+      "clinic_theme=" +
+      (value ? "dark" : "light") +
+      "; path=/; max-age=31536000; samesite=lax";
   }
-
-  function switchLocale() {
-    const next = locale === "ar" ? "en" : "ar";
-    document.cookie = `clinic_locale=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  function language() {
+    document.cookie =
+      "clinic_locale=" +
+      (locale === "ar" ? "en" : "ar") +
+      "; path=/; max-age=31536000; samesite=lax";
     window.location.reload();
   }
-
-  function runEmployeeSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const q = commandQuery.trim();
-    setCommandOpen(false);
-    router.push(q ? `/employees?q=${encodeURIComponent(q)}` : "/employees");
-  }
-
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
-
-  const desktopNav = (
-    <>
-      <Link href="/dashboard" prefetch={false} className="rail-brand" aria-label={t("app.name")}>
-        <LogoMark size={32} />
-        <span className="rail-label rail-brand-name">{t("app.name")}</span>
+  function navItems(list: typeof nav) {
+    return list.map((item) => (
+      <Link
+        key={item.href}
+        href={item.href}
+        prefetch={false}
+        className="sidebar-link"
+        aria-current={active(item.href) ? "page" : undefined}
+      >
+        <item.icon size={19} />
+        <span>{t(item.key)}</span>
+        {active(item.href) && <span className="nav-active-mark" aria-hidden />}
       </Link>
-
-      <nav className="rail-nav">
-        <span className="rail-group rail-label">{t("nav.group.clinical")}</span>
-        {visibleClinical.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            prefetch={false}
-            className="nav-icon-button"
-            data-active={isActive(item.href)}
-          >
-            <span className="nav-icon-glyph">{item.icon}</span>
-            <span className="rail-label">{t(item.labelKey)}</span>
-          </Link>
-        ))}
-
-        {visibleOversight.length > 0 && (
-          <span className="rail-group rail-label">{t("nav.group.oversight")}</span>
-        )}
-
-        {visibleOversight.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            prefetch={false}
-            className="nav-icon-button"
-            data-active={isActive(item.href)}
-            aria-label={item.badge ? `${t(item.labelKey)} (${item.badge})` : undefined}
-          >
-            <span className="nav-icon-glyph">
-              {item.icon}
-              {item.badge !== undefined && item.badge > 0 && (
-                <span
-                  aria-hidden
-                  className="num absolute -end-1 -top-1 min-w-[1.1rem] rounded-full px-1 py-0.5 text-center text-[0.58rem] font-bold text-white"
-                  style={{ background: "var(--danger)" }}
-                >
-                  {item.badge > 99 ? "99+" : item.badge}
-                </span>
-              )}
-            </span>
-            <span className="rail-label">{t(item.labelKey)}</span>
-          </Link>
-        ))}
-      </nav>
-
-      <div className="rail-foot">
-        <button type="button" onClick={toggleTheme} className="nav-icon-button">
-          <span className="nav-icon-glyph">{currentTheme === "dark" ? <IconSun /> : <IconMoon />}</span>
-          <span className="rail-label">{t("common.theme")}</span>
-        </button>
-        <button type="button" onClick={switchLocale} className="nav-icon-button">
-          <span aria-hidden className="nav-icon-glyph text-xs font-bold">{locale === "ar" ? "EN" : "ع"}</span>
-          <span className="rail-label">{t("common.language")}</span>
-        </button>
-
-        <Link href="/account" prefetch={false} className="nav-icon-button" data-active={isActive("/account")}>
-          <span aria-hidden className="nav-icon-glyph rail-avatar">{initials(user.name)}</span>
-          <span className="rail-label rail-identity">
-            <span>{user.name}</span>
-            <small>{t(`role.${user.role}`)}</small>
-          </span>
-        </Link>
-
-        {/* Signing out was reachable only from the mobile drawer and the account
-            page — there was no way out of the desktop workspace at all. */}
-        <form action="/api/auth/logout" method="post" className="contents">
-          <button type="submit" className="nav-icon-button nav-icon-danger">
-            <span className="nav-icon-glyph"><IconLogout /></span>
-            <span className="rail-label">{t("action.logout")}</span>
-          </button>
-        </form>
-      </div>
-    </>
-  );
-
-  const mobileNavSection = (items: NavItem[], title: string) =>
-    items.length === 0 ? null : (
-      <div className="mb-5">
-        <p className="mb-2 px-2 text-[0.68rem] font-bold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
-          {title}
-        </p>
-        <div className="space-y-1">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={false}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors"
-              style={{
-                color: isActive(item.href) ? "var(--accent-text)" : "var(--text-muted)",
-                background: isActive(item.href) ? "var(--accent-soft)" : "transparent",
-              }}
-            >
-              <span style={{ color: isActive(item.href) ? "var(--accent)" : "var(--text-faint)" }}>{item.icon}</span>
-              <span className="flex-1">{t(item.labelKey)}</span>
-              {item.badge !== undefined && item.badge > 0 && (
-                <span className="num rounded-full px-2 py-0.5 text-[0.65rem] font-bold text-white" style={{ background: "var(--danger)" }}>
-                  {item.badge > 99 ? "99+" : item.badge}
-                </span>
-              )}
-            </Link>
-          ))}
-        </div>
-      </div>
-    );
-
+    ));
+  }
+  const title = [...items, ...management]
+    .filter((n) => active(n.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
   return (
-    <div className="workspace-shell">
-      <div className="ambient-orb ambient-orb-one" />
-      <div className="ambient-orb ambient-orb-two" />
-
-      {/* Desktop navigation rail */}
-      <aside className="glass nav-rail fixed inset-y-3 z-40 hidden flex-col rounded-[1.45rem] lg:flex no-print" style={{ insetInlineStart: "0.75rem" }}>
-        {desktopNav}
-      </aside>
-
-      {/* Mobile command bar */}
-      <header className="glass-strong sticky top-2 z-30 mx-2 mt-2 flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 lg:hidden no-print">
-        <Link href="/dashboard" prefetch={false} className="flex min-w-0 items-center gap-2.5">
-          <LogoMark size={29} />
-          <span className="truncate text-sm font-bold">{t("app.name")}</span>
-        </Link>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => setCommandOpen(true)}
-            aria-label={t("action.search")}
-          >
-            <IconSearch size={16} />
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMobileOpen(true)} aria-label="Menu">
-            <IconMenu />
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile navigation drawer */}
-      {mobileOpen && (
-        <div className="command-overlay fixed inset-0 z-50 lg:hidden no-print">
-          <button
-            type="button"
-            className="absolute inset-0 bg-[rgb(4_18_24/0.52)] backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close"
-          />
-          <aside
-            className="glass-strong command-surface absolute inset-y-2 flex w-[min(21rem,calc(100vw-1rem))] flex-col rounded-[1.6rem] p-4"
-            style={{ insetInlineStart: "0.5rem" }}
-          >
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
-                <Logo height={42} />
-                <p className="mt-2 text-xs font-semibold" style={{ color: "var(--text-faint)" }}>
-                  {t("app.name")}
-                </p>
-              </div>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMobileOpen(false)} aria-label="Close">
-                <IconX />
-              </button>
-            </div>
-
-            <nav className="flex-1 overflow-y-auto">
-              {mobileNavSection(visibleClinical, t("nav.group.clinical"))}
-              {mobileNavSection(visibleOversight, t("nav.group.oversight"))}
-            </nav>
-
-            <div className="mt-4 border-t pt-4">
-              <Link href="/account" prefetch={false} className="mb-3 flex items-center gap-3 rounded-xl px-2 py-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}>
-                  {initials(user.name)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold">{user.name}</span>
-                  <span className="block truncate text-xs" style={{ color: "var(--text-faint)" }}>
-                    {t(`role.${user.role}`)}
-                  </span>
-                </span>
-              </Link>
-              <div className="grid grid-cols-3 gap-2">
-                <button type="button" onClick={toggleTheme} className="btn btn-ghost btn-sm">
-                  {currentTheme === "dark" ? <IconSun /> : <IconMoon />}
-                </button>
-                <button type="button" onClick={switchLocale} className="btn btn-ghost btn-sm font-bold">
-                  {locale === "ar" ? "EN" : "ع"}
-                </button>
-                <form action="/api/auth/logout" method="post">
-                  <button type="submit" className="btn btn-ghost btn-sm w-full" title={t("action.logout")}>
-                    <IconLogout />
-                  </button>
-                </form>
-              </div>
-            </div>
-          </aside>
-        </div>
+    <div
+      className="clinic-shell"
+      data-accent={config.accent}
+      data-motion={config.motion ? "on" : "off"}
+    >
+      <a href="#main-content" className="skip-link">
+        {t("v2.skip")}
+      </a>
+      <SessionGuard />
+      {open && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label={t("v2.close")}
+          onClick={() => setOpen(false)}
+        />
       )}
-
-      <div className="lg:ps-[5.75rem]">
-        {/* Floating command / identity bar */}
-        <div className="sticky top-3 z-20 hidden px-4 pt-3 lg:block no-print">
-          <div className="glass-strong mx-auto flex max-w-[96rem] items-center gap-4 rounded-[1.35rem] px-4 py-2.5">
-            <div className="min-w-0 shrink-0">
-              <p className="text-[0.68rem] font-semibold" style={{ color: "var(--text-faint)" }}>
-                {locale === "ar" ? "مساحة العمل السريرية" : "Clinical workspace"}
-              </p>
-              <p className="truncate text-sm font-bold">{t("app.name")}</p>
-            </div>
-
+      <aside
+        className="clinic-sidebar no-print"
+        data-open={open}
+        aria-label={t("v2.menu")}
+      >
+        <div className="sidebar-brand">
+          <Link href={home}>
+            <span className="brand-symbol">
+              <LogoMark size={32} />
+            </span>
+            <span>
+              <strong>{locale === "ar" ? config.nameAr : config.nameEn}</strong>
+              <small>
+                {locale === "ar" ? config.locationAr : config.locationEn}
+              </small>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="mobile-close icon-button"
+            onClick={() => setOpen(false)}
+            aria-label={t("v2.close")}
+          >
+            <IconX />
+          </button>
+        </div>
+        <div className="sidebar-section-label">
+          {t(employee ? "v2.portal" : "nav.group.clinical")}
+        </div>
+        <nav className="sidebar-nav">
+          {navItems(items)}
+          {management.length > 0 && (
+            <>
+              <div className="sidebar-section-label">
+                {t("nav.group.oversight")}
+              </div>
+              {navItems(management)}
+            </>
+          )}
+        </nav>
+        <div className="sidebar-support">
+          <span className="support-cross" aria-hidden>
+            ＋
+          </span>
+          <strong>{t("v2.contactClinic")}</strong>
+          <span>{locale === "ar" ? config.locationAr : config.locationEn}</span>
+          {config.contactPhone && (
+            <a dir="ltr" className="num" href={"tel:" + config.contactPhone}>
+              {config.contactPhone}
+            </a>
+          )}
+        </div>
+        <Link href="/account" className="sidebar-account">
+          <span className="avatar">{initials(user.name)}</span>
+          <span>
+            <strong>{user.name}</strong>
+            <small>{t("role." + user.role)}</small>
+          </span>
+          <span aria-hidden>↗</span>
+        </Link>
+      </aside>
+      <div className="clinic-main">
+        <header className="clinic-topbar no-print">
+          <div className="topbar-heading">
             <button
               type="button"
-              onClick={() => setCommandOpen(true)}
-              className="floating-command mx-auto flex w-full max-w-xl items-center gap-3 rounded-xl border px-3.5 py-2 text-start"
-              style={{ background: "color-mix(in srgb, var(--surface) 65%, transparent)", color: "var(--text-muted)" }}
+              className="icon-button mobile-menu"
+              aria-label={t("v2.menu")}
+              onClick={() => setOpen(true)}
+            >
+              <IconMenu />
+            </button>
+            <div>
+              <span className="eyebrow">{t("v2.workspace")}</span>
+              <strong>{title ? t(title.key) : t("app.name")}</strong>
+            </div>
+          </div>
+          {can(user.role, "employee.read") && (
+            <form
+              className="topbar-search"
+              onSubmit={(e) => {
+                e.preventDefault();
+                router.push("/employees?q=" + encodeURIComponent(query.trim()));
+              }}
             >
               <IconSearch size={17} />
-              <span className="flex-1 truncate text-sm">{t("emp.searchPlaceholder")}</span>
-              <kbd className="hidden rounded-lg border px-2 py-0.5 text-[0.66rem] font-semibold xl:inline" style={{ background: "var(--surface-2)", color: "var(--text-faint)" }}>
-                Ctrl K
-              </kbd>
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label={t("emp.searchPlaceholder")}
+                placeholder={t("emp.searchPlaceholder")}
+              />
+              <kbd>⌘ K</kbd>
+            </form>
+          )}
+          <div className="topbar-tools">
+            <button
+              type="button"
+              onClick={language}
+              className="icon-button language-button"
+              aria-label={locale === "ar" ? "English" : "العربية"}
+            >
+              {locale === "ar" ? "EN" : "ع"}
             </button>
-
-            <Link href="/account" prefetch={false} className="flex shrink-0 items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-[var(--surface-2)]">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}>
-                {initials(user.name)}
-              </span>
-              <span className="hidden max-w-32 xl:block">
-                <span className="block truncate text-xs font-bold">{user.name}</span>
-                <span className="block truncate text-[0.66rem]" style={{ color: "var(--text-faint)" }}>
-                  {t(`role.${user.role}`)}
+            <button
+              type="button"
+              onClick={changeTheme}
+              className="icon-button theme-button"
+              aria-label={t("common.theme")}
+            >
+              {dark ? <IconSun size={18} /> : <IconMoon size={18} />}
+            </button>
+            <Link
+              href="/notifications"
+              className="icon-button notification-button"
+              aria-label={t("v2.notifications") + " " + notificationCount}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden
+              >
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+              </svg>
+              {notificationCount > 0 && (
+                <span className="notification-count num">
+                  {notificationCount > 99 ? "99+" : notificationCount}
                 </span>
-              </span>
+              )}
             </Link>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="icon-button"
+                aria-label={t("action.logout")}
+              >
+                <IconLogout size={18} />
+              </button>
+            </form>
           </div>
-        </div>
-
-        <main className="min-w-0 px-3 py-4 sm:px-5 lg:px-6 lg:pb-8 lg:pt-5 xl:px-8">
-          <div key={pathname} className="app-page motion-page mx-auto max-w-[96rem]">
+        </header>
+        <main id="main-content" className="clinic-content">
+          <div key={pathname} className="motion-page">
             {children}
           </div>
         </main>
+        <footer className="clinic-footer">
+          <span>{locale === "ar" ? config.locationAr : config.locationEn}</span>
+          <span>{t("auth.confidential")}</span>
+        </footer>
       </div>
-
-      {/* Command center: global keyboard entry point, employee search + navigation. */}
-      {commandOpen && (
-        <div className="command-overlay fixed inset-0 z-[70] flex items-start justify-center px-3 pt-[10vh] no-print">
-          <button
-            type="button"
-            className="absolute inset-0 bg-[rgb(4_18_24/0.46)] backdrop-blur-md"
-            onClick={() => setCommandOpen(false)}
-            aria-label="Close command center"
-          />
-
-          <section className="glass-strong command-surface relative z-10 w-full max-w-2xl overflow-hidden rounded-[1.55rem]">
-            <form onSubmit={runEmployeeSearch} className="border-b p-3">
-              <div className="flex items-center gap-3 rounded-xl px-3 py-2" style={{ background: "var(--surface-2)" }}>
-                <span style={{ color: "var(--accent)" }}>
-                  <IconSearch size={19} />
-                </span>
-                <input
-                  autoFocus
-                  value={commandQuery}
-                  onChange={(event) => setCommandQuery(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                  placeholder={t("emp.searchPlaceholder")}
-                  aria-label={t("action.search")}
-                />
-                <kbd className="rounded-lg border px-2 py-0.5 text-[0.64rem] font-semibold" style={{ color: "var(--text-faint)" }}>
-                  ESC
-                </kbd>
-              </div>
-            </form>
-
-            <div className="max-h-[58vh] overflow-y-auto p-3">
-              <div className="mb-4 rounded-xl border p-3" style={{ background: "color-mix(in srgb, var(--accent) 5%, var(--surface))" }}>
-                <p className="text-xs font-bold" style={{ color: "var(--accent-text)" }}>
-                  {locale === "ar" ? "بحث سريع عن الموظف" : "Quick employee search"}
-                </p>
-                <p className="mt-1 text-xs leading-5" style={{ color: "var(--text-muted)" }}>
-                  {locale === "ar"
-                    ? "اكتب الاسم أو رقم الهوية أو الرقم الوظيفي ثم اضغط Enter."
-                    : "Type a name, national ID, or employee number, then press Enter."}
-                </p>
-              </div>
-
-              <p className="mb-2 px-1 text-[0.68rem] font-bold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
-                {locale === "ar" ? "انتقال سريع" : "Quick navigation"}
-              </p>
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                {allVisible.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={false}
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all hover:-translate-y-0.5"
-                    style={{ background: "var(--surface)", color: "var(--text-muted)" }}
-                  >
-                    <span style={{ color: "var(--accent)" }}>{item.icon}</span>
-                    <span className="flex-1">{t(item.labelKey)}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="num rounded-full px-1.5 py-0.5 text-[0.62rem] font-bold" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

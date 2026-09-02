@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { latinDigits } from "@/lib/clinical/numeric";
 
 /**
  * Saudi national / Iqama identity number check.
@@ -15,7 +16,8 @@ export function validateNationalId(raw: string | null | undefined): {
   reason?: "LENGTH" | "NON_NUMERIC" | "PREFIX" | "CHECKSUM";
 } {
   const id = (raw ?? "").trim();
-  if (!/^\d+$/.test(id)) return { valid: false, known: true, reason: "NON_NUMERIC" };
+  if (!/^\d+$/.test(id))
+    return { valid: false, known: true, reason: "NON_NUMERIC" };
   if (id.length !== 10) return { valid: false, known: true, reason: "LENGTH" };
   if (!["1", "2"].includes(id[0])) {
     // Unknown scheme — we cannot verify it, so we do not claim it is wrong.
@@ -41,9 +43,16 @@ export function validateNationalId(raw: string | null | undefined): {
 export const nationalIdSchema = z
   .string()
   .trim()
-  .min(5, "required")
-  .max(20)
-  .refine((v) => validateNationalId(v).valid, { message: "invalid_national_id" });
+  .transform(latinDigits)
+  .pipe(
+    z
+      .string()
+      .min(5, "required")
+      .max(20)
+      .refine((v) => validateNationalId(v).valid, {
+        message: "invalid_national_id",
+      }),
+  );
 
 const optionalString = z
   .string()
@@ -56,37 +65,77 @@ const optionalDate = z
   .string()
   .trim()
   .optional()
+  .refine(
+    (v) =>
+      !v ||
+      (/^\d{4}-\d{2}-\d{2}$/.test(v) &&
+        Number.isFinite(new Date(v).getTime()) &&
+        new Date(v).toISOString().slice(0, 10) === v),
+    { message: "invalid_date" },
+  )
   .transform((v) => (v ? new Date(v) : undefined))
-  .refine((v) => v === undefined || !Number.isNaN(v.getTime()), { message: "invalid_date" });
+  .refine((v) => v === undefined || !Number.isNaN(v.getTime()), {
+    message: "invalid_date",
+  });
 
 const optionalNumber = z
   .string()
   .trim()
   .optional()
   .transform((v) => (v === "" || v === undefined ? undefined : Number(v)))
-  .refine((v) => v === undefined || !Number.isNaN(v), { message: "invalid_number" });
+  .refine((v) => v === undefined || Number.isFinite(v), {
+    message: "invalid_number",
+  });
 
-export const employeeSchema = z.object({
-  nationalId: nationalIdSchema,
-  name: z.string().trim().min(2).max(160),
-  nameEn: optionalString,
-  dob: optionalDate,
-  gender: z.enum(["MALE", "FEMALE"]).optional(),
-  phone: optionalString,
-  email: optionalString,
-  employeeNo: optionalString,
-  department: optionalString,
-  jobTitle: optionalString,
-  employmentStatus: z.enum(["ACTIVE", "ON_LEAVE", "SUSPENDED", "TERMINATED"]).default("ACTIVE"),
-  hireDate: optionalDate,
-  bloodType: optionalString,
-  chronicConditions: z.string().optional(),
-  currentMedications: z.string().optional(),
-});
+export const employeeSchema = z
+  .object({
+    nationalId: nationalIdSchema,
+    name: z.string().trim().min(2).max(160),
+    nameEn: optionalString,
+    dob: optionalDate,
+    gender: z
+      .enum(["MALE", "FEMALE", ""])
+      .optional()
+      .transform((v) => v || undefined),
+    phone: optionalString.refine(
+      (v) => !v || /^(05\d{8}|\+9665\d{8})$/.test(v),
+      { message: "invalid_phone" },
+    ),
+    email: optionalString.refine((v) => !v || z.email().safeParse(v).success, {
+      message: "invalid_email",
+    }),
+    employeeNo: optionalString,
+    department: optionalString,
+    jobTitle: optionalString,
+    employmentStatus: z
+      .enum(["ACTIVE", "ON_LEAVE", "SUSPENDED", "TERMINATED"])
+      .default("ACTIVE"),
+    hireDate: optionalDate,
+    bloodType: optionalString,
+    chronicConditions: z.string().max(4000).optional(),
+    currentMedications: z.string().max(4000).optional(),
+    nationality: optionalString,
+    qualification: optionalString,
+    employmentType: optionalString,
+    assignedFacility: optionalString,
+    workLocation: optionalString,
+    personnelNotes: z.string().trim().max(2000).optional(),
+  })
+  .refine((v) => !v.dob || v.dob <= new Date(), {
+    path: ["dob"],
+    message: "invalid_date",
+  })
+  .refine((v) => !v.hireDate || v.hireDate <= new Date(), {
+    path: ["hireDate"],
+    message: "invalid_date",
+  });
 
 export const visitSchema = z.object({
   employeeId: z.string().min(1),
-  visitDate: z.string().min(1),
+  visitDate: z
+    .string()
+    .min(1)
+    .refine((v) => Number.isFinite(new Date(v).getTime())),
   type: z.enum([
     "ACUTE_CARE",
     "FOLLOW_UP",
@@ -98,10 +147,10 @@ export const visitSchema = z.object({
     "CONSULTATION",
     "OTHER",
   ]),
-  chiefComplaint: optionalString,
-  diagnosis: optionalString,
-  plan: optionalString,
-  notes: optionalString,
+  chiefComplaint: z.string().trim().max(4000).optional(),
+  diagnosis: z.string().trim().max(4000).optional(),
+  plan: z.string().trim().max(4000).optional(),
+  notes: z.string().trim().max(8000).optional(),
   tempC: optionalNumber,
   systolic: optionalNumber,
   diastolic: optionalNumber,
@@ -118,6 +167,8 @@ export const labSchema = z.object({
   resultType: z.enum(["QUANTITATIVE", "QUALITATIVE"]),
   valueNum: optionalNumber,
   valueText: optionalString,
+  comparator: z.enum(["EQ", "LT", "LE", "GT", "GE"]).default("EQ"),
+  visitId: optionalString,
   unit: optionalString,
   refLow: optionalNumber,
   refHigh: optionalNumber,
@@ -173,12 +224,14 @@ export const userSchema = z.object({
   username: z
     .string()
     .trim()
+    .toLowerCase()
     .min(3)
     .max(40)
     .regex(/^[a-zA-Z0-9._-]+$/, "invalid_username"),
   name: z.string().trim().min(2).max(120),
   email: optionalString,
-  role: z.enum(["ADMIN", "STAFF", "VIEWER"]),
+  role: z.enum(["ADMIN", "STAFF", "VIEWER", "EMPLOYEE"]),
+  employeeId: optionalString,
 });
 
 export function formToObject(formData: FormData): Record<string, string> {
