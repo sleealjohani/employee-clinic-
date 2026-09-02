@@ -7,6 +7,7 @@ import {
   isCritical,
 } from "../src/lib/clinical/rules";
 import { hbvStatus } from "../src/lib/clinical/hbv";
+import { resolveTestCode } from "../src/lib/catalog/tests";
 import { nextVaccineDue } from "../src/lib/clinical/due";
 import { availableSlots } from "../src/lib/scheduling";
 import {
@@ -253,6 +254,50 @@ await check(
     );
     assert.equal(output.pageCount, 1);
     assert.deepEqual(output.unreadPages, []);
+  },
+);
+await check(
+  "MOH serology report spellings resolve to catalogue codes",
+  () => {
+    // Exactly as the Regional Laboratory of Qurayyat prints them.
+    for (const [printed, code] of [
+      ["Hep Bs Ag.", "HBSAG"],
+      ["Hep Bs Ag", "HBSAG"],
+      ["Anti-HBs", "ANTI_HBS"],
+      ["Anti-HBc Total", "ANTI_HBC_TOTAL"],
+      ["Anti-HCV", "ANTI_HCV"],
+      ["HIV Ag/Ab", "HIV_AGAB"],
+    ] as const)
+      assert.equal(resolveTestCode(printed), code, printed);
+  },
+);
+await check(
+  "a numeric test reported qualitatively is surfaced for review, not dropped",
+  async () => {
+    const pdf = syntheticPdf([
+      "Patient Name: SYNTHETIC EMPLOYEE",
+      "National ID: " + syntheticId(2),
+      "Collected Date/Time: 23/04/2026 13:11 AST",
+      "Test Name Result Units Reference Range",
+      "Hep Bs Ag Num 0.16",
+      "Hep Bs Ag. Non Reactive",
+      "Anti-HBs Non Reactive",
+    ]);
+    const rows = (await extractLocalPdfReport(pdf)).reports.flatMap(
+      (r) => r.results,
+    );
+    // HBsAg was invisible to the matcher before "hep bs ag" was a known alias.
+    const hbsag = rows.find((r) => r.test_code === "HBSAG");
+    assert.equal(normaliseQualitative(hbsag?.value_text), "NON_REACTIVE");
+    // Anti-HBs is catalogued as quantitative; printed here with no titre it must
+    // still reach the reviewer, as a qualitative candidate needing confirmation.
+    const antiHbs = rows.find((r) => r.test_code === "ANTI_HBS");
+    assert.equal(antiHbs?.result_type, "QUALITATIVE");
+    assert.equal(normaliseQualitative(antiHbs?.value_text), "NON_REACTIVE");
+    assert.ok(
+      (antiHbs?.confidence ?? 1) < 0.75,
+      "must be low enough to warn the reviewer",
+    );
   },
 );
 await check(

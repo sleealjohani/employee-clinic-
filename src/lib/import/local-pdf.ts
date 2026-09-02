@@ -404,7 +404,26 @@ function parse(
     };
   }
   const value = number(tail);
-  if (!value) return null;
+  if (!value) {
+    // A laboratory may report a normally numeric test qualitatively — the MOH
+    // regional lab prints Anti-HBs as "Non Reactive" with no titre. Returning
+    // null here dropped the row without trace, so the reading is offered as a
+    // qualitative candidate instead, at a confidence low enough to force the
+    // reviewer to confirm it against the report.
+    const words = qualitative(tail);
+    if (!words) return null;
+    return {
+      ...base,
+      result_type: "QUALITATIVE",
+      value_number: "",
+      value_text: words,
+      unit: "",
+      reference_low: "",
+      reference_high: "",
+      reference_text: "",
+      confidence: 0.7,
+    };
+  }
   const range = refRange(tail);
   const printedUnit = tail.match(
     /(?:mIU\s*\/\s*mL|IU\s*\/\s*[lL]|mIU\s*\/\s*[lL]|mmol\s*\/\s*[lL]|[µμu]?mol\s*\/\s*[lL]|mg\s*\/\s*d[lL]|g\s*\/\s*d[lL]|ng\s*\/\s*m[lL]|[µμu]g\s*\/\s*m[lL]|U\s*\/\s*[lL]|%|10\^?[39]\s*\/\s*[µμu][lL])/i,

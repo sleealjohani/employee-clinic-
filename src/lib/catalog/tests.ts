@@ -50,7 +50,10 @@ export const TESTS: TestDef[] = [
     abnormalIs: "REACTIVE",
     sensitive: true,
     reviewWhenAbnormal: true,
-    aliases: ["hbsag", "hbs ag", "hepatitis b surface antigen", "australia antigen", "hbv surface antigen"],
+    // "hep bs ag" is how the MOH Regional Laboratory of Qurayyat prints it, and
+    // it is far enough from "hbs ag" that neither the alias index nor the
+    // printed-report matcher recognised it.
+    aliases: ["hbsag", "hbs ag", "hep bs ag", "hepatitis b surface antigen", "australia antigen", "hbv surface antigen"],
   },
   {
     code: "ANTI_HBS",
