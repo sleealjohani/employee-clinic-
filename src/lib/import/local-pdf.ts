@@ -71,6 +71,25 @@ const MATCHERS: Match[] = TESTS.flatMap((def) => {
   });
 }).sort((a, b) => b.weight - a.weight);
 
+/**
+ * A few test abbreviations are also timezone names. "AST" is both aspartate
+ * aminotransferase and Arabia Standard Time, and every MOH report stamps its
+ * times "09:34 AST" — which matched the liver enzyme and paired it with
+ * whatever number sat nearby, fabricating a plausible-looking result on a
+ * report that never measured it. A match is only the timezone when a clock
+ * time runs into it, so that is what is rejected.
+ */
+const TIMEZONE_NAME = /^(?:ast|cst|est|pst|mst|gmt|utc)$/i;
+
+function isTimezone(line: string, start: number, printedName: string) {
+  return (
+    TIMEZONE_NAME.test(printedName) &&
+    /\d{1,2}\s*[:.]\s*\d{2}(?:\s*[:.]\s*\d{2})?\s*(?:am|pm)?\s*$/i.test(
+      line.slice(0, start),
+    )
+  );
+}
+
 function findTest(line: string) {
   let best: {
     def: TestDef;
@@ -85,6 +104,7 @@ function findTest(line: string) {
     const prefix = hit[1]?.length ?? 0;
     const printedName = hit[2] ?? "";
     const start = hit.index + prefix;
+    if (isTimezone(line, start, printedName)) continue;
     const candidate = {
       def: matcher.def,
       start,
@@ -404,7 +424,26 @@ function parse(
     };
   }
   const value = number(tail);
-  if (!value) return null;
+  if (!value) {
+    // A laboratory may report a normally numeric test qualitatively — the MOH
+    // regional lab prints Anti-HBs as "Non Reactive" with no titre. Returning
+    // null here dropped the row without trace, so the reading is offered as a
+    // qualitative candidate instead, at a confidence low enough to force the
+    // reviewer to confirm it against the report.
+    const words = qualitative(tail);
+    if (!words) return null;
+    return {
+      ...base,
+      result_type: "QUALITATIVE",
+      value_number: "",
+      value_text: words,
+      unit: "",
+      reference_low: "",
+      reference_high: "",
+      reference_text: "",
+      confidence: 0.7,
+    };
+  }
   const range = refRange(tail);
   const printedUnit = tail.match(
     /(?:mIU\s*\/\s*mL|IU\s*\/\s*[lL]|mIU\s*\/\s*[lL]|mmol\s*\/\s*[lL]|[µμu]?mol\s*\/\s*[lL]|mg\s*\/\s*d[lL]|g\s*\/\s*d[lL]|ng\s*\/\s*m[lL]|[µμu]g\s*\/\s*m[lL]|U\s*\/\s*[lL]|%|10\^?[39]\s*\/\s*[µμu][lL])/i,
@@ -434,9 +473,16 @@ function results(page: PageText) {
   for (let i = 0; i < page.lines.length; i += 1) {
     let source = page.lines[i];
     let item = parse(source, page.page, metadata);
+    const head = findTest(source);
     if (
       !item &&
-      findTest(source) &&
+      head &&
+      // A scan can break "09:34 AST" across rows, leaving the timezone stranded
+      // on a line of its own. Joining the next line to hunt for a value then
+      // lifts an unrelated number — a request ID, the minutes of a timestamp —
+      // and reports it as a liver enzyme. For a name that doubles as a timezone,
+      // no value on its own line means it was never a result.
+      !TIMEZONE_NAME.test(head.printedName) &&
       page.lines[i + 1] &&
       !findTest(page.lines[i + 1])
     ) {

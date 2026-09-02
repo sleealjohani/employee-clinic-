@@ -1,0 +1,71 @@
+[
+{"set":"MANDATORY","kind":"MANDATORY COMPETENCY","title":"CARE OF MEDICAL EQUIPMENT","src":"PDF_005 p1",
+ "knowledge":[
+  "Identifies medical equipment care which adheres to infection control standards of patient's safety."],
+ "skills":[
+  "Upon disinfecting of equipment's (e.g. vital signs machine, incubators and radiant warmers), all detachable parts must be removed and scrubbed in the utility room.",
+  "Unused medical equipment should be thoroughly cleaned and dried up in the reservoir for 24 hours after disinfection.",
+  "Upon cleaning an occupied incubator, patient must be transferred temporarily to a radiant warmer then to be put back after cleaning of incubator is done.",
+  "Ensures that PPM is updated for all the machines and equipment.",
+  "Checklist readily available."],
+ "attitude":[
+  "Adhere to the policy guidelines.",
+  "Uses equipment's with care."]},
+
+{"set":"MANDATORY","kind":"MANDATORY COMPETENCY","title":"CODE RED","src":"PDF_005 p2-3",
+ "knowledge":[
+  "Describe activation of Code Red.",
+  "Discuss RACE.",
+  "Explain PASS.",
+  "Describe how to evacuate horizontally and vertically in area of practice.",
+  "Discuss how to evacuate patient who is bed bound for any reason including those who are vulnerable and/ or have special needs.",
+  "Discuss the rational for a reflection session in and on practice after a Code Red and how to activate findings to improve future practice and response."],
+ "skills":[
+  "Demonstrate the role of the Safety Coordinator in area of practice.",
+  "Show the evaluator of the placement of the Safety Coordinator jacket/ tag/ lanyard relevant to area of practice.",
+  "Demonstrate activation of Code Red.",
+  "Demonstrate how to apply Pass.",
+  "Demonstrate how to evacuate a patient who is bed bound for any reason including those who are vulnerable and/ or have special needs.",
+  "Show the evaluator the placement of the evacuation plan, various fire extinguisher and hoses and exits in area of practice.",
+  "Complete the checking and documentation of a fire extinguisher and explain why this is necessary and how often this procedure is required.",
+  "Demonstrate how to organize and facilitate a reflection session in and on practice a Code Red."],
+ "attitude":[
+  "Ability of Nurse to respond professionally and calmly in a Code Red situation.",
+  "Ability to facilitate activation, response and evacuation in Code Red.",
+  "Ability of Nurse to acknowledge limitations in knowledge and skills in Code Red situation.",
+  "Ability to communicate with Fire Chief and respond to instruction as relevant and appropriate.",
+  "Demonstrate ability to organize and facilitate a reflection session in and on practice after a Code Red and activate findings to improve future practice and response."]},
+
+{"set":"MANDATORY","kind":"MANDATORY COMPETENCY","title":"DISASTER PREPAREDNESS","src":"PDF_005 p4-5",
+ "knowledge":[
+  "Describe the difference between Internal and External Disaster.",
+  "Verbalizes actions to be taken in potential or declared Disasters affecting the organizations operations.",
+  "Differentiate actions to be taken in External and Internal Disasters.",
+  "Differentiate between Alert, Partial and Full Response Modes, verbalizes actions appropriate to each mode.",
+  "Verbalize understanding of Disaster Plan Activation protocols and Chain of Command.",
+  "Identify location and objectives of facility specific control centers.",
+  "Verbalize understanding of actions undertaken by other units/ department which specifically impact area of practice during Disaster.",
+  "Describe actions undertaken by all staff during a Disaster – including appropriate personal role.",
+  "Describe Disaster triage and main receiving areas – other units as appropriate to area of practice.",
+  "Describe how to register and document during a Disaster for both disaster victims and routine patients.",
+  "Verbalizes knowledge of staffing contingency plans/ call – out procedures during disaster situations.",
+  "Differentiate actions to be taken out-of-hours and during regular hours when other key personnel are present.",
+  "Verbalize actions to be taken to activate transport services for staff during a disaster.",
+  "Discuss rationale and importance for post disaster critique."],
+ "skills":[
+  "Demonstrate ability to activate Internal Disaster in the area of practice.",
+  "Complete the registration and document of both Disaster victims and routine patients during a disaster.",
+  "Demonstrate the activation of staffing contingency plans / call-out procedures during disaster situations.",
+  "Complete the actions to be taken out-of-hours and during regular hours when other key personnel are present.",
+  "Participate in: in-service training, disaster drills, disaster critiques.",
+  "Demonstrate ability to perform disaster role appropriate to usual position and back-up role (e.g. CN to know Head Nurse's role).",
+  "Demonstrate means of communication during a disaster.",
+  "Shows how to complete deactivation process when disaster called as \"All Clear and Stand Down\" and how to facilitate a debriefing session for staff.",
+  "Participates in a Disaster critique."],
+ "attitude":[
+  "Ability of Nurse to respond professionally and calmly in a disaster situation.",
+  "Ability to facilitate activation and response in a disaster situation.",
+  "Ability of Nurse to acknowledge limitations in knowledge and skills in a disaster situation.",
+  "Ability to communicate with key personnel and response to instruction as relevant and appropriate.",
+  "Demonstrate ability to organize and facilitate a reflection session in and on practice after a disaster situation and activate findings to improve practice and response."]}
+]

@@ -1,0 +1,44 @@
+[
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"INFECTION CONTROL","src":"PDF_003 p27-28",
+ "knowledge":[
+  "Discuss the use of universal precautions.",
+  "Describe the assessment, screening and type of Isolation required for various Infectious Disease e.g. MRSA.",
+  "Discuss measures to prevent needle stick injuries and verbalize reporting procedure.",
+  "State at least three (3) Isolation techniques, one indication for each, as well as traffic control requirements for each.",
+  "Describe the use of HEPA Filter and when to apply it (if available).",
+  "Explain how to monitor the negative pressure Isolation Rooms.",
+  "Explain how to decontaminate Isolation equipment following an Infectious Disease in area of practice.",
+  "Identify the chemical disinfectants used in the hospital.",
+  "Discuss equipment storage and containment of used equipment for disposal and decontamination related to infection control."],
+ "skills":[
+  "Demonstrate hand washing technique.",
+  "Demonstrate use of universal precautions.",
+  "Demonstrate the measures to prevent needle stick injuries and reporting mechanism and document.",
+  "Demonstrate use of HEPA Filter and when to apply it.",
+  "Complete the monitoring process for negative pressure Isolation rooms.",
+  "Demonstrate how to decontaminate equipment used following exposure to an infectious disease.",
+  "Demonstrate the labeling of specimen and complete the documentation of a patient with an Infectious disease."],
+ "attitude":[
+  "Accept infectious patient assignment professionally and treats patient and family with dignity and respect.",
+  "Exhibit appropriate level of concern to eliminate, prevent and control the occurrence and/or exposure to infection and/or Infectious disease.",
+  "Show a belief that the environment created in the ward/ department can impact and quality of care and emotional response of a patient with an infectious disease.",
+  "Show commitment towards improving self-awareness amongst colleagues and how this helps to improve the working environment for a staff as well as patients etc.",
+  "Demonstrate ability to organize and facilitate a reflection session in and on practice after any safety issue is highlighted when caring for patients with an infection and/or infectious disease and activate findings to improve future practice and response.",
+  "Display proactivity towards safety in the work environment and minimizing the transmission of hospital acquired infectious disease for patients and staff."]},
+
+{"set":"EMERGENCY DEPARTMENT","kind":"SPECIFIC COMPETENCY","title":"MEDICATION CALCULATION FOR SPECIFIC PEDIATRIC EMERGENCY","src":"PDF_003 p29 (original knowledge list skips number 5; renumbered sequentially)",
+ "knowledge":[
+  "Verbalizes medication policies within MOH.",
+  "States available resources relating to drug information.",
+  "Identifies common sedatives and paralyzing agents used in ER-PEDIA, side effects and dosages i.e. Midazolam, Valium and Phenobarbital.",
+  "Describe the mode of action of vasodilators and their side effects.",
+  "Explain the use of the following inotropes: Dopamine, Dobutamine, Epinephrine, and Norepinephrine."],
+ "skills":[
+  "Demonstrates appropriate documentation of all medications.",
+  "Demonstrates safe practices in the administration of all medications.",
+  "Calculates IV infusion dosages and rates correctly for sedation, paralyzing agents, vasodilators and inotropes.",
+  "Demonstrates preparation of Emergency Drug Calculations for individual patient.",
+  "Documents medication administration correctly including the child's response or reactions when necessary."],
+ "attitude":[
+  "Adheres to policy in calculating medication dosages for critically ill Pediatric patients."]}
+]
