@@ -10,6 +10,11 @@ import { Modal } from "@/components/ui/Modal";
 import { SmartLabForm } from "@/components/forms/SmartClinicalForms";
 import { LabResultRow } from "@/components/employee/LabResultRow";
 import { DownloadLink } from "@/components/ui/DownloadLink";
+import { ApproveAllLabsButton } from "@/components/employee/ApproveAllLabsButton";
+import {
+  labReviewSnapshot,
+  pendingLabReviewWhere,
+} from "@/lib/clinical/lab-review";
 export const dynamic = "force-dynamic";
 export default async function LabsPage({
   searchParams,
@@ -68,7 +73,7 @@ export default async function LabsPage({
       : {}),
   };
   const write = can(user.role, "clinical.write");
-  const [labs, total, employees] = await Promise.all([
+  const [labs, total, employees, pendingReviews] = await Promise.all([
     db.labResult.findMany({
       where,
       orderBy: [{ collectedAt: "desc" }, { createdAt: "desc" }, { id: "asc" }],
@@ -84,6 +89,12 @@ export default async function LabsPage({
           select: { id: true, name: true, nationalId: true, gender: true },
         })
       : Promise.resolve([]),
+    write
+      ? db.labResult.findMany({
+          where: pendingLabReviewWhere,
+          select: { id: true, updatedAt: true },
+        })
+      : Promise.resolve([]),
   ]);
   return (
     <>
@@ -92,6 +103,11 @@ export default async function LabsPage({
         badge={<Chip>{total}</Chip>}
         actions={
           <>
+            {write && (
+              <ApproveAllLabsButton
+                snapshot={labReviewSnapshot(pendingReviews)}
+              />
+            )}
             {can(user.role, "import.run") && (
               <LinkButton href="/labs/import">{t("nav.import")}</LinkButton>
             )}

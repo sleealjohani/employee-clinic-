@@ -26,30 +26,43 @@ export type AuditAction =
  * Append-only. There is deliberately no update or delete path for AuditLog
  * anywhere in this codebase — not even for an administrator.
  */
+type AuditInput = {
+  user?: Pick<CurrentUser, "id" | "name"> | null;
+  userName?: string;
+  action: AuditAction;
+  entity: string;
+  entityId?: string | null;
+  summary: string;
+  meta?: Record<string, unknown>;
+};
+
 export async function writeAudit(
-  input: {
-    user?: Pick<CurrentUser, "id" | "name"> | null;
-    userName?: string;
-    action: AuditAction;
-    entity: string;
-    entityId?: string | null;
-    summary: string;
-    meta?: Record<string, unknown>;
-  },
+  input: AuditInput[],
+  client?: Prisma.TransactionClient,
+): Promise<void>;
+export async function writeAudit(
+  input: AuditInput,
+  client?: Prisma.TransactionClient,
+): Promise<void>;
+export async function writeAudit(
+  input: AuditInput | AuditInput[],
   client: Prisma.TransactionClient = db,
 ): Promise<void> {
   const ctx = await requestContext();
-  await client.auditLog.create({
-    data: {
-      userId: input.user?.id ?? null,
-      userName: input.user?.name ?? input.userName ?? "—",
-      action: input.action,
-      entity: input.entity,
-      entityId: input.entityId ?? null,
-      summary: input.summary,
-      meta: input.meta ? JSON.parse(JSON.stringify(input.meta)) : undefined,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent?.slice(0, 300) ?? null,
-    },
-  });
+  const data = (Array.isArray(input) ? input : [input]).map((input) => ({
+    userId: input.user?.id ?? null,
+    userName: input.user?.name ?? input.userName ?? "—",
+    action: input.action,
+    entity: input.entity,
+    entityId: input.entityId ?? null,
+    summary: input.summary,
+    meta: input.meta ? JSON.parse(JSON.stringify(input.meta)) : undefined,
+    ip: ctx.ip,
+    userAgent: ctx.userAgent?.slice(0, 300) ?? null,
+  }));
+  if (Array.isArray(input)) {
+    if (data.length) await client.auditLog.createMany({ data });
+  } else {
+    await client.auditLog.create({ data: data[0] });
+  }
 }

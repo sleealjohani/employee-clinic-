@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
 import { parseLabNumber } from "../src/lib/clinical/numeric";
+import { labReviewSnapshot } from "../src/lib/clinical/lab-review";
 import {
   computeFlag,
   normaliseQualitative,
@@ -361,6 +362,31 @@ await check(
       "test.csv",
     );
     assert.equal(csv.rows[0].name, "Synthetic, Employee");
+  },
+);
+await check(
+  "bulk-review confirmation detects additions, replacements and edits regardless of row order",
+  () => {
+    const rows = [
+      { id: "lab-a", updatedAt: new Date("2026-01-01") },
+      { id: "lab-b", updatedAt: new Date("2026-01-02") },
+    ];
+    const original = labReviewSnapshot(rows);
+    assert.equal(original.count, 2);
+    assert.deepEqual(labReviewSnapshot([...rows].reverse()), original);
+    assert.notEqual(labReviewSnapshot([rows[0]]).version, original.version);
+    assert.notEqual(
+      labReviewSnapshot([rows[0], { ...rows[1], id: "lab-c" }]).version,
+      original.version,
+    );
+    assert.notEqual(
+      labReviewSnapshot([
+        rows[0],
+        { ...rows[1], updatedAt: new Date("2026-01-03") },
+      ]).version,
+      original.version,
+    );
+    assert.equal(labReviewSnapshot([]).count, 0);
   },
 );
 console.log("Completed", count, "regression checks.");

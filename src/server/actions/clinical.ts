@@ -16,6 +16,10 @@ import {
 import { computeFlag, isCritical, requiresReview } from "@/lib/clinical/rules";
 import { TEST_BY_CODE, refFor } from "@/lib/catalog/tests";
 import { sameUnit } from "@/lib/clinical/numeric";
+import {
+  labReviewSnapshot,
+  pendingLabReviewWhere,
+} from "@/lib/clinical/lab-review";
 import { VACCINE_BY_CODE } from "@/lib/catalog/vaccines";
 import { actionError, ClinicError } from "@/lib/action-result";
 import { notifyEmployee } from "@/server/clinic-notifications";
@@ -297,6 +301,66 @@ export async function reviewLabAction(
     );
   });
 }
+export type BulkLabReviewState = ActionState & { approvedCount?: number };
+
+export async function approveAllLabsAction(
+  _prev: BulkLabReviewState,
+  form: FormData,
+): Promise<BulkLabReviewState> {
+  const user = await requirePermission("clinical.write");
+  const version = String(form.get("version") ?? "");
+  if (form.get("confirm") !== "yes" || !/^[a-f0-9]{64}$/.test(version))
+    return { error: "lab.bulkConfirmRequired" };
+  try {
+    const approvedCount = await db.$transaction(
+      async (tx) => {
+        const labs = await tx.labResult.findMany({
+          where: pendingLabReviewWhere,
+          select: { id: true, employeeId: true, updatedAt: true },
+        });
+        // Reject newly imported, edited, voided, archived or independently reviewed
+        // results. Never silently broaden the scope the user confirmed.
+        if (labReviewSnapshot(labs).version !== version)
+          throw new ClinicError("lab.bulkChanged");
+        if (!labs.length) return 0;
+        const reviewedAt = new Date();
+        const changed = await tx.labResult.updateMany({
+          where: {
+            ...pendingLabReviewWhere,
+            id: { in: labs.map((lab) => lab.id) },
+          },
+          data: { reviewedAt, reviewedById: user.id },
+        });
+        if (changed.count !== labs.length)
+          throw new ClinicError("lab.bulkChanged");
+        await writeAudit(
+          labs.map((lab) => ({
+            user,
+            action: "REVIEW" as const,
+            entity: "LabResult",
+            entityId: lab.id,
+            summary: "اعتماد مراجعة نتيجة مختبر ضمن اعتماد جماعي",
+            meta: {
+              employeeId: lab.employeeId,
+              bulk: true,
+              batchVersion: version,
+              batchCount: labs.length,
+              reviewedAt: reviewedAt.toISOString(),
+            },
+          })),
+          tx,
+        );
+        return changed.count;
+      },
+      { isolationLevel: "Serializable", timeout: 20000 },
+    );
+    refresh();
+    return { ok: true, approvedCount };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
 export async function releaseLabAction(
   _prev: ActionState,
   form: FormData,
