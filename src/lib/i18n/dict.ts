@@ -5,6 +5,19 @@
  */
 
 export const ar = {
+  "auth.loginType": "نوع الدخول",
+  "auth.employeeLogin": "دخول الموظفين",
+  "auth.staffLogin": "فريق العيادة والإدارة",
+  "auth.employeeLoginHint":
+    "ادخل برقم الهوية أو الإقامة فقط، دون كلمة مرور أو رمز تحقق.",
+  "auth.employeeIdHint": "أدخل الرقم المسجل في ملفك، المكوّن من 10 أرقام.",
+  "auth.employeeInvalid":
+    "تعذر الدخول بهذه البيانات. تحقق من الرقم أو تواصل مع إدارة العيادة.",
+  "auth.employeeRateLimit": "محاولات دخول كثيرة. حاول مجددًا بعد 15 دقيقة.",
+  "auth.employeeUseId":
+    "حساب الموظف يستخدم رقم الهوية فقط. اختر دخول الموظفين.",
+  "auth.employeePrivacy":
+    "استخدم هويتك فقط وسجّل الخروج بعد الانتهاء. الدخول بالهوية وحدها لا يتحقق من شخص المستخدم؛ من يعرف الرقم يستطيع الدخول. تُسجّل العمليات.",
   "ohc.title": "سجل التحصينات المرجعي",
   "ohc.description":
     "تُحدّث نسخة الإكسل المحفوظة عند حفظ الجرعات أو إلغاء إدخال خاطئ. تُحفظ أوراق المصدر وتنسيقاتها وقوائم الاختيار، ويضاف ملحق تفصيلي للجرعات عند وجودها.",
@@ -577,6 +590,21 @@ export const ar = {
 export type DictKey = keyof typeof ar;
 
 export const en: Record<DictKey, string> = {
+  "auth.loginType": "Sign-in type",
+  "auth.employeeLogin": "Employee sign-in",
+  "auth.staffLogin": "Clinic staff & administration",
+  "auth.employeeLoginHint":
+    "Sign in with your national or Iqama ID only. No password or verification code.",
+  "auth.employeeIdHint":
+    "Enter the 10-digit ID registered in your employee file.",
+  "auth.employeeInvalid":
+    "Unable to sign in with these details. Check the ID or contact the clinic administrator.",
+  "auth.employeeRateLimit":
+    "Too many sign-in attempts. Try again in 15 minutes.",
+  "auth.employeeUseId":
+    "Employee accounts use ID-only sign-in. Choose Employee sign-in.",
+  "auth.employeePrivacy":
+    "Use only your own ID and sign out when finished. ID-only access does not verify who is signing in; anyone who knows the ID can sign in. Activity is logged.",
   "ohc.title": "Vaccination reference register",
   "ohc.description":
     "The saved Excel copy updates when doses are recorded or voided. Source sheets, formatting and validation lists are retained; a detailed dose ledger is appended when doses exist.",

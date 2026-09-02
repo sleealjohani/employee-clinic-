@@ -19,6 +19,11 @@ import {
 } from "../src/lib/clinic-config";
 import { employeeSchema, validateNationalId } from "../src/lib/validation";
 import { can, canOpenPath } from "../src/lib/auth/rbac";
+import {
+  employeeAccessAllowed,
+  employeeLoginId,
+  employeeReturnPath,
+} from "../src/lib/auth/employee-access";
 import { extractLocalPdfReport } from "../src/lib/import/local-pdf";
 import { readEmployeeSpreadsheet } from "../src/lib/import/employees";
 // @ts-expect-error Synthetic fixture intentionally shared with the Node integration runner.
@@ -29,6 +34,51 @@ async function check(name: string, fn: () => unknown | Promise<unknown>) {
   count++;
   console.log("PASS", name);
 }
+await check(
+  "employee ID normalization, active-only access and safe return paths",
+  () => {
+    assert.equal(employeeLoginId(" ١٩٩٩٠٠٠٠١٨ "), "1999000018");
+    assert.equal(employeeLoginId("۱۹۹۹۰۰۰۰۱۸"), "1999000018");
+    for (const value of [
+      "",
+      "123456789",
+      "12345678901",
+      "1e90000018",
+      "1999 000018",
+      "1".repeat(100),
+    ])
+      assert.equal(employeeLoginId(value), null);
+    for (const employmentStatus of ["ACTIVE", "ON_LEAVE"])
+      assert.equal(
+        employeeAccessAllowed({ isArchived: false, employmentStatus }),
+        true,
+      );
+    for (const employmentStatus of ["TERMINATED", "SUSPENDED", "unknown"])
+      assert.equal(
+        employeeAccessAllowed({ isArchived: false, employmentStatus }),
+        false,
+      );
+    assert.equal(
+      employeeAccessAllowed({ isArchived: true, employmentStatus: "ACTIVE" }),
+      false,
+    );
+    assert.equal(
+      employeeReturnPath("/portal/records?section=vaccines"),
+      "/portal/records?section=vaccines",
+    );
+    for (const value of [
+      "https://evil.test",
+      "//evil.test",
+      "/\\evil.test",
+      "/dashboard",
+      "/employees",
+      "/portal-evil",
+      "/account/password",
+      "/portal\n",
+    ])
+      assert.equal(employeeReturnPath(value), "/portal");
+  },
+);
 await check(
   "comparison signs, scientific notation and Arabic digits remain exact",
   () => {
@@ -257,21 +307,18 @@ await check(
     assert.deepEqual(output.unreadPages, []);
   },
 );
-await check(
-  "MOH serology report spellings resolve to catalogue codes",
-  () => {
-    // Exactly as the Regional Laboratory of Qurayyat prints them.
-    for (const [printed, code] of [
-      ["Hep Bs Ag.", "HBSAG"],
-      ["Hep Bs Ag", "HBSAG"],
-      ["Anti-HBs", "ANTI_HBS"],
-      ["Anti-HBc Total", "ANTI_HBC_TOTAL"],
-      ["Anti-HCV", "ANTI_HCV"],
-      ["HIV Ag/Ab", "HIV_AGAB"],
-    ] as const)
-      assert.equal(resolveTestCode(printed), code, printed);
-  },
-);
+await check("MOH serology report spellings resolve to catalogue codes", () => {
+  // Exactly as the Regional Laboratory of Qurayyat prints them.
+  for (const [printed, code] of [
+    ["Hep Bs Ag.", "HBSAG"],
+    ["Hep Bs Ag", "HBSAG"],
+    ["Anti-HBs", "ANTI_HBS"],
+    ["Anti-HBc Total", "ANTI_HBC_TOTAL"],
+    ["Anti-HCV", "ANTI_HCV"],
+    ["HIV Ag/Ab", "HIV_AGAB"],
+  ] as const)
+    assert.equal(resolveTestCode(printed), code, printed);
+});
 await check(
   "a numeric test reported qualitatively is surfaced for review, not dropped",
   async () => {

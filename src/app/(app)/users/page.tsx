@@ -94,9 +94,13 @@ export default async function UsersPage() {
                       )}
                     </td>
                     <td>
-                      <Chip tone={user.totpEnabled ? "ok" : "warn"}>
-                        {user.totpEnabled ? t("common.yes") : t("common.no")}
-                      </Chip>
+                      {user.role === "EMPLOYEE" ? (
+                        <Chip tone="neutral">{t("auth.employeeLogin")}</Chip>
+                      ) : (
+                        <Chip tone={user.totpEnabled ? "ok" : "warn"}>
+                          {user.totpEnabled ? t("common.yes") : t("common.no")}
+                        </Chip>
+                      )}
                     </td>
                     <td className="num">
                       {user.lastLoginAt
@@ -105,11 +109,13 @@ export default async function UsersPage() {
                     </td>
                     <td>
                       <div className="flex flex-wrap gap-1.5">
-                        <ResetPassword
-                          userId={user.id}
-                          username={user.username}
-                        />
-                        {user.totpEnabled && (
+                        {user.role !== "EMPLOYEE" && (
+                          <ResetPassword
+                            userId={user.id}
+                            username={user.username}
+                          />
+                        )}
+                        {user.role !== "EMPLOYEE" && user.totpEnabled && (
                           <ClearTotp
                             userId={user.id}
                             username={user.username}

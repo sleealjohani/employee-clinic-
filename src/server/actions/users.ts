@@ -86,7 +86,7 @@ export async function createUserAction(
           where: {
             id: employeeId,
             isArchived: false,
-            employmentStatus: { not: "TERMINATED" },
+            employmentStatus: { in: ["ACTIVE", "ON_LEAVE"] },
           },
         }))
       )
@@ -103,7 +103,7 @@ export async function createUserAction(
         role: parsed.data.role,
         employeeId,
         passwordHash: await hashPassword(tempPassword),
-        mustChangePassword: true,
+        mustChangePassword: parsed.data.role !== "EMPLOYEE",
       },
     });
     await writeAudit(
@@ -117,7 +117,7 @@ export async function createUserAction(
       },
       tx,
     );
-    return { ok: true, tempPassword };
+    return { ok: true, ...(user.role === "EMPLOYEE" ? {} : { tempPassword }) };
   });
 }
 export async function updateUserRoleAction(
@@ -203,8 +203,9 @@ export async function resetUserPasswordAction(
   form: FormData,
 ): Promise<UserState> {
   return manage(async (tx, admin) => {
-    const user = await otherUser(tx, admin, String(form.get("id") || "")),
-      tempPassword = generateTempPassword();
+    const user = await otherUser(tx, admin, String(form.get("id") || ""));
+    if (user.role === "EMPLOYEE") throw new ClinicError("auth.employeeUseId");
+    const tempPassword = generateTempPassword();
     await tx.user.update({
       where: { id: user.id },
       data: {
@@ -265,6 +266,7 @@ export async function beginTotpSetup(
   password: string,
 ): Promise<TotpSetup | { error: string }> {
   const user = await requireUser();
+  if (user.role === "EMPLOYEE") return { error: "auth.employeeUseId" };
   const record = await db.user.findUnique({ where: { id: user.id } });
   if (
     !record ||
@@ -288,6 +290,7 @@ export async function confirmTotpAction(
   formData: FormData,
 ): Promise<ActionState> {
   const current = await requireUser();
+  if (current.role === "EMPLOYEE") return { error: "auth.employeeUseId" };
   const code = String(formData.get("code") ?? "");
 
   const record = await db.user.findUnique({ where: { id: current.id } });
@@ -355,6 +358,7 @@ export async function disableTotpAction(
   formData: FormData,
 ): Promise<ActionState> {
   const current = await requireUser();
+  if (current.role === "EMPLOYEE") return { error: "auth.employeeUseId" };
   const password = String(formData.get("password") ?? "");
 
   const record = await db.user.findUnique({ where: { id: current.id } });

@@ -4,7 +4,13 @@ import { requireUser } from "@/lib/auth/current-user";
 import { getT } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
 import { IDLE_MINUTES, ABSOLUTE_HOURS } from "@/lib/auth/session";
-import { Card, Chip, KeyValue, PageHeader, SectionTitle } from "@/components/ui";
+import {
+  Card,
+  Chip,
+  KeyValue,
+  PageHeader,
+  SectionTitle,
+} from "@/components/ui";
 import { RevokeSessionsButton, TwoFactorPanel } from "./TwoFactorPanel";
 
 export const metadata = { title: "الحساب" };
@@ -17,7 +23,12 @@ export default async function AccountPage() {
   const [user, recent] = await Promise.all([
     db.user.findUnique({ where: { id: current.id } }),
     db.auditLog.findMany({
-      where: { userId: current.id, action: { in: ["LOGIN", "LOGIN_FAILED", "PASSWORD_CHANGE", "TWO_FACTOR"] } },
+      where: {
+        userId: current.id,
+        action: {
+          in: ["LOGIN", "LOGIN_FAILED", "PASSWORD_CHANGE", "TWO_FACTOR"],
+        },
+      },
       orderBy: { at: "desc" },
       take: 10,
     }),
@@ -32,17 +43,29 @@ export default async function AccountPage() {
         subtitle={t(`role.${user.role}`)}
         badge={<Chip tone="accent">{user.username}</Chip>}
         actions={
-          <Link href="/account/password" className="btn btn-ghost">
-            {t("auth.changePassword")}
-          </Link>
+          user.role !== "EMPLOYEE" && (
+            <Link href="/account/password" className="btn btn-ghost">
+              {t("auth.changePassword")}
+            </Link>
+          )
         }
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <SectionTitle>{t("user.twoFactor")}</SectionTitle>
-          <TwoFactorPanel enabled={user.totpEnabled} />
-        </Card>
+        {user.role === "EMPLOYEE" ? (
+          <Card>
+            <SectionTitle>{t("auth.employeeLogin")}</SectionTitle>
+            <p>{t("auth.employeeLoginHint")}</p>
+            <p className="mt-3 text-sm" style={{ color: "var(--text-muted)" }}>
+              {t("auth.employeePrivacy")}
+            </p>
+          </Card>
+        ) : (
+          <Card>
+            <SectionTitle>{t("user.twoFactor")}</SectionTitle>
+            <TwoFactorPanel enabled={user.totpEnabled} />
+          </Card>
+        )}
 
         <Card>
           <SectionTitle>{t("nav.settings")}</SectionTitle>
@@ -51,14 +74,19 @@ export default async function AccountPage() {
             <KeyValue label={t("emp.email")} value={user.email ?? "—"} />
             <KeyValue
               label={t("user.lastLogin")}
-              value={user.lastLoginAt ? formatDateTime(user.lastLoginAt, t.locale) : "—"}
+              value={
+                user.lastLoginAt
+                  ? formatDateTime(user.lastLoginAt, t.locale)
+                  : "—"
+              }
               mono
             />
             <KeyValue
               label={t("common.time")}
               value={
                 <span className="num">
-                  {IDLE_MINUTES} {t.locale === "ar" ? "دقيقة خمول" : "min idle"} · {ABSOLUTE_HOURS}
+                  {IDLE_MINUTES} {t.locale === "ar" ? "دقيقة خمول" : "min idle"}{" "}
+                  · {ABSOLUTE_HOURS}
                   {t.locale === "ar" ? " ساعة كحد أقصى" : "h max"}
                 </span>
               }
@@ -89,9 +117,17 @@ export default async function AccountPage() {
               <tbody className="row-in">
                 {recent.map((entry) => (
                   <tr key={entry.id}>
-                    <td className="num">{formatDateTime(entry.at, t.locale)}</td>
+                    <td className="num">
+                      {formatDateTime(entry.at, t.locale)}
+                    </td>
                     <td>
-                      <Chip tone={entry.action === "LOGIN_FAILED" ? "danger" : "neutral"}>{entry.action}</Chip>
+                      <Chip
+                        tone={
+                          entry.action === "LOGIN_FAILED" ? "danger" : "neutral"
+                        }
+                      >
+                        {entry.action}
+                      </Chip>
                     </td>
                     <td>{entry.summary}</td>
                     <td className="num" dir="ltr">

@@ -89,6 +89,11 @@ export function NewUserButton({
           </Field>
         </div>
         <TempPassword value={state.tempPassword} />
+        {state.ok && !state.tempPassword && (
+          <Alert tone="ok">
+            {t("common.saved")} · {t("auth.employeeLoginHint")}
+          </Alert>
+        )}
         <FormError error={state.error} />
         <SubmitRow />
       </form>
