@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function PasswordPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role === "EMPLOYEE") redirect("/account");
   const t = await getT();
 
   return (
@@ -23,7 +24,10 @@ export default async function PasswordPage() {
           <Logo height={54} />
           <h1 className="mt-4 text-lg font-bold">{t("auth.changePassword")}</h1>
           {user.mustChangePassword && (
-            <p className="mt-1 text-sm font-semibold" style={{ color: "var(--warn)" }}>
+            <p
+              className="mt-1 text-sm font-semibold"
+              style={{ color: "var(--warn)" }}
+            >
               {t("auth.mustChange")}
             </p>
           )}

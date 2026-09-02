@@ -5,12 +5,13 @@ import { getT } from "@/lib/i18n";
 import { getClinicConfig } from "@/server/queries/settings";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { LoginForm } from "./LoginForm";
+import { EmployeeLoginForm } from "./EmployeeLoginForm";
 export const metadata = { title: "تسجيل الدخول" };
 export const dynamic = "force-dynamic";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; setup?: string }>;
+  searchParams: Promise<{ next?: string; setup?: string; mode?: string }>;
 }) {
   const user = await getCurrentUser();
   if (user)
@@ -27,6 +28,12 @@ export default async function LoginPage({
     getT(),
     getClinicConfig(),
   ]);
+  const staffMode =
+    params.mode === "staff" ||
+    (!params.mode && !!params.next && !params.next.startsWith("/portal"));
+  const nextQuery = params.next
+    ? `&next=${encodeURIComponent(params.next)}`
+    : "";
   return (
     <main className="auth-layout" data-accent={config.accent}>
       <section className="auth-story">
@@ -59,8 +66,28 @@ export default async function LoginPage({
         <div className="auth-form-wrap">
           <Logo height={43} />
           <h2>{t("v2.welcomeBack")}</h2>
-          <p className="auth-subtitle">{t("v2.loginHint")}</p>
-          <LoginForm next={params.next || ""} />
+          <p className="auth-subtitle">
+            {t(staffMode ? "v2.loginHint" : "auth.employeeLoginHint")}
+          </p>
+          <nav className="tabs mb-5" aria-label={t("auth.loginType")}>
+            <a
+              href={`/login?mode=employee${nextQuery}`}
+              aria-current={!staffMode ? "page" : undefined}
+            >
+              {t("auth.employeeLogin")}
+            </a>
+            <a
+              href={`/login?mode=staff${nextQuery}`}
+              aria-current={staffMode ? "page" : undefined}
+            >
+              {t("auth.staffLogin")}
+            </a>
+          </nav>
+          {staffMode ? (
+            <LoginForm next={params.next || ""} />
+          ) : (
+            <EmployeeLoginForm next={params.next || ""} />
+          )}
           <p className="auth-confidential">
             {t("v2.loginHelp")}
             {config.contactPhone && (
@@ -72,7 +99,9 @@ export default async function LoginPage({
               </>
             )}
           </p>
-          <p className="auth-confidential">{t("v2.loginPrivacy")}</p>
+          <p className="auth-confidential">
+            {t(staffMode ? "v2.loginPrivacy" : "auth.employeePrivacy")}
+          </p>
         </div>
       </section>
     </main>

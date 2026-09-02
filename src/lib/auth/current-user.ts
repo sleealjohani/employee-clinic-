@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { SESSION_COOKIE, verifySession } from "./session";
 import { can, canOpenPath, type Permission } from "./rbac";
+import { employeeAccessAllowed } from "./employee-access";
 
 export type CurrentUser = {
   id: string;
@@ -43,11 +44,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   if (!user || !user.isActive) return null;
   if (user.tokenVersion !== claims.ver) return null;
+  if (user.role !== claims.role) return null;
   if (
     user.role === "EMPLOYEE" &&
-    (!user.employee ||
-      user.employee.isArchived ||
-      user.employee.employmentStatus === "TERMINATED")
+    (!user.employee || !employeeAccessAllowed(user.employee))
   )
     return null;
 
@@ -57,7 +57,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     name: user.name,
     role: user.role,
     totpEnabled: user.totpEnabled,
-    mustChangePassword: user.mustChangePassword,
+    mustChangePassword: user.role !== "EMPLOYEE" && user.mustChangePassword,
     employeeId: user.employeeId,
   };
 });

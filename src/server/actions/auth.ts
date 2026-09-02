@@ -62,18 +62,7 @@ export async function loginAction(
 
   if (!user.isActive) return { error: "auth.disabled", username };
   if (user.role === "EMPLOYEE") {
-    const employee = user.employeeId
-      ? await db.employee.findUnique({
-          where: { id: user.employeeId },
-          select: { isArchived: true, employmentStatus: true },
-        })
-      : null;
-    if (
-      !employee ||
-      employee.isArchived ||
-      employee.employmentStatus === "TERMINATED"
-    )
-      return { error: "auth.disabled", username };
+    return { error: "auth.employeeUseId", username };
   }
 
   if (user.lockedUntil && user.lockedUntil > new Date()) {
@@ -161,9 +150,7 @@ export async function loginAction(
           !next.includes("\\") &&
           canOpenPath(user.role, next.split("?")[0])
         ? next
-        : user.role === "EMPLOYEE"
-          ? "/portal"
-          : "/dashboard",
+        : "/dashboard",
   );
 }
 
@@ -194,6 +181,7 @@ export async function changePasswordAction(
   if (!claims) redirect("/login");
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
+  if (currentUser.role === "EMPLOYEE") return { error: "auth.employeeUseId" };
 
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("next") ?? "");
