@@ -406,6 +406,203 @@ export async function runIntegration({ prisma, baseUrl, password }) {
       "clinical review and critical notification gate sharing; employees see only their records",
     );
 
+    // The bulk button must work beyond the 25-row page and never approve imports,
+    // voided records, archived staff, or silently changed confirmation scopes.
+    const bulkWhere = {
+      status: "ACTIVE",
+      reviewedAt: null,
+      employee: { isArchived: false, employmentStatus: { not: "TERMINATED" } },
+    };
+    async function bulkVersion() {
+      const rows = await prisma.labResult.findMany({
+        where: bulkWhere,
+        select: { id: true, updatedAt: true },
+      });
+      return createHash("sha256")
+        .update(
+          JSON.stringify(
+            rows
+              .map((r) => [r.id, r.updatedAt.toISOString()])
+              .sort((a, b) => a[0].localeCompare(b[0])),
+          ),
+        )
+        .digest("hex");
+    }
+    await prisma.employee.create({
+      data: {
+        id: "bulk_archived",
+        nationalId: syntheticId(8),
+        name: "Synthetic archived",
+        isArchived: true,
+      },
+    });
+    await prisma.employee.create({
+      data: {
+        id: "bulk_terminated",
+        nationalId: syntheticId(9),
+        name: "Synthetic terminated",
+        employmentStatus: "TERMINATED",
+      },
+    });
+    const bulkData = {
+      employeeId: "test_employee_1",
+      testCode: "FBS",
+      testName: "Synthetic bulk test",
+      valueNum: 95,
+      unit: "mg/dL",
+      resultType: "QUANTITATIVE",
+      requiresReview: true,
+    };
+    await prisma.labResult.createMany({
+      data: Array.from({ length: 210 }, (_, i) => ({
+        ...bulkData,
+        id: `bulk_${i}`,
+        employeeId: i % 2 ? "test_employee_2" : "test_employee_1",
+        flag: i === 0 ? "CRITICAL_HIGH" : "NORMAL",
+      })),
+    });
+    await prisma.labResult.createMany({
+      data: [
+        { ...bulkData, id: "bulk_void", status: "ENTERED_IN_ERROR" },
+        { ...bulkData, id: "bulk_archived_lab", employeeId: "bulk_archived" },
+        {
+          ...bulkData,
+          id: "bulk_terminated_lab",
+          employeeId: "bulk_terminated",
+        },
+      ],
+    });
+    const source = syntheticPdf(["Synthetic unmatched report"]);
+    await prisma.attachment.create({
+      data: {
+        id: "bulk_import_source",
+        filename: "synthetic.pdf",
+        mimeType: "application/pdf",
+        size: source.length,
+        sha256: createHash("sha256").update(source).digest("hex"),
+        data: source,
+      },
+    });
+    await prisma.labImportBatch.create({
+      data: {
+        id: "bulk_import_batch",
+        attachmentId: "bulk_import_source",
+        filename: "synthetic.pdf",
+        status: "NEEDS_REVIEW",
+        items: {
+          create: { id: "bulk_unmatched", testCode: "FBS", valueNum: 95 },
+        },
+      },
+    });
+    const originalReviewed = await prisma.labResult.findUniqueOrThrow({
+      where: { id: normal.id },
+    });
+    const englishAdmin = admin + "; clinic_locale=en";
+    const bulkPage = await page("/labs?test=HBSAG&page=2", englishAdmin);
+    assert.ok(bulkPage.html.includes("Approve all tests"));
+    assert.ok(
+      bulkPage.html.includes("210"),
+      "global count survives filters and pagination",
+    );
+    let version = await bulkVersion();
+    for (const cookie of ["", viewer, employee]) {
+      await action("/labs", "approveAllLabsAction", cookie, {
+        version,
+        confirm: "yes",
+      });
+      assert.equal(await prisma.labResult.count({ where: bulkWhere }), 210);
+    }
+    await action("/labs", "approveAllLabsAction", admin, { version });
+    assert.equal(await prisma.labResult.count({ where: bulkWhere }), 210);
+    await prisma.labResult.update({
+      where: { id: "bulk_1" },
+      data: { valueNum: 96 },
+    });
+    await action("/labs", "approveAllLabsAction", admin, {
+      version,
+      confirm: "yes",
+    });
+    assert.equal(
+      await prisma.labResult.count({ where: bulkWhere }),
+      210,
+      "stale confirmation changes nothing",
+    );
+    version = await bulkVersion();
+    await action("/labs", "approveAllLabsAction", staff, {
+      version,
+      confirm: "yes",
+    });
+    assert.equal(await prisma.labResult.count({ where: bulkWhere }), 0);
+    const approvedRows = await prisma.labResult.findMany({
+      where: { id: { in: Array.from({ length: 210 }, (_, i) => `bulk_${i}`) } },
+    });
+    assert.ok(
+      approvedRows.every(
+        (r) =>
+          r.reviewedAt &&
+          r.reviewedById === "test_staff" &&
+          !r.releasedAt &&
+          !r.criticalNotifiedAt,
+      ),
+    );
+    const reviewAudits = await prisma.auditLog.findMany({
+      where: {
+        action: "REVIEW",
+        entityId: { in: approvedRows.map((r) => r.id) },
+      },
+    });
+    assert.equal(reviewAudits.length, 210);
+    assert.ok(
+      reviewAudits.every(
+        (a) =>
+          a.userId === "test_staff" &&
+          a.meta.bulk === true &&
+          a.meta.batchCount === 210,
+      ),
+    );
+    await action("/labs", "approveAllLabsAction", staff, {
+      version,
+      confirm: "yes",
+    });
+    assert.equal(
+      await prisma.auditLog.count({
+        where: {
+          action: "REVIEW",
+          entityId: { in: approvedRows.map((r) => r.id) },
+        },
+      }),
+      210,
+      "retry cannot duplicate approvals or audits",
+    );
+    for (const id of ["bulk_void", "bulk_archived_lab", "bulk_terminated_lab"])
+      assert.equal(
+        (await prisma.labResult.findUniqueOrThrow({ where: { id } }))
+          .reviewedAt,
+        null,
+      );
+    assert.equal(
+      (
+        await prisma.labImportItem.findUniqueOrThrow({
+          where: { id: "bulk_unmatched" },
+        })
+      ).review,
+      "PENDING",
+    );
+    assert.deepEqual(
+      (await prisma.labResult.findUniqueOrThrow({ where: { id: normal.id } }))
+        .reviewedAt,
+      originalReviewed.reviewedAt,
+    );
+    assert.ok(
+      !(await page("/labs?queue=review", englishAdmin)).html.includes(
+        "Synthetic bulk test",
+      ),
+    );
+    assert.equal((await page("/dashboard", admin)).response.status, 200);
+    pass(
+      "bulk approval: 210 results, permissions, explicit confirmation, stale scope, per-result audit, retries and sharing safeguards",
+    );
+
     await page("/portal/profile", employee);
     const originalProfile = await prisma.employee.findUniqueOrThrow({
       where: { id: "test_employee_1" },

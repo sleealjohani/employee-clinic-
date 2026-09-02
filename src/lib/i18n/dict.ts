@@ -205,6 +205,19 @@ export const ar = {
   "visit.abnormalVitals": "علامات حيوية خارج المدى",
 
   "lab.title": "التحاليل المخبرية",
+  "lab.approveAll": "اعتماد جميع التحاليل",
+  "lab.bulkScope":
+    "سيتم اعتماد مراجعة {count} نتيجة معلّقة مرتبطة بملفات موظفين غير مؤرشفة أو منتهية الخدمة، عبر جميع الصفحات، بغض النظر عن فلاتر البحث. لا يشمل ذلك بنود الاستيراد غير المطابقة أو النتائج الملغاة أو المعتمدة سابقًا.",
+  "lab.bulkSharingHint":
+    "هذا الإجراء يسجّل المراجعة الطبية باسمك ويحدّث ملفات الموظفين ولوحة التحكم. مشاركة النتائج مع الموظفين وتوثيق تبليغ النتائج الحرجة إجراءان منفصلان ولا يتمان تلقائيًا.",
+  "lab.bulkAttestation":
+    "أؤكد أنني راجعت النتائج المشمولة وأعتمد تسجيل مراجعتها باسمي.",
+  "lab.bulkConfirm": "تأكيد اعتماد {count} نتيجة",
+  "lab.bulkConfirmRequired": "يلزم تأكيد مراجعة النتائج قبل اعتمادها.",
+  "lab.bulkChanged":
+    "تغيّرت قائمة النتائج منذ فتح التأكيد. حدّث الصفحة وأعد فتح الاعتماد لمراجعة العدد الجديد؛ لم تُحفظ أي تغييرات.",
+  "lab.bulkSuccess":
+    "تم اعتماد مراجعة {count} نتيجة وتحديث ملفات الموظفين ولوحة التحكم.",
   "lab.new": "تسجيل تحليل",
   "lab.test": "التحليل",
   "lab.value": "النتيجة",
@@ -697,6 +710,20 @@ export const en: Record<DictKey, string> = {
   "visit.abnormalVitals": "Vitals outside range",
 
   "lab.title": "Laboratory results",
+  "lab.approveAll": "Approve all tests",
+  "lab.bulkScope":
+    "Approve the review of {count} pending results for non-archived, non-terminated employees across all pages, regardless of search filters. Unmatched import items, voided results and previously approved results are excluded.",
+  "lab.bulkSharingHint":
+    "This records clinical review under your name and updates employee files and the dashboard. Sharing results with employees and documenting critical-result notification are separate actions and will not happen automatically.",
+  "lab.bulkAttestation":
+    "I confirm that I have reviewed the included results and approve recording their review under my name.",
+  "lab.bulkConfirm": "Confirm approval of {count} results",
+  "lab.bulkConfirmRequired":
+    "Confirm that you have reviewed the results before approving them.",
+  "lab.bulkChanged":
+    "The result list changed after confirmation opened. Refresh the page and reopen approval to review the new count; no changes were saved.",
+  "lab.bulkSuccess":
+    "Approved the review of {count} results and updated employee files and the dashboard.",
   "lab.new": "Record a result",
   "lab.test": "Test",
   "lab.value": "Result",
