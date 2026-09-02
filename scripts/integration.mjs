@@ -6,6 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { syntheticId, syntheticPdf } from "../tests/fixtures.mjs";
 import ExcelJS from "exceljs";
 import otplib from "otplib";
+import { ohcFixture } from "../tests/ohc-fixture.mjs";
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const unescape = (s) =>
@@ -988,6 +989,66 @@ export async function runIntegration({ prisma, baseUrl, password }) {
     pass(
       "spreadsheet preview/merge preserves existing data and the manager creates one linked employee account",
     );
+
+    // The OHC reference is private, source-preserving, and updated atomically
+    // by the same real forms used in the clinic.
+    const ohcSource = await ohcFixture({ id: syntheticId(1), secondId: "9999999999", dose: "02/01/2026", received: "Yes" });
+    const ohcFile = new File([ohcSource], "OHC-test.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const ohcPath = "/vaccinations/register";
+    await page(ohcPath, admin);
+    await action(ohcPath, "importOHCAction", staff, { file: ohcFile, mode: "preview" });
+    assert.equal(await prisma.setting.count({ where: { key: "ohc.register" } }), 0);
+    await action(ohcPath, "importOHCAction", admin, { file: ohcFile, mode: "preview" });
+    assert.equal(await prisma.vaccination.count(), 0, "preview creates no clinical records");
+    const ohcSha = createHash("sha256").update(ohcSource).digest("hex");
+    const ohcVersion = createHash("sha256").update(JSON.stringify({
+      sha256: ohcSha,
+      rows: [{ row: 3, name: "Synthetic Employee", nationalId: syntheticId(1), employeeId: "test_employee_1" }, { row: 4, name: "Second employee", nationalId: "9999999999", employeeId: null, reason: "ohc.unmatched" }],
+      doses: [{ row: 3, cell: "O3", employeeId: "test_employee_1", code: "HEP_B", dose: 1, day: "2026-01-02" }],
+    })).digest("hex");
+    await action(ohcPath, "importOHCAction", admin, { file: ohcFile, mode: "commit", confirm: "yes", version: "0".repeat(64) });
+    assert.equal(await prisma.vaccination.count(), 0, "stale approval cannot import");
+    await action(ohcPath, "importOHCAction", admin, { file: ohcFile, mode: "commit", confirm: "yes", version: ohcVersion });
+    assert.equal(await prisma.vaccination.count(), 1);
+    await action(ohcPath, "importOHCAction", admin, { file: ohcFile, mode: "commit", confirm: "yes", version: ohcVersion });
+    assert.equal(await prisma.vaccination.count(), 1, "retry cannot duplicate source doses");
+    assert.equal((await fetch(baseUrl + "/api/ohc/export")).status, 401);
+    for (const cookie of [viewer, employee]) assert.equal((await fetch(baseUrl + "/api/ohc/export", { headers: { Cookie: cookie } })).status, 403);
+    const sourceResponse = await fetch(baseUrl + "/api/ohc/export?original=1", { headers: { Cookie: admin } });
+    assert.deepEqual(Buffer.from(await sourceResponse.arrayBuffer()), ohcSource);
+    await Promise.all([
+      action("/vaccinations", "createVaccinationAction", staff, { employeeId: "test_employee_1", vaccineCode: "HEP_B", doseNumber: "2", givenAt: "2026-02-02" }),
+      action("/vaccinations", "createVaccinationAction", admin, { employeeId: "test_employee_2", vaccineCode: "OTHER", doseNumber: "1", givenAt: "2026-02-02" }),
+    ]);
+    let ohcRegister = JSON.parse((await prisma.setting.findUniqueOrThrow({ where: { key: "ohc.register" } })).value);
+    assert.equal(ohcRegister.doseCount, 3, "concurrent dose writes both reach the saved workbook");
+    const saved = Buffer.from((await prisma.setting.findUniqueOrThrow({ where: { key: "ohc.current" } })).value, "base64");
+    const savedBook = new ExcelJS.Workbook(); await savedBook.xlsx.load(saved);
+    assert.equal(savedBook.getWorksheet("Data Base").getCell("Q3").value, "2: 02/02/2026");
+    assert.equal(savedBook.getWorksheet("OHC Doses").actualRowCount, 5);
+    assert.equal(savedBook.getWorksheet("Sheet").getCell("A1").value, "Yes");
+    for (const path of ["/employees/test_employee_1?tab=vaccines", "/vaccinations", "/dashboard", "/reports", "/due", "/portal/records?section=vaccines"]) assert.equal((await page(path, path.startsWith("/portal") ? employee : admin)).response.status, 200);
+    await action(ohcPath, "linkOHCRowAction", admin, { row: "4", employeeId: "test_employee_2", reason: "Verified synthetic identity", confirm: "yes" });
+    ohcRegister = JSON.parse((await prisma.setting.findUniqueOrThrow({ where: { key: "ohc.register" } })).value);
+    assert.equal(ohcRegister.rows[1].employeeId, "test_employee_2");
+    assert.equal(ohcRegister.rows[1].nationalId, "9999999999", "manual resolution does not rewrite source identity");
+    const secondDose = await prisma.vaccination.findFirstOrThrow({ where: { vaccineCode: "HEP_B", doseNumber: 2 } });
+    await action("/employees/test_employee_1", "voidRecordAction", admin, { entity: "Vaccination", id: secondDose.id, reason: "Synthetic correction" });
+    const exported = await fetch(baseUrl + "/api/ohc/export", { headers: { Cookie: staff } });
+    assert.equal(exported.status, 200);
+    assert.equal(exported.headers.get("cache-control"), "private, no-store");
+    const voidBook = new ExcelJS.Workbook(); await voidBook.xlsx.load(await exported.arrayBuffer());
+    assert.equal(voidBook.getWorksheet("Data Base").getCell("Q3").value, null);
+    assert.equal(voidBook.getWorksheet("Data Base").getCell("O3").value, "1: 02/01/2026");
+    assert.equal((await prisma.vaccination.findUniqueOrThrow({ where: { id: secondDose.id } })).status, "ENTERED_IN_ERROR");
+    const sourceSetting = await prisma.setting.findUniqueOrThrow({ where: { key: "ohc.source." + ohcSha } });
+    await prisma.setting.update({ where: { key: sourceSetting.key }, data: { value: "broken" } });
+    const beforeFailedSync = await prisma.vaccination.count();
+    await action("/vaccinations", "createVaccinationAction", staff, { employeeId: "test_employee_1", vaccineCode: "MMR", doseNumber: "1", givenAt: "2026-03-01" });
+    assert.equal(await prisma.vaccination.count(), beforeFailedSync, "failed Excel sync rolls the dose back");
+    await prisma.setting.update({ where: { key: sourceSetting.key }, data: { value: sourceSetting.value } });
+    assert.ok(await prisma.auditLog.count({ where: { entity: "OHCRegister", action: "EXPORT" } }));
+    pass("OHC source import, preview and stale guard; private exact-source export; concurrent dose sync, identity review, voiding and rollback");
 
     for (const path of [
       "/employees",

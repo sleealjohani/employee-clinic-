@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import Link from "next/link";
+import { getOHC } from "@/server/ohc-register";
 import { requirePath } from "@/lib/auth/current-user";
 import { can } from "@/lib/auth/rbac";
 import { getT } from "@/lib/i18n";
@@ -18,6 +20,7 @@ export const dynamic = "force-dynamic";
 export default async function VaccinationsPage() {
   const user = await requirePath("/vaccinations");
   const t = await getT();
+  const register = await getOHC();
   const today = startOfDay();
   const soonLimit = new Date(today.getTime() + 30 * 86_400_000);
 
@@ -30,7 +33,12 @@ export default async function VaccinationsPage() {
         department: true,
         vaccinations: {
           where: { status: "ACTIVE" },
-          select: { vaccineCode: true, doseNumber: true, givenAt: true, nextDueAt: true },
+          select: {
+            vaccineCode: true,
+            doseNumber: true,
+            givenAt: true,
+            nextDueAt: true,
+          },
         },
       },
       orderBy: { name: "asc" },
@@ -54,7 +62,9 @@ export default async function VaccinationsPage() {
     let complete = 0;
     let overdue = 0;
     for (const employee of employees) {
-      const doses = employee.vaccinations.filter((item) => item.vaccineCode === vac.code);
+      const doses = employee.vaccinations.filter(
+        (item) => item.vaccineCode === vac.code,
+      );
       const next = nextVaccineDue(vac.code, doses);
       if (!next || next.dueDate > today) complete++;
       if (next && next.dueDate < today) overdue++;
@@ -69,26 +79,33 @@ export default async function VaccinationsPage() {
     };
   });
 
-  const attention = employees.flatMap((employee) =>
-    OCCUPATIONAL_VACCINES.flatMap((vac) => {
-      const doses = employee.vaccinations.filter((item) => item.vaccineCode === vac.code);
-      const next = nextVaccineDue(vac.code, doses);
-      if (!next || next.dueDate > soonLimit) return [];
-      const status = next.dueDate < today ? "overdue" as const : "dueSoon" as const;
-      return [{
-        key: `${employee.id}-${vac.code}`,
-        employeeId: employee.id,
-        employeeName: employee.name,
-        department: employee.department,
-        vaccineCode: vac.code,
-        vaccineName: t.locale === "ar" ? vac.nameAr : vac.nameEn,
-        dueDateKey: toDateInput(next.dueDate),
-        dueDateLabel: formatDate(next.dueDate, t.locale),
-        doseNumber: next.nextDose,
-        status,
-      }];
-    }),
-  ).sort((a, b) => a.dueDateKey.localeCompare(b.dueDateKey));
+  const attention = employees
+    .flatMap((employee) =>
+      OCCUPATIONAL_VACCINES.flatMap((vac) => {
+        const doses = employee.vaccinations.filter(
+          (item) => item.vaccineCode === vac.code,
+        );
+        const next = nextVaccineDue(vac.code, doses);
+        if (!next || next.dueDate > soonLimit) return [];
+        const status =
+          next.dueDate < today ? ("overdue" as const) : ("dueSoon" as const);
+        return [
+          {
+            key: `${employee.id}-${vac.code}`,
+            employeeId: employee.id,
+            employeeName: employee.name,
+            department: employee.department,
+            vaccineCode: vac.code,
+            vaccineName: t.locale === "ar" ? vac.nameAr : vac.nameEn,
+            dueDateKey: toDateInput(next.dueDate),
+            dueDateLabel: formatDate(next.dueDate, t.locale),
+            doseNumber: next.nextDose,
+            status,
+          },
+        ];
+      }),
+    )
+    .sort((a, b) => a.dueDateKey.localeCompare(b.dueDateKey));
 
   const recentRecords = recent.map((item) => ({
     id: item.id,
@@ -114,12 +131,26 @@ export default async function VaccinationsPage() {
         title={t("vac.title")}
         actions={
           <>
-            <DownloadLink href="/api/export/immunisation">{t("action.export")}</DownloadLink>
+            <Link className="btn btn-ghost" href="/vaccinations/register">
+              {t("ohc.title")}
+            </Link>
+            {register && (
+              <DownloadLink href="/api/ohc/export">
+                {t("ohc.export")}
+              </DownloadLink>
+            )}
+            <DownloadLink href="/api/export/immunisation">
+              {t("ohc.coverageExport")}
+            </DownloadLink>
             {can(user.role, "clinical.write") && (
               <Modal
                 title={t("vac.new")}
                 wide
-                trigger={<button className="btn btn-primary"><IconPlus /> {t("vac.new")}</button>}
+                trigger={
+                  <button className="btn btn-primary">
+                    <IconPlus /> {t("vac.new")}
+                  </button>
+                }
               >
                 <QuickVaccinationForm employees={pickList} />
               </Modal>
@@ -128,7 +159,22 @@ export default async function VaccinationsPage() {
         }
       />
 
-      <VaccinationsOperationalWorkspace coverage={coverage} attention={attention} recent={recentRecords} />
+      {register && (
+        <div className="card p-4 mb-6">
+          <p>{t("ohc.connected", { count: register.doseCount })}</p>
+          <Link href="/vaccinations/register" className="muted">
+            {t("ohc.needsMatch")}:{" "}
+            <span className="num">
+              {register.rows.filter((r) => !r.employeeId).length}
+            </span>
+          </Link>
+        </div>
+      )}
+      <VaccinationsOperationalWorkspace
+        coverage={coverage}
+        attention={attention}
+        recent={recentRecords}
+      />
     </>
   );
 }

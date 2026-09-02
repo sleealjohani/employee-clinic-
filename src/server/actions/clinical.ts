@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { lockOHC, synchronizeOHC } from "@/server/ohc-register";
 import { writeAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/auth/current-user";
 import {
@@ -518,6 +519,7 @@ export async function createVaccinationAction(
       (v.nextDueAt && v.nextDueAt <= givenAt)
     )
       throw new ClinicError("v2.invalid");
+    await lockOHC(tx);
     await activeEmployee(tx, v.employeeId);
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"vaccine:" + v.employeeId}))`;
     if (
@@ -535,6 +537,7 @@ export async function createVaccinationAction(
     const record = await tx.vaccination.create({
       data: { ...v, givenAt, vaccineName: def.nameEn, createdById: user.id },
     });
+    await synchronizeOHC(tx);
     await writeAudit(
       {
         user,
@@ -653,8 +656,10 @@ export async function voidRecordAction(
         break;
       }
       case "Vaccination": {
+        await lockOHC(tx);
         employeeId = (await tx.vaccination.update({ where: { id }, data }))
           .employeeId;
+        await synchronizeOHC(tx);
         break;
       }
       case "HealthEducation": {
