@@ -5,6 +5,60 @@
  */
 
 export const ar = {
+  "ohc.title": "سجل التحصينات المرجعي",
+  "ohc.description":
+    "تُحدّث نسخة الإكسل المحفوظة عند حفظ الجرعات أو إلغاء إدخال خاطئ. تُحفظ أوراق المصدر وتنسيقاتها وقوائم الاختيار، ويضاف ملحق تفصيلي للجرعات عند وجودها.",
+  "ohc.export": "تصدير سجل الإكسل المحدّث",
+  "ohc.coverageExport": "تقرير تغطية التحصينات",
+  "ohc.connected":
+    "الإكسل المرجعي متصل · {count} جرعة محفوظة · تتحدث النسخة مع كل جرعة",
+  "ohc.chooseFile": "ملف الإكسل المرجعي",
+  "ohc.importHint":
+    "اختر ملف OHC الأصلي. تتم المطابقة برقم الهوية فقط؛ لا يُنشأ موظفون ولا تُستنتج جرعات من التحاليل. حد الملف 3 ميجابايت.",
+  "ohc.preview": "فحص الملف والمطابقة",
+  "ohc.previewCounts":
+    "{rows} صفًا · {matched} مطابقًا · {doses} جرعة مؤرخة للمراجعة",
+  "ohc.noSourceDoses":
+    "لم تُستورد جرعات من المصدر: النسخة المرفقة لا تحتوي على تواريخ جرعات قابلة للاعتماد. تبقى نتائج التحاليل وإثبات تطعيمات الطفولة كما وردت في الأصل.",
+  "ohc.row": "صف المصدر",
+  "ohc.match": "المطابقة",
+  "ohc.matched": "مطابق بالهوية",
+  "ohc.dose": "رقم الجرعة",
+  "ohc.date": "تاريخ الجرعة",
+  "ohc.confirmImport":
+    "راجعت المطابقة والجرعات المعروضة وأعتمد الملف مرجعًا. ستُحفظ الجرعات المطابقة الموثقة فقط.",
+  "ohc.attach": "اعتماد وربط الملف",
+  "ohc.importSuccess": "تم ربط الملف واستيراد {count} جرعة.",
+  "ohc.linkedRows": "صفوف مرتبطة بموظفين",
+  "ohc.syncedDoses": "جرعات في النسخة المحدّثة",
+  "ohc.needsMatch": "صفوف تحتاج تأكيد الهوية",
+  "ohc.updated": "آخر تحديث:",
+  "ohc.downloadOriginal": "تنزيل المصدر الأصلي",
+  "ohc.notAttached": "لم يُرفق سجل مرجعي بعد. يمكن لمدير العيادة إرفاقه.",
+  "ohc.matchHint":
+    "هذه الصفوف محفوظة في الملف الأصلي ولم تُربط تلقائيًا. راجع الهوية قبل الربط؛ لن تتغير أرقام الهوية الأصلية أو بيانات الموظفين.",
+  "ohc.employee": "الموظف الصحيح",
+  "ohc.selectEmployee": "اختر الموظف بعد التحقق من الهوية",
+  "ohc.linkReason": "سبب تأكيد المطابقة",
+  "ohc.identityConfirm": "تحققت أن صف المصدر يعود لهذا الموظف وأعتمد الربط.",
+  "ohc.link": "تأكيد الربط",
+  "ohc.linkSuccess": "تم تأكيد الربط وتحديث الإكسل.",
+  "ohc.sourceIdentity": "رقم الهوية الوارد بالمصدر:",
+  "ohc.sourceIssues": "بيانات مصدر تحتاج مراجعة",
+  "ohc.invalidFile": "الملف غير صالح أو لا يطابق قالب OHC الأصلي المدعوم.",
+  "ohc.sourceMissing": "المصدر الأصلي غير متاح؛ لم تُحفظ التغييرات.",
+  "ohc.alreadyAttached":
+    "السجل المرجعي مرتبط بالفعل. استخدم السجل الحالي لإضافة الجرعات وتأكيد المطابقات.",
+  "ohc.changed": "تغيرت البيانات أو المطابقة. أعد الفحص قبل الاعتماد.",
+  "ohc.linkConfirm": "اختر الموظف وأدخل سببًا وأكد التحقق من الهوية.",
+  "ohc.linkHasDoses": "هذا الصف يحتوي على جرعات تحتاج مراجعة مستقلة قبل ربطه.",
+  "ohc.capacity": "امتلأت صفوف القالب؛ تعذر تحديث الإكسل ولم تُحفظ الجرعة.",
+  "ohc.duplicateId": "رقم هوية مكرر بالمصدر؛ يلزم التحقق",
+  "ohc.archived": "ملف الموظف مؤرشف",
+  "ohc.unmatched": "لم تتطابق الهوية مع موظف مسجل",
+  "ohc.missingDate": "حالة استلام بلا تاريخ جرعة موثق",
+  "ohc.notReceived": "الاستلام غير مؤكد؛ لم تُسجل كجرعة معطاة",
+  "ohc.invalidDate": "تاريخ أو رقم جرعة غير صالح أو تاريخ مستقبلي",
   "app.name": "عيادة الموظف",
   "app.hospital": "مستشفى الحديثة العام",
   "app.cluster": "تجمع الجوف الصحي",
@@ -74,7 +128,8 @@ export const ar = {
   "common.today": "اليوم",
   "common.error": "حدث خطأ",
   "err.title": "تعذّر عرض الصفحة",
-  "err.body": "حدث خطأ غير متوقع. لم يُفقد أي سجل — أعد المحاولة أو ارجع إلى لوحة التحكم.",
+  "err.body":
+    "حدث خطأ غير متوقع. لم يُفقد أي سجل — أعد المحاولة أو ارجع إلى لوحة التحكم.",
   "common.saved": "تم الحفظ",
   "common.language": "اللغة",
   "common.theme": "المظهر",
@@ -96,13 +151,15 @@ export const ar = {
   "auth.invalidOtp": "رمز التحقق غير صحيح",
   "auth.locked": "الحساب مقفل مؤقتاً بسبب محاولات فاشلة متكررة. حاول لاحقاً.",
   "auth.disabled": "هذا الحساب معطّل. راجع مسؤول النظام.",
-  "auth.confidential": "هذا النظام يحتوي على بيانات صحية سرّية. كل عملية دخول واطلاع مسجّلة.",
+  "auth.confidential":
+    "هذا النظام يحتوي على بيانات صحية سرّية. كل عملية دخول واطلاع مسجّلة.",
   "auth.changePassword": "تغيير كلمة المرور",
   "auth.currentPassword": "كلمة المرور الحالية",
   "auth.newPassword": "كلمة المرور الجديدة",
   "auth.confirmPassword": "تأكيد كلمة المرور",
   "auth.passwordMismatch": "كلمتا المرور غير متطابقتين",
-  "auth.passwordWeak": "كلمة المرور يجب ألا تقل عن 10 أحرف وتحتوي على أحرف وأرقام",
+  "auth.passwordWeak":
+    "كلمة المرور يجب ألا تقل عن 10 أحرف وتحتوي على أحرف وأرقام",
   "auth.mustChange": "يجب تغيير كلمة المرور قبل المتابعة",
   "auth.noAccess": "لا تملك صلاحية الوصول لهذه الصفحة",
 
@@ -240,7 +297,8 @@ export const ar = {
   "lab.criticalNotify": "توثيق التبليغ",
   "lab.notifiedTo": "أُبلغ",
   "lab.criticalActionTaken": "الإجراء المتخذ",
-  "lab.notifyHint": "لا تُغلق النتيجة الحرجة إلا بعد توثيق من تم تبليغه والإجراء المتخذ.",
+  "lab.notifyHint":
+    "لا تُغلق النتيجة الحرجة إلا بعد توثيق من تم تبليغه والإجراء المتخذ.",
   "lab.trend": "تسلسل النتائج",
   "lab.source": "مصدر السجل",
   "lab.sourceManual": "إدخال يدوي",
@@ -326,16 +384,19 @@ export const ar = {
   "due.empty": "لا توجد مستحقات — العيادة محدّثة.",
 
   "imp.title": "استيراد تقارير المختبر",
-  "imp.uploadHint": "PDF أو صورة، بحد أقصى {mb} ميجابايت — الملفات الكبيرة تُرفع على أجزاء",
+  "imp.uploadHint":
+    "PDF أو صورة، بحد أقصى {mb} ميجابايت — الملفات الكبيرة تُرفع على أجزاء",
   "imp.uploading": "جارٍ الرفع",
   "imp.extractingLong": "الملفات الكبيرة تستغرق وقتاً أطول؛ لا تُغلق الصفحة.",
   "imp.tooLarge": "الملف أكبر من الحد المسموح",
   "imp.badFormat": "صيغة غير مدعومة. استخدم PDF أو صورة JPG/PNG.",
-  "imp.scansNeedKey": "الصور والملفات الممسوحة تحتاج مفتاح خدمة الاستخراج؛ أما PDF الرقمي فيعمل بدونه.",
+  "imp.scansNeedKey":
+    "الصور والملفات الممسوحة تحتاج مفتاح خدمة الاستخراج؛ أما PDF الرقمي فيعمل بدونه.",
   "imp.uploadIncomplete": "لم يكتمل رفع الملف",
   "imp.uploadInterrupted": "انقطع الاتصال أثناء الرفع. أعد المحاولة.",
   "imp.disabled": "الاستيراد الذكي موقوف.",
-  "imp.disabledHint": "أُوقِف بضبط ENABLE_AI_IMPORT=false. لإعادة تشغيله احذف هذا المتغير أو اضبطه على true.",
+  "imp.disabledHint":
+    "أُوقِف بضبط ENABLE_AI_IMPORT=false. لإعادة تشغيله احذف هذا المتغير أو اضبطه على true.",
   "imp.noKey": "الاستيراد الذكي مفعّل لكن لا يوجد مفتاح خدمة.",
   "imp.noKeyHint": "أضف ANTHROPIC_API_KEY في متغيرات البيئة ثم أعد النشر.",
   "imp.batches": "دفعات الاستيراد",
@@ -377,7 +438,8 @@ export const ar = {
   "imp.extracting": "جارٍ الاستخراج…",
   "imp.extractFailed": "فشل الاستخراج",
   "imp.noItems": "لم يُعثر على نتائج تحاليل في هذا الملف.",
-  "imp.noTextLayer": "هذا الملف صورة ممسوحة — يحتوي صور صفحات لا نصاً، فتعذّرت قراءته محلياً. استخدم نسخة PDF الرقمية التي يصدّرها المختبر، أو أضف مفتاح خدمة الاستخراج لقراءة الملفات الممسوحة.",
+  "imp.noTextLayer":
+    "هذا الملف صورة ممسوحة — يحتوي صور صفحات لا نصاً، فتعذّرت قراءته محلياً. استخدم نسخة PDF الرقمية التي يصدّرها المختبر، أو أضف مفتاح خدمة الاستخراج لقراءة الملفات الممسوحة.",
   "imp.warnings": "تنبيهات",
   "imp.warn.INVALID_ID": "رقم هوية غير صالح",
   "imp.warn.NO_ID": "لا يوجد رقم هوية في التقرير",
@@ -396,7 +458,8 @@ export const ar = {
   "empimp.note.dob": "تاريخ الميلاد غير مقروء",
   "empimp.note.hireDate": "تاريخ التعيين غير مقروء",
   "empimp.fileHint": "ملف Excel أو CSV، بحد أقصى 5 ميجابايت",
-  "empimp.columns": "الأعمدة المقروءة: رقم الهوية والاسم (مطلوبان)، الرقم الوظيفي، القسم، المسمى الوظيفي، الجنس، تاريخ الميلاد، الجوال، البريد، تاريخ التعيين، فصيلة الدم.",
+  "empimp.columns":
+    "الأعمدة المقروءة: رقم الهوية والاسم (مطلوبان)، الرقم الوظيفي، القسم، المسمى الوظيفي، الجنس، تاريخ الميلاد، الجوال، البريد، تاريخ التعيين، فصيلة الدم.",
   "empimp.previewTitle": "معاينة فقط — لم يُحفظ أي شيء",
   "empimp.previewBody": "اضغط «استيراد وحفظ» لإتمامه.",
   "empimp.savedTitle": "تم الاستيراد",
@@ -416,7 +479,8 @@ export const ar = {
     "يجب أن يحتوي الملف على عمود لرقم الهوية وعمود للاسم. تُقرأ العناوين من أي صف ضمن أول 15 صفاً. العناوين المتوقعة تشمل:",
   "empimp.missingId": "لا يوجد رقم هوية في هذا الصف",
   "empimp.missingName": "لا يوجد اسم في هذا الصف",
-  "imp.privacy": "يُرسل هذا الملف لخدمة استخراج خارجية. كل عملية مسجّلة في سجل التدقيق.",
+  "imp.privacy":
+    "يُرسل هذا الملف لخدمة استخراج خارجية. كل عملية مسجّلة في سجل التدقيق.",
 
   "rep.title": "التقارير",
   "rep.dailyVisits": "الزيارات اليومية",
@@ -429,7 +493,8 @@ export const ar = {
   "rep.to": "إلى تاريخ",
   "rep.generate": "عرض",
   "rep.rows": "عدد الصفوف",
-  "rep.hrNotice": "التقارير المجمّعة فقط متاحة لدور الاطلاع الإداري — دون تفاصيل سريرية.",
+  "rep.hrNotice":
+    "التقارير المجمّعة فقط متاحة لدور الاطلاع الإداري — دون تفاصيل سريرية.",
 
   "user.title": "المستخدمون",
   "user.new": "مستخدم جديد",
@@ -447,7 +512,8 @@ export const ar = {
   "user.resetPassword": "إعادة تعيين كلمة المرور",
   "user.tempPassword": "كلمة مرور مؤقتة",
   "user.tempPasswordHint": "سلّمها للمستخدم؛ سيُطلب منه تغييرها عند أول دخول.",
-  "user.resetEffect": "ستتوقف كلمة المرور الحالية عن العمل فوراً، وتُنشأ كلمة مرور مؤقتة تظهر هنا مرة واحدة.",
+  "user.resetEffect":
+    "ستتوقف كلمة المرور الحالية عن العمل فوراً، وتُنشأ كلمة مرور مؤقتة تظهر هنا مرة واحدة.",
   "user.deactivate": "تعطيل الحساب",
   "user.activate": "تفعيل الحساب",
   "user.selfEditBlocked": "لا يمكنك تعطيل حسابك أو تغيير دورك بنفسك",
@@ -465,7 +531,8 @@ export const ar = {
   "audit.user": "المستخدم",
   "audit.summary": "الوصف",
   "audit.ip": "عنوان IP",
-  "audit.immutable": "هذا السجل يُضاف فقط ولا يُعدَّل ولا يُحذف من داخل النظام.",
+  "audit.immutable":
+    "هذا السجل يُضاف فقط ولا يُعدَّل ولا يُحذف من داخل النظام.",
 
   "gender.MALE": "ذكر",
   "gender.FEMALE": "أنثى",
@@ -510,6 +577,67 @@ export const ar = {
 export type DictKey = keyof typeof ar;
 
 export const en: Record<DictKey, string> = {
+  "ohc.title": "Vaccination reference register",
+  "ohc.description":
+    "The saved Excel copy updates when doses are recorded or voided. Source sheets, formatting and validation lists are retained; a detailed dose ledger is appended when doses exist.",
+  "ohc.export": "Export updated Excel register",
+  "ohc.coverageExport": "Coverage report",
+  "ohc.connected":
+    "Reference Excel connected · {count} saved doses · Updates with every dose",
+  "ohc.chooseFile": "Reference Excel workbook",
+  "ohc.importHint":
+    "Select the original OHC workbook. Matching uses national ID only; employees are not created and laboratory results are not treated as doses. Maximum 3 MB.",
+  "ohc.preview": "Inspect file and matches",
+  "ohc.previewCounts":
+    "{rows} rows · {matched} matched · {doses} dated doses for review",
+  "ohc.noSourceDoses":
+    "No source doses were imported: the attached version has no approvable dose dates. Lab results and childhood-vaccination evidence remain as supplied.",
+  "ohc.row": "Source row",
+  "ohc.match": "Match",
+  "ohc.matched": "Matched by national ID",
+  "ohc.dose": "Dose number",
+  "ohc.date": "Dose date",
+  "ohc.confirmImport":
+    "I reviewed the matches and displayed doses and approve this reference. Only matched, documented doses will be saved.",
+  "ohc.attach": "Approve and attach workbook",
+  "ohc.importSuccess": "Workbook attached; {count} doses imported.",
+  "ohc.linkedRows": "Rows linked to employees",
+  "ohc.syncedDoses": "Doses in updated workbook",
+  "ohc.needsMatch": "Rows needing identity review",
+  "ohc.updated": "Last updated:",
+  "ohc.downloadOriginal": "Download original source",
+  "ohc.notAttached":
+    "No reference is attached. A clinic administrator can attach it.",
+  "ohc.matchHint":
+    "These rows remain in the original file and were not linked automatically. Verify identity before linking; source IDs and employee details are preserved.",
+  "ohc.employee": "Correct employee",
+  "ohc.selectEmployee": "Select the employee after verifying identity",
+  "ohc.linkReason": "Reason for confirmed match",
+  "ohc.identityConfirm":
+    "I verified this source row belongs to this employee and approve the link.",
+  "ohc.link": "Confirm link",
+  "ohc.linkSuccess": "Link confirmed and Excel updated.",
+  "ohc.sourceIdentity": "Source national ID:",
+  "ohc.sourceIssues": "Source entries needing review",
+  "ohc.invalidFile": "Invalid file or unsupported original OHC layout.",
+  "ohc.sourceMissing":
+    "The original source is unavailable; changes were not saved.",
+  "ohc.alreadyAttached":
+    "A reference is already attached. Use it to record doses and confirm matches.",
+  "ohc.changed": "Data or matches changed. Inspect again before approval.",
+  "ohc.linkConfirm":
+    "Choose the employee, enter a reason, and confirm identity verification.",
+  "ohc.linkHasDoses":
+    "This row contains doses that need separate review before linking.",
+  "ohc.capacity":
+    "The template has no spare rows; Excel could not update and the dose was not saved.",
+  "ohc.duplicateId": "Duplicate source ID; verification required",
+  "ohc.archived": "Employee file is archived",
+  "ohc.unmatched": "No employee matches the source ID",
+  "ohc.missingDate": "Receipt status without a documented dose date",
+  "ohc.notReceived":
+    "Receipt is not confirmed; not imported as an administered dose",
+  "ohc.invalidDate": "Invalid dose/date or a future date",
   "app.name": "Employee Clinic",
   "app.hospital": "Al Hadeethah General Hospital",
   "app.cluster": "Aljouf Health Cluster",
@@ -579,7 +707,8 @@ export const en: Record<DictKey, string> = {
   "common.today": "Today",
   "common.error": "Something went wrong",
   "err.title": "Something went wrong",
-  "err.body": "The page could not be displayed. No record was lost — try again, or go back to the dashboard.",
+  "err.body":
+    "The page could not be displayed. No record was lost — try again, or go back to the dashboard.",
   "common.saved": "Saved",
   "common.language": "Language",
   "common.theme": "Theme",
@@ -599,15 +728,18 @@ export const en: Record<DictKey, string> = {
   "auth.otpHint": "Enter the 6-digit code from your authenticator app",
   "auth.invalid": "Incorrect username or password",
   "auth.invalidOtp": "Invalid verification code",
-  "auth.locked": "Account temporarily locked after repeated failures. Try again later.",
+  "auth.locked":
+    "Account temporarily locked after repeated failures. Try again later.",
   "auth.disabled": "This account is disabled. Contact the administrator.",
-  "auth.confidential": "This system holds confidential health data. Every sign-in and access is logged.",
+  "auth.confidential":
+    "This system holds confidential health data. Every sign-in and access is logged.",
   "auth.changePassword": "Change password",
   "auth.currentPassword": "Current password",
   "auth.newPassword": "New password",
   "auth.confirmPassword": "Confirm password",
   "auth.passwordMismatch": "Passwords do not match",
-  "auth.passwordWeak": "Password must be at least 10 characters and mix letters and digits",
+  "auth.passwordWeak":
+    "Password must be at least 10 characters and mix letters and digits",
   "auth.mustChange": "You must change your password before continuing",
   "auth.noAccess": "You do not have permission to view this page",
 
@@ -666,7 +798,8 @@ export const en: Record<DictKey, string> = {
   "emp.list": "List view",
   "emp.archived": "Archived",
   "emp.showArchived": "Show archived",
-  "emp.archiveConfirm": "The record will be archived; no clinical data is deleted. State the reason:",
+  "emp.archiveConfirm":
+    "The record will be archived; no clinical data is deleted. State the reason:",
   "emp.duplicateId": "This national ID belongs to another employee",
   "emp.invalidId": "Invalid national ID (10 digits starting with 1 or 2)",
   "emp.idFormat": "10 digits, starting with 1 or 2",
@@ -746,7 +879,8 @@ export const en: Record<DictKey, string> = {
   "lab.criticalNotify": "Record notification",
   "lab.notifiedTo": "Notified to",
   "lab.criticalActionTaken": "Action taken",
-  "lab.notifyHint": "A critical result is only closed after recording who was notified and what was done.",
+  "lab.notifyHint":
+    "A critical result is only closed after recording who was notified and what was done.",
   "lab.trend": "Result history",
   "lab.source": "Record source",
   "lab.sourceManual": "Manual entry",
@@ -755,7 +889,8 @@ export const en: Record<DictKey, string> = {
   "lab.qualitative": "Qualitative",
   "lab.quantitative": "Quantitative",
   "lab.selectTest": "Select a test",
-  "lab.autoRef": "The reference range is prefilled from the test catalogue and can be overridden.",
+  "lab.autoRef":
+    "The reference range is prefilled from the test catalogue and can be overridden.",
 
   "flag.NORMAL": "Normal",
   "flag.LOW": "Low",
@@ -837,13 +972,16 @@ export const en: Record<DictKey, string> = {
   "imp.extractingLong": "A large batch takes longer; keep this page open.",
   "imp.tooLarge": "The file is larger than the limit",
   "imp.badFormat": "Unsupported file. Use a PDF, or a JPG/PNG image.",
-  "imp.scansNeedKey": "Scans and images need the extraction service key; a digital PDF works without it.",
+  "imp.scansNeedKey":
+    "Scans and images need the extraction service key; a digital PDF works without it.",
   "imp.uploadIncomplete": "The upload did not complete",
   "imp.uploadInterrupted": "The connection dropped during upload. Try again.",
   "imp.disabled": "Assisted import is switched off.",
-  "imp.disabledHint": "Turned off by ENABLE_AI_IMPORT=false. Remove that variable, or set it to true, to switch it back on.",
+  "imp.disabledHint":
+    "Turned off by ENABLE_AI_IMPORT=false. Remove that variable, or set it to true, to switch it back on.",
   "imp.noKey": "Assisted import is on, but no service key is configured.",
-  "imp.noKeyHint": "Add ANTHROPIC_API_KEY to the environment variables and redeploy.",
+  "imp.noKeyHint":
+    "Add ANTHROPIC_API_KEY to the environment variables and redeploy.",
   "imp.batches": "Import batches",
   "imp.file": "File",
   "file.choose": "Choose a file",
@@ -865,12 +1003,14 @@ export const en: Record<DictKey, string> = {
   "imp.hideSource": "Hide report",
   "imp.approvePerson": "Approve this employee's results",
   "imp.approveClean": "Approve the {count} matched of {outstanding}",
-  "imp.nothingToApprove": "No results here are clean enough to approve in one step",
+  "imp.nothingToApprove":
+    "No results here are clean enough to approve in one step",
   "imp.filter.attention": "Needs attention",
   "imp.filter.pending": "Undecided",
   "imp.filter.decided": "Decided",
   "imp.unmatchedQueue": "Unmatched queue",
-  "imp.unmatchedHint": "Link to an existing employee, or create the record first.",
+  "imp.unmatchedHint":
+    "Link to an existing employee, or create the record first.",
   "imp.linkEmployee": "Link to employee",
   "imp.confidence": "Confidence",
   "imp.lowConfidence": "Low confidence — verify manually",
@@ -883,7 +1023,8 @@ export const en: Record<DictKey, string> = {
   "imp.extracting": "Extracting…",
   "imp.extractFailed": "Extraction failed",
   "imp.noItems": "No lab results were found in this file.",
-  "imp.noTextLayer": "This file is a scan — it holds page images, not text, so it cannot be read locally. Use the digital PDF the laboratory exports, or configure the extraction service key to read scans.",
+  "imp.noTextLayer":
+    "This file is a scan — it holds page images, not text, so it cannot be read locally. Use the digital PDF the laboratory exports, or configure the extraction service key to read scans.",
   "imp.warnings": "Warnings",
   "imp.warn.INVALID_ID": "Invalid national ID",
   "imp.warn.NO_ID": "No national ID on the report",
@@ -891,7 +1032,8 @@ export const en: Record<DictKey, string> = {
   "imp.warn.NO_VALUE": "No value",
   "imp.warn.FUTURE_DATE": "Date in the future",
   "imp.warn.LOW_CONFIDENCE": "Low confidence",
-  "imp.warn.CARRIED_ID": "Continuation page — patient inherited from the previous page",
+  "imp.warn.CARRIED_ID":
+    "Continuation page — patient inherited from the previous page",
   "empimp.preview": "Preview without saving",
   "empimp.commit": "Import and save",
   "empimp.title": "Import employees",
@@ -902,7 +1044,8 @@ export const en: Record<DictKey, string> = {
   "empimp.note.dob": "Birth date unreadable",
   "empimp.note.hireDate": "Hire date unreadable",
   "empimp.fileHint": "Excel or CSV file, up to 5 MB",
-  "empimp.columns": "Columns read: national ID and name (required), employee no., department, job title, sex, date of birth, mobile, email, hire date, blood type.",
+  "empimp.columns":
+    "Columns read: national ID and name (required), employee no., department, job title, sex, date of birth, mobile, email, hire date, blood type.",
   "empimp.previewTitle": "Preview only — nothing was saved",
   "empimp.previewBody": "Press “Import and save” to complete it.",
   "empimp.savedTitle": "Import complete",
@@ -922,7 +1065,8 @@ export const en: Record<DictKey, string> = {
     "The file needs a national ID column and a name column. Headers are read from any of the first 15 rows. Expected headers include:",
   "empimp.missingId": "No national ID in this row",
   "empimp.missingName": "No name in this row",
-  "imp.privacy": "This file is sent to an external extraction service. Every call is written to the audit trail.",
+  "imp.privacy":
+    "This file is sent to an external extraction service. Every call is written to the audit trail.",
 
   "rep.title": "Reports",
   "rep.dailyVisits": "Daily visits",
@@ -935,7 +1079,8 @@ export const en: Record<DictKey, string> = {
   "rep.to": "To",
   "rep.generate": "Run",
   "rep.rows": "Rows",
-  "rep.hrNotice": "The administrative viewer role sees aggregate reports only — no clinical detail.",
+  "rep.hrNotice":
+    "The administrative viewer role sees aggregate reports only — no clinical detail.",
 
   "user.title": "Users",
   "user.new": "New user",
@@ -948,15 +1093,20 @@ export const en: Record<DictKey, string> = {
   "user.twoFactor": "Two-factor",
   "user.enable2fa": "Enable two-factor",
   "user.disable2fa": "Disable two-factor",
-  "user.2faScan": "Scan with an authenticator app, then enter the displayed code to confirm",
-  "user.2faRequired": "Two-factor authentication is required for the administrator role",
+  "user.2faScan":
+    "Scan with an authenticator app, then enter the displayed code to confirm",
+  "user.2faRequired":
+    "Two-factor authentication is required for the administrator role",
   "user.resetPassword": "Reset password",
   "user.tempPassword": "Temporary password",
-  "user.tempPasswordHint": "Hand it to the user; they must change it at first sign-in.",
-  "user.resetEffect": "The current password stops working immediately, and a temporary one is generated and shown here once.",
+  "user.tempPasswordHint":
+    "Hand it to the user; they must change it at first sign-in.",
+  "user.resetEffect":
+    "The current password stops working immediately, and a temporary one is generated and shown here once.",
   "user.deactivate": "Disable account",
   "user.activate": "Enable account",
-  "user.selfEditBlocked": "You cannot disable your own account or change your own role",
+  "user.selfEditBlocked":
+    "You cannot disable your own account or change your own role",
 
   "role.ADMIN": "Clinic administrator",
   "role.STAFF": "Nurse / technician",
@@ -971,7 +1121,8 @@ export const en: Record<DictKey, string> = {
   "audit.user": "User",
   "audit.summary": "Description",
   "audit.ip": "IP address",
-  "audit.immutable": "This log is append-only and cannot be edited or deleted from within the system.",
+  "audit.immutable":
+    "This log is append-only and cannot be edited or deleted from within the system.",
 
   "gender.MALE": "Male",
   "gender.FEMALE": "Female",
