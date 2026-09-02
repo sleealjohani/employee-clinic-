@@ -13,11 +13,14 @@ const nextConfig: NextConfig = {
    */
   outputFileTracingIncludes: {
     "/**": [
+      // Prisma's JavaScript engine loads this file through fs at runtime.
+      // Keep it explicit: successful local builds can otherwise omit it on Vercel.
+      "./node_modules/.prisma/client/query_compiler_bg.wasm",
       "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
       "./node_modules/pdfjs-dist/standard_fonts/**",
     ],
   },
-  experimental: { serverActions: { bodySizeLimit: "12mb" } },
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   async headers() {
     return [
       {
@@ -26,7 +29,10 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "same-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
           // Clinical records must never be indexed or cached by intermediaries.
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],

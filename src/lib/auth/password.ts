@@ -6,7 +6,10 @@ export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, ROUNDS);
 }
 
-export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  plain: string,
+  hash: string,
+): Promise<boolean> {
   try {
     return await bcrypt.compare(plain, hash);
   } catch {
@@ -16,7 +19,12 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
 
 /** At least 10 characters, mixing letters and digits. Deliberately simple and enforceable. */
 export function passwordIsStrong(plain: string): boolean {
-  return plain.length >= 10 && /[A-Za-z]/.test(plain) && /\d/.test(plain);
+  return (
+    plain.length >= 10 &&
+    new TextEncoder().encode(plain).length <= 72 &&
+    /[A-Za-z]/.test(plain) &&
+    /\d/.test(plain)
+  );
 }
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -28,7 +36,7 @@ export function generateTempPassword(length = 12): string {
   let out = "";
   for (let i = 0; i < length; i++) out += ALPHABET[bytes[i] % ALPHABET.length];
   // Guarantee the generated value satisfies the strength rule.
-  return `${out.slice(0, length - 2)}${(bytes[0] % 10)}${(bytes[1] % 10)}`;
+  return `${out.slice(0, length - 2)}${bytes[0] % 10}${bytes[1] % 10}`;
 }
 
 export const LOCKOUT_THRESHOLD = 5;

@@ -5,7 +5,10 @@ import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { Alert, Chip } from "@/components/ui";
 import { FileField } from "@/components/ui/FileField";
-import { importEmployeesAction, type EmployeeImportState } from "@/server/actions/employee-import";
+import {
+  importEmployeesAction,
+  type EmployeeImportState,
+} from "@/server/actions/employee-import";
 
 /**
  * Preview and import are two named buttons, not a checkbox. The previous version
@@ -17,21 +20,40 @@ function Actions() {
   const { pending } = useFormStatus();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button type="submit" name="mode" value="preview" className="btn btn-ghost" disabled={pending}>
+      <button
+        type="submit"
+        name="mode"
+        value="preview"
+        className="btn btn-ghost"
+        disabled={pending}
+      >
         {pending ? t("action.saving") : t("empimp.preview")}
       </button>
-      <button type="submit" name="mode" value="commit" className="btn btn-primary" disabled={pending}>
+      <button
+        type="submit"
+        name="mode"
+        value="commit"
+        className="btn btn-primary"
+        disabled={pending}
+      >
         {pending ? t("action.saving") : t("empimp.commit")}
       </button>
     </div>
   );
 }
 
-const OUTCOME_TONE = { CREATED: "ok", UPDATED: "accent", SKIPPED: "warn" } as const;
+const OUTCOME_TONE = {
+  CREATED: "ok",
+  UPDATED: "accent",
+  SKIPPED: "warn",
+} as const;
 
 export function EmployeeImportForm() {
   const t = useT();
-  const [state, formAction] = useActionState<EmployeeImportState, FormData>(importEmployeesAction, {});
+  const [state, formAction] = useActionState<EmployeeImportState, FormData>(
+    importEmployeesAction,
+    {},
+  );
 
   const outcomeLabel = (outcome: keyof typeof OUTCOME_TONE) =>
     state.dryRun ? t(`empimp.will.${outcome}`) : t(`empimp.did.${outcome}`);
@@ -41,7 +63,7 @@ export function EmployeeImportForm() {
       <form action={formAction}>
         <FileField
           name="file"
-          accept=".xlsx,.xls,.csv"
+          accept=".xlsx,.csv"
           required
           hint={`${t("empimp.fileHint")} · ${t("empimp.columns")}`}
         />
@@ -57,11 +79,18 @@ export function EmployeeImportForm() {
             {state.missingColumns && state.missingColumns.length > 0 && (
               <span className="mt-2 block">
                 {t("empimp.missingColumns")}{" "}
-                <b dir="auto">{state.missingColumns.map((c) => t(`empimp.col.${c}`)).join("، ")}</b>
+                <b dir="auto">
+                  {state.missingColumns
+                    .map((c) => t(`empimp.col.${c}`))
+                    .join("، ")}
+                </b>
               </span>
             )}
             {state.foundColumns && state.foundColumns.length > 0 && (
-              <span className="mt-1 block" style={{ color: "var(--text-muted)" }}>
+              <span
+                className="mt-1 block"
+                style={{ color: "var(--text-muted)" }}
+              >
                 {t("empimp.foundColumns")}{" "}
                 <span dir="auto">{state.foundColumns.join(" · ")}</span>
               </span>
@@ -130,7 +159,9 @@ export function EmployeeImportForm() {
                       </td>
                       <td>{row.name}</td>
                       <td>
-                        <Chip tone={OUTCOME_TONE[row.outcome]}>{outcomeLabel(row.outcome)}</Chip>
+                        <Chip tone={OUTCOME_TONE[row.outcome]}>
+                          {outcomeLabel(row.outcome)}
+                        </Chip>
                       </td>
                       <td>
                         {row.reason ? (

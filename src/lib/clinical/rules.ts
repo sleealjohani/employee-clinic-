@@ -1,4 +1,5 @@
-import type { Gender, LabFlag, ResultType } from "@prisma/client";
+import type { Comparison, Gender, LabFlag, ResultType } from "@prisma/client";
+import { sameUnit } from "./numeric";
 import { refFor, TEST_BY_CODE, type TestDef } from "@/lib/catalog/tests";
 
 /**
@@ -40,17 +41,29 @@ const NON_REACTIVE_TERMS = [
   "لا يوجد",
 ];
 
-const INDETERMINATE_TERMS = ["indeterminate", "equivocal", "borderline", "grey zone", "غير حاسم", "حدي"];
+const INDETERMINATE_TERMS = [
+  "indeterminate",
+  "equivocal",
+  "borderline",
+  "grey zone",
+  "غير حاسم",
+  "حدي",
+];
 
 export function normaliseQualitative(
   raw: string | null | undefined,
 ): "REACTIVE" | "NON_REACTIVE" | "INDETERMINATE" | null {
   if (!raw) return null;
   const v = raw.trim().toLowerCase();
-  if (INDETERMINATE_TERMS.some((t) => v.includes(t))) return "INDETERMINATE";
-  // Non-reactive first: "non reactive" contains "reactive".
-  if (NON_REACTIVE_TERMS.some((t) => v.includes(t))) return "NON_REACTIVE";
-  if (REACTIVE_TERMS.some((t) => v.includes(t))) return "REACTIVE";
+  const match = (term: string) =>
+    new RegExp(
+      `(^|[^\\p{L}\\p{N}])${term.replace(/[- ]/g, "[- ]?")}(?=$|[^\\p{L}\\p{N}])`,
+      "u",
+    ).test(v);
+  if (INDETERMINATE_TERMS.some(match)) return "INDETERMINATE";
+  if (["not reactive", ...NON_REACTIVE_TERMS].some(match))
+    return "NON_REACTIVE";
+  if (REACTIVE_TERMS.some(match)) return "REACTIVE";
   return null;
 }
 
@@ -62,6 +75,8 @@ export type FlagInput = {
   refLow?: number | null;
   refHigh?: number | null;
   sex?: Gender | null;
+  unit?: string | null;
+  comparator?: Comparison;
 };
 
 export function computeFlag(input: FlagInput): LabFlag {
@@ -74,14 +89,31 @@ export function computeFlag(input: FlagInput): LabFlag {
   }
 
   const v = input.valueNum;
-  if (v === null || v === undefined || Number.isNaN(v)) return "UNKNOWN";
+  if (v === null || v === undefined || !Number.isFinite(v)) return "UNKNOWN";
 
-  const catalogue = def ? refFor(def, input.sex ?? null) : undefined;
+  const catalogue =
+    def && sameUnit(input.unit, def.unit)
+      ? refFor(def, input.sex ?? null)
+      : undefined;
   // An explicit range printed on the report always wins over the catalogue default.
   const low = input.refLow ?? catalogue?.low;
   const high = input.refHigh ?? catalogue?.high;
   const criticalLow = catalogue?.criticalLow;
   const criticalHigh = catalogue?.criticalHigh;
+
+  const op = input.comparator ?? "EQ";
+  if (op === "LT" || op === "LE") {
+    if (criticalLow !== undefined && v <= criticalLow) return "CRITICAL_LOW";
+    if (low !== undefined && (v < low || (op === "LT" && v === low)))
+      return "LOW";
+    return "UNKNOWN";
+  }
+  if (op === "GT" || op === "GE") {
+    if (criticalHigh !== undefined && v >= criticalHigh) return "CRITICAL_HIGH";
+    if (high !== undefined && (v > high || (op === "GT" && v === high)))
+      return "HIGH";
+    return "UNKNOWN";
+  }
 
   if (criticalLow !== undefined && v <= criticalLow) return "CRITICAL_LOW";
   if (criticalHigh !== undefined && v >= criticalHigh) return "CRITICAL_HIGH";
@@ -115,6 +147,7 @@ export function isCritical(flag: LabFlag, testCode: string): boolean {
 
 /** Does this result have to reach a clinician before it is considered handled? */
 export function requiresReview(flag: LabFlag, testCode: string): boolean {
+  if (flag === "UNKNOWN") return true;
   const def = TEST_BY_CODE[testCode];
   if (CRITICAL_FLAGS.includes(flag)) return true;
   if (flag === "INDETERMINATE") return true;
@@ -153,17 +186,14 @@ export function interpretLab(
   const ar = locale === "ar";
 
   if (testCode === "ANTI_HBS" && valueNum !== null && valueNum !== undefined) {
-    return valueNum >= 10
-      ? {
-          interpretation: ar ? "مستوى وقائي — يوجد مناعة" : "Protective level — immune",
-          action: ar ? "لا حاجة لجرعات إضافية" : "No further doses needed",
-        }
-      : {
-          interpretation: ar ? "أقل من المستوى الوقائي" : "Below the protective level",
-          action: ar
-            ? "أكمل السلسلة أو أعدها ثم أعد الفحص بعد ١–٢ شهر"
-            : "Complete or repeat the series, then retest after 1–2 months",
-        };
+    return {
+      interpretation: ar
+        ? "يُراجع مع الوحدة والسجل التطعيمي"
+        : "Review alongside units and vaccination history",
+      action: ar
+        ? "يعتمد الطبيب التقييم وخطة المتابعة"
+        : "A clinician confirms the assessment and follow-up plan",
+    };
   }
 
   if (flag === "REACTIVE") {
@@ -229,14 +259,24 @@ export function interpretLab(
   }
 
   return {
-    interpretation: ar ? "لا يمكن تفسيرها آلياً" : "Cannot be interpreted automatically",
-    action: ar ? "تحقق من القيمة والمدى المرجعي" : "Check the value and reference range",
+    interpretation: ar
+      ? "لا يمكن تفسيرها آلياً"
+      : "Cannot be interpreted automatically",
+    action: ar
+      ? "تحقق من القيمة والمدى المرجعي"
+      : "Check the value and reference range",
   };
 }
 
 // ---------------------------------------------------------------- vital signs
 
-export type VitalKey = "tempC" | "systolic" | "diastolic" | "pulse" | "respRate" | "spo2";
+export type VitalKey =
+  | "tempC"
+  | "systolic"
+  | "diastolic"
+  | "pulse"
+  | "respRate"
+  | "spo2";
 
 const VITAL_RANGES: Record<VitalKey, { low: number; high: number }> = {
   tempC: { low: 36.0, high: 37.5 },
@@ -247,7 +287,10 @@ const VITAL_RANGES: Record<VitalKey, { low: number; high: number }> = {
   spo2: { low: 95, high: 100 },
 };
 
-export function vitalOutOfRange(key: VitalKey, value: number | null | undefined): boolean {
+export function vitalOutOfRange(
+  key: VitalKey,
+  value: number | null | undefined,
+): boolean {
   if (value === null || value === undefined) return false;
   const r = VITAL_RANGES[key];
   return value < r.low || value > r.high;
@@ -275,7 +318,10 @@ export const COMPLETENESS_FIELDS = [
 
 export type CompletenessField = (typeof COMPLETENESS_FIELDS)[number];
 
-export const COMPLETENESS_LABELS: Record<CompletenessField, { ar: string; en: string }> = {
+export const COMPLETENESS_LABELS: Record<
+  CompletenessField,
+  { ar: string; en: string }
+> = {
   nationalId: { ar: "رقم الهوية", en: "National ID" },
   name: { ar: "الاسم", en: "Name" },
   dob: { ar: "تاريخ الميلاد", en: "Date of birth" },
@@ -292,7 +338,9 @@ export const COMPLETENESS_LABELS: Record<CompletenessField, { ar: string; en: st
  * "Record completeness" is meaningless without a written definition, so here it is:
  * the share of the ten fields above that carry a value. Nothing else counts.
  */
-export function completeness(employee: Partial<Record<CompletenessField, unknown>>): {
+export function completeness(
+  employee: Partial<Record<CompletenessField, unknown>>,
+): {
   score: number;
   missing: CompletenessField[];
 } {
@@ -301,7 +349,11 @@ export function completeness(employee: Partial<Record<CompletenessField, unknown
     return v === null || v === undefined || v === "";
   });
   return {
-    score: Math.round(((COMPLETENESS_FIELDS.length - missing.length) / COMPLETENESS_FIELDS.length) * 100),
+    score: Math.round(
+      ((COMPLETENESS_FIELDS.length - missing.length) /
+        COMPLETENESS_FIELDS.length) *
+        100,
+    ),
     missing,
   };
 }

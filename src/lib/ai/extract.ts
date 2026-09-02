@@ -17,7 +17,7 @@ import { TESTS } from "@/lib/catalog/tests";
  * are tables, and a text-only pipeline loses which value belongs to which row.
  */
 
-export const EXTRACTION_MODEL = "claude-opus-5";
+export const EXTRACTION_MODEL = process.env.LAB_EXTRACTION_MODEL?.trim() || "";
 export const PROMPT_VERSION = "lab-extract-2026-08-1";
 
 /**
@@ -76,6 +76,8 @@ export type ExtractionOutput = {
    * in it", and one the reader needs told plainly.
    */
   textPages?: number;
+  pageCount?: number;
+  unreadPages?: number[];
 };
 
 const TEST_CODE_ENUM = [...TESTS.map((t) => t.code), "OTHER"];
@@ -102,23 +104,42 @@ const TOOL = {
             patient: {
               type: "object",
               additionalProperties: false,
-              required: ["national_id", "full_name", "employee_no", "confidence"],
+              required: [
+                "national_id",
+                "full_name",
+                "employee_no",
+                "confidence",
+              ],
               properties: {
                 national_id: {
                   type: "string",
                   description:
                     "The national ID / Iqama number exactly as printed. Empty string if it is not printed. Never invent or infer one.",
                 },
-                full_name: { type: "string", description: "Patient name as printed, or empty string." },
-                employee_no: { type: "string", description: "Employee/file number as printed, or empty string." },
+                full_name: {
+                  type: "string",
+                  description: "Patient name as printed, or empty string.",
+                },
+                employee_no: {
+                  type: "string",
+                  description:
+                    "Employee/file number as printed, or empty string.",
+                },
                 confidence: {
                   type: "number",
-                  description: "0 to 1: how legible and unambiguous the identifying fields were.",
+                  description:
+                    "0 to 1: how legible and unambiguous the identifying fields were.",
                 },
               },
             },
-            page_from: { type: "integer", description: "First page of this report (1-based)." },
-            page_to: { type: "integer", description: "Last page of this report (1-based)." },
+            page_from: {
+              type: "integer",
+              description: "First page of this report (1-based).",
+            },
+            page_to: {
+              type: "integer",
+              description: "Last page of this report (1-based).",
+            },
             results: {
               type: "array",
               items: {
@@ -146,13 +167,20 @@ const TOOL = {
                   "confidence",
                 ],
                 properties: {
-                  test_name: { type: "string", description: "The test name exactly as printed." },
+                  test_name: {
+                    type: "string",
+                    description: "The test name exactly as printed.",
+                  },
                   test_code: {
                     type: "string",
                     enum: TEST_CODE_ENUM,
-                    description: "The matching catalogue code, or OTHER if the test is not in the list.",
+                    description:
+                      "The matching catalogue code, or OTHER if the test is not in the list.",
                   },
-                  result_type: { type: "string", enum: ["QUANTITATIVE", "QUALITATIVE"] },
+                  result_type: {
+                    type: "string",
+                    enum: ["QUANTITATIVE", "QUALITATIVE"],
+                  },
                   value_number: {
                     type: "string",
                     description:
@@ -163,27 +191,53 @@ const TOOL = {
                     description:
                       "The textual result as printed, e.g. Reactive, Non-Reactive, Negative. Empty string for numeric results.",
                   },
-                  unit: { type: "string", description: "Unit as printed, or empty string." },
-                  reference_low: { type: "string", description: "Lower bound of the printed reference range, or empty." },
-                  reference_high: { type: "string", description: "Upper bound of the printed reference range, or empty." },
+                  unit: {
+                    type: "string",
+                    description: "Unit as printed, or empty string.",
+                  },
+                  reference_low: {
+                    type: "string",
+                    description:
+                      "Lower bound of the printed reference range, or empty.",
+                  },
+                  reference_high: {
+                    type: "string",
+                    description:
+                      "Upper bound of the printed reference range, or empty.",
+                  },
                   reference_text: {
                     type: "string",
-                    description: "The reference range as printed when it is not a simple numeric pair.",
+                    description:
+                      "The reference range as printed when it is not a simple numeric pair.",
                   },
-                  collected_at: { type: "string", description: "Collection date as YYYY-MM-DD, or empty string." },
-                  verified_at: { type: "string", description: "Verification date as YYYY-MM-DD, or empty string." },
+                  collected_at: {
+                    type: "string",
+                    description:
+                      "Collection date as YYYY-MM-DD, or empty string.",
+                  },
+                  verified_at: {
+                    type: "string",
+                    description:
+                      "Verification date as YYYY-MM-DD, or empty string.",
+                  },
                   order_no: { type: "string" },
                   sample_no: { type: "string" },
                   performed_by: { type: "string" },
                   verified_by: { type: "string" },
                   lab_name: { type: "string" },
-                  page: { type: "integer", description: "Page this result appears on (1-based)." },
+                  page: {
+                    type: "integer",
+                    description: "Page this result appears on (1-based).",
+                  },
                   quote: {
                     type: "string",
                     description:
                       "The verbatim line from the report containing this result, so a reviewer can find it on the page.",
                   },
-                  confidence: { type: "number", description: "0 to 1 for this specific row." },
+                  confidence: {
+                    type: "number",
+                    description: "0 to 1 for this specific row.",
+                  },
                 },
               },
             },
@@ -222,13 +276,14 @@ export type ImportAvailability =
   | { enabled: false; reason: "NO_KEY" };
 
 /**
- * On unless someone turns it off. ENABLE_AI_IMPORT="false" is the single switch
- * that disables assisted import across the whole system; anything else leaves it
- * on, provided a key is configured.
+ * Local PDF extraction is the default. External processing requires an explicit
+ * ENABLE_AI_IMPORT="true", a provider key, and a configured model identifier.
  */
 export function importAvailability(): ImportAvailability {
-  if (process.env.ENABLE_AI_IMPORT === "false") return { enabled: false, reason: "DISABLED" };
-  if (!process.env.ANTHROPIC_API_KEY) return { enabled: false, reason: "NO_KEY" };
+  if (process.env.ENABLE_AI_IMPORT !== "true")
+    return { enabled: false, reason: "DISABLED" };
+  if (!process.env.ANTHROPIC_API_KEY || !EXTRACTION_MODEL)
+    return { enabled: false, reason: "NO_KEY" };
   return { enabled: true };
 }
 
@@ -245,18 +300,22 @@ export async function extractLabReport(
 
   const documentBlock =
     mimeType === "application/pdf"
-      ? ({
+      ? {
           type: "document" as const,
-          source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 },
-        })
-      : ({
+          source: {
+            type: "base64" as const,
+            media_type: "application/pdf" as const,
+            data: base64,
+          },
+        }
+      : {
           type: "image" as const,
           source: {
             type: "base64" as const,
             media_type: mimeType as "image/jpeg" | "image/png" | "image/webp",
             data: base64,
           },
-        });
+        };
 
   // Streamed: a multi-page report can run long, and a non-streaming request at
   // this max_tokens risks an HTTP timeout.
@@ -285,7 +344,8 @@ export async function extractLabReport(
   const message = await stream.finalMessage();
 
   const toolUse = message.content.find(
-    (block): block is Extract<typeof block, { type: "tool_use" }> => block.type === "tool_use",
+    (block): block is Extract<typeof block, { type: "tool_use" }> =>
+      block.type === "tool_use",
   );
 
   if (!toolUse) {
@@ -294,7 +354,9 @@ export async function extractLabReport(
 
   // Tool inputs are JSON — parse rather than string-match, escaping varies.
   const parsed = (
-    typeof toolUse.input === "string" ? JSON.parse(toolUse.input) : toolUse.input
+    typeof toolUse.input === "string"
+      ? JSON.parse(toolUse.input)
+      : toolUse.input
   ) as { reports?: ExtractedReport[] };
 
   return {

@@ -5,11 +5,23 @@ import { getT } from "@/lib/i18n";
 import { formatDateTime, toDateInput } from "@/lib/format";
 import { Alert, Card, Chip, LinkButton, PageHeader } from "@/components/ui";
 import { ReviewWorkspace } from "./ReviewWorkspace";
+import { ManualImportForm } from "./ManualImportForm";
+import { ActionForm } from "@/components/ui/ActionForm";
+import {
+  retryExtraction,
+  acknowledgeExtractionGaps,
+  commitBatchAction,
+} from "@/server/actions/import";
+import { AttachmentPreview } from "@/components/clinic/AttachmentPreview";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export default async function ReviewBatchPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ReviewBatchPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   await requirePermission("import.run");
   const { id } = await params;
   const t = await getT();
@@ -31,7 +43,9 @@ export default async function ReviewBatchPage({ params }: { params: Promise<{ id
     select: { id: true, name: true, nationalId: true },
   });
 
-  const approved = batch.items.filter((i) => i.review === "APPROVED" && !i.committedLabResultId).length;
+  const approved = batch.items.filter(
+    (i) => i.review === "APPROVED" && !i.committedLabResultId,
+  ).length;
   const pending = batch.items.filter((i) => i.review === "PENDING").length;
   const rejected = batch.items.filter((i) => i.review === "REJECTED").length;
 
@@ -41,18 +55,52 @@ export default async function ReviewBatchPage({ params }: { params: Promise<{ id
         title={t("imp.reviewTitle")}
         subtitle={`${batch.filename} · ${batch.uploadedBy?.name ?? "—"} · ${formatDateTime(batch.createdAt, t.locale)}`}
         badge={
-          <Chip tone={batch.status === "COMMITTED" ? "ok" : batch.status === "FAILED" ? "danger" : "warn"} dot>
+          <Chip
+            tone={
+              batch.status === "COMMITTED"
+                ? "ok"
+                : batch.status === "FAILED"
+                  ? "danger"
+                  : "warn"
+            }
+            dot
+          >
             {t(`importStatus.${batch.status}`)}
           </Chip>
         }
-        actions={<LinkButton href="/labs/import">{t("action.back")}</LinkButton>}
+        actions={
+          <LinkButton href="/labs/import">{t("action.back")}</LinkButton>
+        }
       />
 
-      {batch.status === "FAILED" ? (
+      {batch.status === "FAILED" && (
         <Alert tone="danger" title={t("imp.extractFailed")}>
-          {batch.error?.startsWith("imp.") ? t(batch.error) : batch.error}
+          {t("v2.extractionFallback")}
         </Alert>
-      ) : (
+      )}
+      {batch.items.length === 0 && batch.status !== "COMMITTED" && (
+        <Card className="mb-4">
+          <ActionForm action={retryExtraction} label={t("v2.retryExtraction")}>
+            <input type="hidden" name="batchId" value={id} />
+          </ActionForm>
+        </Card>
+      )}
+      {batch.extractionNote?.startsWith("imp.partialExtraction") && (
+        <Card className="mb-4">
+          <Alert tone="warn">{t("v2.partialExtraction")}</Alert>
+          <ActionForm
+            action={acknowledgeExtractionGaps}
+            label={t("v2.confirmReviewed")}
+          >
+            <input type="hidden" name="batchId" value={id} />
+            <label className="check-line">
+              <input type="checkbox" name="confirmed" required />
+              {t("v2.pagesReviewed")}
+            </label>
+          </ActionForm>
+        </Card>
+      )}
+      {batch.items.length > 0 && (
         <ReviewWorkspace
           batchId={batch.id}
           attachmentId={batch.attachment.id}
@@ -75,12 +123,16 @@ export default async function ReviewBatchPage({ params }: { params: Promise<{ id
             testCode: item.testCode,
             testName: item.testName,
             resultType: item.resultType,
+            comparator: item.comparator,
+            rejectReason: item.rejectReason,
             valueNum: item.valueNum,
             valueText: item.valueText,
             unit: item.unit,
             refLow: item.refLow,
             refHigh: item.refHigh,
-            collectedAt: item.collectedAt ? toDateInput(item.collectedAt) : null,
+            collectedAt: item.collectedAt
+              ? toDateInput(item.collectedAt)
+              : null,
             labName: item.labName,
             confidence: item.confidence,
             citation: item.citation,
@@ -90,17 +142,32 @@ export default async function ReviewBatchPage({ params }: { params: Promise<{ id
           }))}
         />
       )}
-
-      {batch.model && (
+      {batch.items.length === 0 && (
         <Card className="mt-4">
-          <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-            {batch.model} · {batch.promptVersion} ·{" "}
-            <span className="num">
-              {batch.inputTokens ?? 0} / {batch.outputTokens ?? 0} tokens
-            </span>
-          </p>
+          <AttachmentPreview id={batch.attachment.id} />
         </Card>
       )}
+      {batch.status !== "COMMITTED" && (
+        <Card className="mt-4">
+          <details>
+            <summary className="section-heading">
+              {t("v2.manualResult")}
+            </summary>
+            <ManualImportForm batchId={id} employees={employees} />
+          </details>
+        </Card>
+      )}
+      {batch.items.length > 0 &&
+        approved === 0 &&
+        pending === 0 &&
+        batch.status !== "COMMITTED" &&
+        !batch.extractionNote?.startsWith("imp.partialExtraction") && (
+          <Card className="mt-4">
+            <ActionForm action={commitBatchAction} label={t("v2.finishReview")}>
+              <input type="hidden" name="batchId" value={id} />
+            </ActionForm>
+          </Card>
+        )}
     </>
   );
 }

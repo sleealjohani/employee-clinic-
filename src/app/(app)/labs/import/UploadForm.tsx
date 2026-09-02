@@ -7,7 +7,6 @@ import { FileField } from "@/components/ui/FileField";
 import { IconImport } from "@/components/layout/icons";
 import { CHUNK_BYTES } from "@/lib/import/chunk";
 
-
 /** A failing response is not always JSON — a gateway may answer with HTML. */
 async function readError(response: Response): Promise<string> {
   try {
@@ -46,7 +45,8 @@ export function UploadForm({
    */
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const input = formRef.current?.querySelector<HTMLInputElement>('input[type="file"]');
+    const input =
+      formRef.current?.querySelector<HTMLInputElement>('input[type="file"]');
     const file = input?.files?.[0];
     if (!file) return;
 
@@ -57,17 +57,34 @@ export function UploadForm({
 
     try {
       setPhase({ kind: "uploading", sent: 0, total: file.size });
+      const digest = await crypto.subtle.digest(
+        "SHA-256",
+        await file.arrayBuffer(),
+      );
+      const sha256 = Array.from(new Uint8Array(digest), (b) =>
+        b.toString(16).padStart(2, "0"),
+      ).join("");
 
       const started = await fetch("/api/import/upload?step=init", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
+          sha256,
+        }),
       });
       if (!started.ok) {
         setPhase({ kind: "error", message: await readError(started) });
         return;
       }
-      const init = (await started.json().catch(() => ({}))) as { batchId?: string; attachmentId?: string };
+      const init = (await started.json().catch(() => ({}))) as {
+        batchId?: string;
+        attachmentId?: string;
+        complete?: boolean;
+        status?: string;
+      };
       if (!init.attachmentId || !init.batchId) {
         setPhase({ kind: "error", message: "common.error" });
         return;
@@ -75,16 +92,26 @@ export function UploadForm({
 
       // Sequential, so the chunks append in order. A phone on mobile data
       // drops requests; one lost chunk should cost a retry, not the upload.
-      for (let offset = 0; offset < file.size; offset += CHUNK_BYTES) {
-        const slice = file.slice(offset, Math.min(offset + CHUNK_BYTES, file.size));
+      for (
+        let offset = 0;
+        !init.complete && offset < file.size;
+        offset += CHUNK_BYTES
+      ) {
+        const slice = file.slice(
+          offset,
+          Math.min(offset + CHUNK_BYTES, file.size),
+        );
         let sent = false;
         for (let attempt = 0; attempt < 3 && !sent; attempt++) {
           try {
-            const response = await fetch(`/api/import/upload?step=chunk&id=${init.attachmentId}`, {
-              method: "POST",
-              headers: { "content-type": "application/octet-stream" },
-              body: slice,
-            });
+            const response = await fetch(
+              `/api/import/upload?step=chunk&id=${init.attachmentId}&offset=${offset}`,
+              {
+                method: "POST",
+                headers: { "content-type": "application/octet-stream" },
+                body: slice,
+              },
+            );
             if (response.ok) {
               sent = true;
               break;
@@ -99,10 +126,16 @@ export function UploadForm({
               setPhase({ kind: "error", message: "imp.uploadInterrupted" });
               return;
             }
-            await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+            await new Promise((resolve) =>
+              setTimeout(resolve, 800 * (attempt + 1)),
+            );
           }
         }
-        setPhase({ kind: "uploading", sent: Math.min(offset + CHUNK_BYTES, file.size), total: file.size });
+        setPhase({
+          kind: "uploading",
+          sent: Math.min(offset + CHUNK_BYTES, file.size),
+          total: file.size,
+        });
       }
 
       setPhase({ kind: "extracting" });
@@ -115,7 +148,9 @@ export function UploadForm({
         setPhase({ kind: "error", message: await readError(done) });
         return;
       }
-      const result = (await done.json().catch(() => ({}))) as { batchId?: string };
+      const result = (await done.json().catch(() => ({}))) as {
+        batchId?: string;
+      };
       if (!result.batchId) {
         setPhase({ kind: "error", message: "common.error" });
         return;
@@ -136,7 +171,11 @@ export function UploadForm({
     <form ref={formRef} onSubmit={upload}>
       <FileField
         name="file"
-        accept={allowImages ? "application/pdf,image/jpeg,image/png,image/webp" : "application/pdf"}
+        accept={
+          allowImages
+            ? "application/pdf,image/jpeg,image/png,image/webp"
+            : "application/pdf"
+        }
         required
         hint={t("imp.uploadHint", { mb: Math.round(maxBytes / (1024 * 1024)) })}
       />
@@ -154,11 +193,22 @@ export function UploadForm({
 
       {phase.kind === "uploading" && (
         <div className="mt-3">
-          <div className="upload-track" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+          <div
+            className="upload-track"
+            role="progressbar"
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <span style={{ width: `${percent}%` }} />
           </div>
-          <p className="num mt-1.5 text-xs" style={{ color: "var(--text-faint)" }} dir="ltr">
-            {(phase.sent / 1048576).toFixed(1)} / {(phase.total / 1048576).toFixed(1)} MB
+          <p
+            className="num mt-1.5 text-xs"
+            style={{ color: "var(--text-faint)" }}
+            dir="ltr"
+          >
+            {(phase.sent / 1048576).toFixed(1)} /{" "}
+            {(phase.total / 1048576).toFixed(1)} MB
           </p>
         </div>
       )}

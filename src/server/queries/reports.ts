@@ -1,6 +1,12 @@
 import { db } from "@/lib/db";
 import type { Permission } from "@/lib/auth/rbac";
-import { completeness, COMPLETENESS_LABELS, interpretLab } from "@/lib/clinical/rules";
+import { interpretLab } from "@/lib/clinical/rules";
+import {
+  profileCompletion,
+  clinicDay,
+  clinicDateTime,
+} from "@/lib/clinic-config";
+import { getClinicConfig } from "./settings";
 import { nextVaccineDue } from "@/lib/clinical/due";
 import { OCCUPATIONAL_VACCINES } from "@/lib/catalog/vaccines";
 import { TEST_BY_CODE } from "@/lib/catalog/tests";
@@ -32,12 +38,48 @@ export type ReportMeta = {
 };
 
 export const REPORTS: ReportMeta[] = [
-  { id: "visits", labelKey: "rep.dailyVisits", permission: "reports.detailed", aggregate: false, dateRange: true },
-  { id: "labs", labelKey: "rep.labs", permission: "reports.detailed", aggregate: false, dateRange: true },
-  { id: "immunisation", labelKey: "rep.unvaccinated", permission: "reports.aggregate", aggregate: true, dateRange: false },
-  { id: "incomplete", labelKey: "rep.incomplete", permission: "reports.aggregate", aggregate: true, dateRange: false },
-  { id: "allergies", labelKey: "rep.allergies", permission: "reports.detailed", aggregate: false, dateRange: false },
-  { id: "review", labelKey: "rep.needsReview", permission: "reports.detailed", aggregate: false, dateRange: false },
+  {
+    id: "visits",
+    labelKey: "rep.dailyVisits",
+    permission: "reports.detailed",
+    aggregate: false,
+    dateRange: true,
+  },
+  {
+    id: "labs",
+    labelKey: "rep.labs",
+    permission: "reports.detailed",
+    aggregate: false,
+    dateRange: true,
+  },
+  {
+    id: "immunisation",
+    labelKey: "rep.unvaccinated",
+    permission: "reports.aggregate",
+    aggregate: true,
+    dateRange: false,
+  },
+  {
+    id: "incomplete",
+    labelKey: "rep.incomplete",
+    permission: "reports.aggregate",
+    aggregate: true,
+    dateRange: false,
+  },
+  {
+    id: "allergies",
+    labelKey: "rep.allergies",
+    permission: "reports.detailed",
+    aggregate: false,
+    dateRange: false,
+  },
+  {
+    id: "review",
+    labelKey: "rep.needsReview",
+    permission: "reports.detailed",
+    aggregate: false,
+    dateRange: false,
+  },
 ];
 
 export function reportById(id: string): ReportMeta | undefined {
@@ -50,13 +92,21 @@ export async function buildReport(
   range: { from: Date; to: Date },
 ): Promise<ReportTable> {
   const t = makeTranslator(locale);
+  const config = await getClinicConfig();
 
   switch (id) {
     case "visits": {
       const visits = await db.visit.findMany({
-        where: { status: "ACTIVE", visitDate: { gte: range.from, lte: range.to } },
+        where: {
+          status: "ACTIVE",
+          visitDate: { gte: range.from, lte: range.to },
+        },
         orderBy: { visitDate: "desc" },
-        include: { employee: { select: { name: true, nationalId: true, department: true } } },
+        include: {
+          employee: {
+            select: { name: true, nationalId: true, department: true },
+          },
+        },
       });
       return {
         title: t("rep.dailyVisits"),
@@ -85,9 +135,16 @@ export async function buildReport(
 
     case "labs": {
       const labs = await db.labResult.findMany({
-        where: { status: "ACTIVE", collectedAt: { gte: range.from, lte: range.to } },
+        where: {
+          status: "ACTIVE",
+          collectedAt: { gte: range.from, lte: range.to },
+        },
         orderBy: { collectedAt: "desc" },
-        include: { employee: { select: { name: true, nationalId: true, department: true } } },
+        include: {
+          employee: {
+            select: { name: true, nationalId: true, department: true },
+          },
+        },
       });
       return {
         title: t("rep.labs"),
@@ -105,16 +162,26 @@ export async function buildReport(
         ],
         rows: labs.map((l) => {
           const def = TEST_BY_CODE[l.testCode];
-          const { interpretation } = interpretLab(l.testCode, l.flag, l.valueNum, locale);
+          const { interpretation } = interpretLab(
+            l.testCode,
+            l.flag,
+            l.valueNum,
+            locale,
+          );
           return [
             formatDate(l.collectedAt, locale),
             l.employee.name,
             l.employee.nationalId,
             l.employee.department ?? "—",
             def ? (locale === "ar" ? def.nameAr : def.nameEn) : l.testName,
-            l.resultType === "QUANTITATIVE" ? formatValue(l.valueNum) : (l.valueText ?? "—"),
+            l.resultType === "QUANTITATIVE"
+              ? { EQ: "", LT: "<", LE: "≤", GT: ">", GE: "≥" }[l.comparator] +
+                formatValue(l.valueNum)
+              : (l.valueText ?? "—"),
             l.unit ?? "—",
-            l.refLow !== null && l.refHigh !== null ? `${l.refLow} - ${l.refHigh}` : (l.refText ?? "—"),
+            l.refLow !== null && l.refHigh !== null
+              ? `${l.refLow} - ${l.refHigh}`
+              : (l.refText ?? "—"),
             t(`flag.${l.flag}`),
             interpretation,
           ];
@@ -132,7 +199,12 @@ export async function buildReport(
           department: true,
           vaccinations: {
             where: { status: "ACTIVE" },
-            select: { vaccineCode: true, doseNumber: true, givenAt: true, nextDueAt: true },
+            select: {
+              vaccineCode: true,
+              doseNumber: true,
+              givenAt: true,
+              nextDueAt: true,
+            },
           },
         },
       });
@@ -140,14 +212,20 @@ export async function buildReport(
       const rows = employees
         .map((emp) => {
           const cells = OCCUPATIONAL_VACCINES.map((vac) => {
-            const doses = emp.vaccinations.filter((v) => v.vaccineCode === vac.code);
+            const doses = emp.vaccinations.filter(
+              (v) => v.vaccineCode === vac.code,
+            );
             const next = nextVaccineDue(vac.code, doses);
             if (!next) return t("vac.upToDate");
             return next.dueDate < new Date()
               ? `${t("vac.overdue")} (${formatDate(next.dueDate, locale)})`
-              : `${t("vac.dueSoon")} (${formatDate(next.dueDate, locale)})`;
+              : `${t("v2.scheduledDose")} (${formatDate(next.dueDate, locale)})`;
           });
-          return { emp, cells, outstanding: cells.filter((c) => c !== t("vac.upToDate")).length };
+          return {
+            emp,
+            cells,
+            outstanding: cells.filter((c) => c !== t("vac.upToDate")).length,
+          };
         })
         .filter((r) => r.outstanding > 0)
         .map((r) => [
@@ -163,7 +241,9 @@ export async function buildReport(
           t("emp.name"),
           t("emp.nationalId"),
           t("emp.department"),
-          ...OCCUPATIONAL_VACCINES.map((v) => (locale === "ar" ? v.nameAr : v.nameEn)),
+          ...OCCUPATIONAL_VACCINES.map((v) =>
+            locale === "ar" ? v.nameAr : v.nameEn,
+          ),
         ],
         rows,
       };
@@ -184,14 +264,31 @@ export async function buildReport(
           jobTitle: true,
           hireDate: true,
           bloodType: true,
+          email: true,
+          nationality: true,
+          qualification: true,
+          employmentType: true,
+          workLocation: true,
         },
       });
 
       return {
         title: t("rep.incomplete"),
-        columns: [t("emp.name"), t("emp.nationalId"), t("emp.department"), t("emp.completeness"), t("emp.missingFields")],
+        columns: [
+          t("emp.name"),
+          t("emp.nationalId"),
+          t("emp.department"),
+          t("emp.completeness"),
+          t("emp.missingFields"),
+        ],
         rows: employees
-          .map((emp) => ({ emp, c: completeness(emp) }))
+          .map((emp) => ({
+            emp,
+            c: (() => {
+              const p = profileCompletion(emp, config.requiredProfileFields);
+              return { score: p.percent, missing: p.missing };
+            })(),
+          }))
           .filter((r) => r.c.missing.length > 0)
           .sort((a, b) => a.c.score - b.c.score)
           .map((r) => [
@@ -199,7 +296,7 @@ export async function buildReport(
             r.emp.nationalId,
             r.emp.department ?? "—",
             `${r.c.score}%`,
-            r.c.missing.map((f) => COMPLETENESS_LABELS[f][locale]).join("، "),
+            r.c.missing.map((f) => t("emp." + f)).join("، "),
           ]),
       };
     }
@@ -208,7 +305,11 @@ export async function buildReport(
       const allergies = await db.allergy.findMany({
         where: { status: "ACTIVE", allergyStatus: "ACTIVE" },
         orderBy: [{ severity: "desc" }, { recordedAt: "desc" }],
-        include: { employee: { select: { name: true, nationalId: true, department: true } } },
+        include: {
+          employee: {
+            select: { name: true, nationalId: true, department: true },
+          },
+        },
       });
       return {
         title: t("rep.allergies"),
@@ -243,11 +344,18 @@ export async function buildReport(
           status: "ACTIVE",
           OR: [
             { requiresReview: true, reviewedAt: null },
-            { flag: { in: ["CRITICAL_HIGH", "CRITICAL_LOW"] }, criticalNotifiedAt: null },
+            {
+              flag: { in: ["CRITICAL_HIGH", "CRITICAL_LOW"] },
+              criticalNotifiedAt: null,
+            },
           ],
         },
         orderBy: { collectedAt: "asc" },
-        include: { employee: { select: { name: true, nationalId: true, department: true } } },
+        include: {
+          employee: {
+            select: { name: true, nationalId: true, department: true },
+          },
+        },
       });
       return {
         title: t("rep.needsReview"),
@@ -263,14 +371,22 @@ export async function buildReport(
         ],
         rows: labs.map((l) => {
           const def = TEST_BY_CODE[l.testCode];
-          const { action } = interpretLab(l.testCode, l.flag, l.valueNum, locale);
+          const { action } = interpretLab(
+            l.testCode,
+            l.flag,
+            l.valueNum,
+            locale,
+          );
           return [
             formatDate(l.collectedAt, locale),
             l.employee.name,
             l.employee.nationalId,
             l.employee.department ?? "—",
             def ? (locale === "ar" ? def.nameAr : def.nameEn) : l.testName,
-            l.resultType === "QUANTITATIVE" ? formatValue(l.valueNum) : (l.valueText ?? "—"),
+            l.resultType === "QUANTITATIVE"
+              ? { EQ: "", LT: "<", LE: "≤", GT: ">", GE: "≥" }[l.comparator] +
+                formatValue(l.valueNum)
+              : (l.valueText ?? "—"),
             t(`flag.${l.flag}`),
             action,
           ];
@@ -281,8 +397,11 @@ export async function buildReport(
 }
 
 /** Aggregate-only view for the administrative viewer role — counts, never names. */
-export async function buildAggregateSummary(locale: Locale): Promise<ReportTable> {
+export async function buildAggregateSummary(
+  locale: Locale,
+): Promise<ReportTable> {
   const t = makeTranslator(locale);
+  const config = await getClinicConfig();
   const employees = await db.employee.findMany({
     where: { isArchived: false, employmentStatus: { not: "TERMINATED" } },
     select: {
@@ -296,31 +415,61 @@ export async function buildAggregateSummary(locale: Locale): Promise<ReportTable
       jobTitle: true,
       hireDate: true,
       bloodType: true,
-      vaccinations: { where: { status: "ACTIVE" }, select: { vaccineCode: true, doseNumber: true, givenAt: true, nextDueAt: true } },
+      email: true,
+      nationality: true,
+      qualification: true,
+      employmentType: true,
+      workLocation: true,
+      vaccinations: {
+        where: { status: "ACTIVE" },
+        select: {
+          vaccineCode: true,
+          doseNumber: true,
+          givenAt: true,
+          nextDueAt: true,
+        },
+      },
     },
   });
 
-  const byDept = new Map<string, { total: number; complete: number; immunised: number }>();
+  const byDept = new Map<
+    string,
+    { total: number; complete: number; immunised: number }
+  >();
   for (const emp of employees) {
     const key = emp.department ?? t("common.none");
     const entry = byDept.get(key) ?? { total: 0, complete: 0, immunised: 0 };
     entry.total++;
-    if (completeness(emp).missing.length === 0) entry.complete++;
-    const outstanding = OCCUPATIONAL_VACCINES.some((vac) =>
-      nextVaccineDue(
+    if (
+      profileCompletion(emp, config.requiredProfileFields).missing.length === 0
+    )
+      entry.complete++;
+    const outstanding = OCCUPATIONAL_VACCINES.some((vac) => {
+      const next = nextVaccineDue(
         vac.code,
         emp.vaccinations.filter((v) => v.vaccineCode === vac.code),
-      ),
-    );
+      );
+      return next && next.dueDate <= clinicDateTime(clinicDay());
+    });
     if (!outstanding) entry.immunised++;
     byDept.set(key, entry);
   }
 
   return {
     title: t("rep.title"),
-    columns: [t("emp.department"), t("emp.count"), t("emp.completeness"), t("dash.hbvProtected")],
+    columns: [
+      t("emp.department"),
+      t("emp.count"),
+      t("emp.completeness"),
+      t("v2.immunisationUpToDate"),
+    ],
     rows: [...byDept.entries()]
       .sort((a, b) => b[1].total - a[1].total)
-      .map(([dept, v]) => [dept, v.total, `${percent(v.complete, v.total)}%`, `${percent(v.immunised, v.total)}%`]),
+      .map(([dept, v]) => [
+        dept,
+        v.total,
+        `${percent(v.complete, v.total)}%`,
+        `${percent(v.immunised, v.total)}%`,
+      ]),
   };
 }
