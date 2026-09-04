@@ -50,7 +50,7 @@ export default async function LabsPage({
     p.queue === "critical"
       ? critical
       : p.queue === "review"
-        ? { reviewedAt: null }
+        ? pendingLabReviewWhere
         : p.queue === "released"
           ? { releasedAt: { not: null } }
           : p.queue === "withheld"

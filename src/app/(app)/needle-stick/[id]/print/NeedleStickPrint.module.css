@@ -1,0 +1,329 @@
+.root {
+  direction: ltr;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.toolbarText {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  max-width: 48rem;
+}
+
+.sheet {
+  aspect-ratio: 210 / 297;
+  background: #fff;
+  box-shadow: 0 18px 60px rgb(10 28 38 / 0.18);
+  color: #111;
+  margin: 0 auto;
+  max-width: 210mm;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.template {
+  height: 100%;
+  inset: 0;
+  object-fit: fill;
+  position: absolute;
+  user-select: none;
+  width: 100%;
+  z-index: 0;
+}
+
+.value,
+.signature,
+.check {
+  color: #050505;
+  font-family: Arial, "Noto Sans Arabic", sans-serif;
+  position: absolute;
+  z-index: 1;
+}
+
+.value,
+.signature {
+  background: rgb(255 255 255 / 0.9);
+  font-size: clamp(5px, 1.15vw, 9.2pt);
+  font-weight: 600;
+  line-height: 1.15;
+  overflow: hidden;
+  padding: 0 0.6%;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+  white-space: nowrap;
+}
+
+.signature {
+  font-family: "Segoe Script", "Bradley Hand", Arial, sans-serif;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.check {
+  font-family: Arial, sans-serif;
+  font-size: clamp(7px, 1.55vw, 12pt);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.recommendation {
+  height: 4.2%;
+  line-height: 1.55;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.staffName {
+  left: 20%;
+  top: 26.7%;
+  width: 39%;
+}
+.department {
+  left: 75%;
+  top: 26.7%;
+  width: 19%;
+}
+.needleCheck {
+  left: 42.1%;
+  top: 29.6%;
+}
+.cutCheck {
+  left: 52.4%;
+  top: 29.6%;
+}
+.splashCheck {
+  left: 67.2%;
+  top: 29.6%;
+}
+.otherNature {
+  left: 81.6%;
+  top: 29.5%;
+  width: 12.5%;
+}
+.staffSignature {
+  left: 24.5%;
+  top: 32.4%;
+  width: 24.7%;
+}
+.incidentDate {
+  left: 57.4%;
+  top: 32.4%;
+  width: 15.2%;
+}
+.incidentTime {
+  left: 82.7%;
+  top: 32.4%;
+  width: 11.5%;
+}
+
+.sourceName {
+  left: 34.2%;
+  top: 36.7%;
+  width: 24.2%;
+}
+.sourceFile {
+  left: 69.4%;
+  top: 36.7%;
+  width: 12.1%;
+}
+.sourceWard {
+  left: 87%;
+  top: 36.7%;
+  width: 7.2%;
+}
+.historyNo {
+  left: 35.5%;
+  top: 39.3%;
+}
+.historyYes {
+  left: 47.1%;
+  top: 39.3%;
+}
+.historyDetails {
+  left: 65.6%;
+  top: 39.2%;
+  width: 27.7%;
+}
+
+.washingCheck {
+  left: 64.6%;
+  top: 43.7%;
+}
+.irrigationCheck {
+  left: 88.8%;
+  top: 43.7%;
+}
+.clinicCheck {
+  left: 89%;
+  top: 46.4%;
+}
+.immunoglobulinCheck {
+  left: 84%;
+  top: 49%;
+}
+
+.headName {
+  left: 44.8%;
+  top: 52.9%;
+  width: 22.2%;
+}
+.headSignature {
+  left: 77.6%;
+  top: 52.9%;
+  width: 16.4%;
+}
+.headDate {
+  left: 12.5%;
+  top: 55.8%;
+  width: 17.3%;
+}
+.headTime {
+  left: 44.8%;
+  top: 55.8%;
+  width: 16.4%;
+}
+
+.receivedDate {
+  left: 34.5%;
+  top: 65.8%;
+  width: 23%;
+}
+.receivedTime {
+  left: 72.6%;
+  top: 65.8%;
+  width: 20.4%;
+}
+
+.patientHiv {
+  left: 31.1%;
+  top: 71.7%;
+  width: 10.4%;
+}
+.patientHbv {
+  left: 48.7%;
+  top: 71.7%;
+  width: 10.5%;
+}
+.patientHcv {
+  left: 67.2%;
+  top: 71.7%;
+  width: 10.2%;
+}
+.patientOther {
+  left: 84.2%;
+  top: 71.7%;
+  width: 9.2%;
+}
+.staffHiv {
+  left: 31.1%;
+  top: 74.4%;
+  width: 10.4%;
+}
+.staffHbv {
+  left: 48.7%;
+  top: 74.4%;
+  width: 10.5%;
+}
+.staffHcv {
+  left: 67.2%;
+  top: 74.4%;
+  width: 10.2%;
+}
+.staffOther {
+  left: 84.2%;
+  top: 74.4%;
+  width: 9.2%;
+}
+
+.recommendation {
+  left: 25.1%;
+  top: 77.4%;
+  width: 68.3%;
+}
+.physicianName {
+  left: 42.2%;
+  top: 84.2%;
+  width: 24.2%;
+}
+.physicianSignature {
+  left: 77.3%;
+  top: 84.2%;
+  width: 16.7%;
+}
+.physicianDate {
+  left: 12.1%;
+  top: 87.6%;
+  width: 25%;
+}
+.physicianTime {
+  left: 45.5%;
+  top: 87.6%;
+  width: 21%;
+}
+
+.voidMark {
+  border: 0.9mm solid rgb(170 0 0 / 0.72);
+  color: rgb(170 0 0 / 0.72);
+  font-family: Arial, sans-serif;
+  font-size: clamp(18px, 5vw, 38pt);
+  font-weight: 800;
+  left: 23%;
+  letter-spacing: 0.06em;
+  padding: 1.5% 3%;
+  position: absolute;
+  text-transform: uppercase;
+  top: 47%;
+  transform: rotate(-24deg);
+  z-index: 2;
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+
+  .root {
+    height: 297mm;
+    left: 0;
+    margin: 0;
+    position: absolute;
+    top: 0;
+    width: 210mm;
+  }
+
+  .toolbar {
+    display: none !important;
+  }
+
+  .sheet {
+    box-shadow: none;
+    height: 297mm;
+    margin: 0;
+    max-width: none;
+    print-color-adjust: exact;
+    width: 210mm;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .value,
+  .signature {
+    font-size: 9.2pt;
+  }
+
+  .check {
+    font-size: 12pt;
+  }
+
+  .voidMark {
+    font-size: 38pt;
+  }
+}

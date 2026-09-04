@@ -25,6 +25,7 @@ WHERE schemaname = 'public'
     'Vaccination',
     'HealthEducation',
     'ClinicalNote',
+    'NeedleStickIncident',
     'Attachment',
     'LabImportBatch',
     'LabImportItem',

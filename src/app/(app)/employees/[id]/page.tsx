@@ -57,6 +57,7 @@ const TAB_KEYS: TabKey[] = [
   "vaccines",
   "education",
   "notes",
+  "needleStick",
 ];
 
 export default async function EmployeeRecordPage({
@@ -95,6 +96,10 @@ export default async function EmployeeRecordPage({
       notes: {
         where: { status: "ACTIVE" },
         orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+      },
+      needleStickIncidents: {
+        where: { status: { not: "ENTERED_IN_ERROR" } },
+        orderBy: { incidentAt: "desc" },
       },
       employmentHistory: { orderBy: { effectiveFrom: "desc" } },
       createdBy: { select: { name: true } },
@@ -162,6 +167,7 @@ export default async function EmployeeRecordPage({
     vaccines: employee.vaccinations.length,
     education: employee.educations.length,
     notes: employee.notes.length,
+    needleStick: employee.needleStickIncidents.length,
   };
 
   const labels: Record<TabKey, string> = {
@@ -172,6 +178,7 @@ export default async function EmployeeRecordPage({
     vaccines: t("tab.vaccines"),
     education: t("tab.education"),
     notes: t("tab.notes"),
+    needleStick: t("tab.needleStick"),
   };
 
   return (
@@ -664,6 +671,72 @@ export default async function EmployeeRecordPage({
                   </details>
                 );
               })}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ------------------------------------------------------ needle-stick incidents */}
+      {tab === "needleStick" && (
+        <Card pad={false}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <SectionTitle>{t("needle.title")}</SectionTitle>
+            {canWrite && (
+              <Link
+                className="btn btn-primary btn-sm"
+                href={`/needle-stick/new?employeeId=${employee.id}`}
+              >
+                <IconPlus /> {t("needle.register")}
+              </Link>
+            )}
+          </div>
+          {employee.needleStickIncidents.length === 0 ? (
+            <Empty title={t("common.empty")} hint={t("needle.emptyHint")} />
+          ) : (
+            <div className="table-wrap border-t">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>{t("needle.incidentAt")}</th>
+                    <th>{t("needle.nature")}</th>
+                    <th>{t("emp.department")}</th>
+                    <th>{t("common.status")}</th>
+                    <th>{t("common.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employee.needleStickIncidents.map((incident) => (
+                    <tr key={incident.id}>
+                      <td className="num">
+                        {formatDateTime(incident.incidentAt, t.locale)}
+                      </td>
+                      <td>
+                        {incident.nature === "OTHER" && incident.otherNature
+                          ? incident.otherNature
+                          : t(`needle.nature.${incident.nature}`)}
+                      </td>
+                      <td>{incident.department || "—"}</td>
+                      <td>
+                        <Chip tone={incident.completedAt ? "ok" : "warn"} dot>
+                          {t(
+                            incident.completedAt
+                              ? "needle.status.COMPLETED"
+                              : "needle.status.OPEN",
+                          )}
+                        </Chip>
+                      </td>
+                      <td>
+                        <Link
+                          className="btn btn-ghost btn-sm"
+                          href={`/needle-stick/${incident.id}`}
+                        >
+                          {t("action.open")}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Card>

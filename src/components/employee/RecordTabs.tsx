@@ -6,7 +6,8 @@ export type TabKey =
   | "allergies"
   | "vaccines"
   | "education"
-  | "notes";
+  | "notes"
+  | "needleStick";
 export function RecordTabs({
   employeeId,
   active,

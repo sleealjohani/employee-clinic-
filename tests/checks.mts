@@ -17,7 +17,12 @@ import {
   validDay,
   profileCompletion,
 } from "../src/lib/clinic-config";
-import { employeeSchema, validateNationalId } from "../src/lib/validation";
+import {
+  employeeSchema,
+  needleStickIncidentSchema,
+  validateNationalId,
+} from "../src/lib/validation";
+import { toDateTimeInput } from "../src/lib/format";
 import { can, canOpenPath } from "../src/lib/auth/rbac";
 import {
   employeeAccessAllowed,
@@ -79,6 +84,42 @@ await check(
       assert.equal(employeeReturnPath(value), "/portal");
   },
 );
+await check("needle-stick form validation and clinical route access", () => {
+  const base = {
+    employeeId: "employee_1",
+    department: "Emergency",
+    nature: "NEEDLE_STICK",
+    incidentAt: "2026-09-04T13:30",
+    sourceBloodBorneHistory: "UNKNOWN",
+    actionWashing: "on",
+    actionIrrigation: undefined,
+    complete: "on",
+  };
+  const parsed = needleStickIncidentSchema.parse(base);
+  assert.equal(parsed.actionWashing, true);
+  assert.equal(parsed.actionIrrigation, false);
+  assert.equal(parsed.complete, true);
+  assert.equal(
+    needleStickIncidentSchema.safeParse({ ...base, nature: "OTHER" }).success,
+    false,
+  );
+  assert.equal(
+    needleStickIncidentSchema.safeParse({
+      ...base,
+      nature: "OTHER",
+      otherNature: "Scalpel",
+    }).success,
+    true,
+  );
+  assert.equal(canOpenPath("ADMIN", "/needle-stick"), true);
+  assert.equal(canOpenPath("STAFF", "/needle-stick/new"), true);
+  assert.equal(canOpenPath("VIEWER", "/needle-stick"), false);
+  assert.equal(canOpenPath("EMPLOYEE", "/needle-stick"), false);
+  assert.equal(
+    toDateTimeInput(new Date("2026-09-04T21:30:00Z")),
+    "2026-09-05T00:30",
+  );
+});
 await check(
   "comparison signs, scientific notation and Arabic digits remain exact",
   () => {

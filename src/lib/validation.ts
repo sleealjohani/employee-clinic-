@@ -61,6 +61,27 @@ const optionalString = z
   .optional()
   .transform((v) => (v === "" ? undefined : v));
 
+const optionalLongString = z
+  .string()
+  .trim()
+  .max(4000)
+  .optional()
+  .transform((v) => (v === "" ? undefined : v));
+
+const optionalDateTime = z
+  .string()
+  .trim()
+  .optional()
+  .refine((v) => !v || Number.isFinite(new Date(v).getTime()), {
+    message: "invalid_date",
+  })
+  .transform((v) => (v === "" ? undefined : v));
+
+const checkbox = z
+  .string()
+  .optional()
+  .transform((v) => v === "on" || v === "true");
+
 const optionalDate = z
   .string()
   .trim()
@@ -160,6 +181,55 @@ export const visitSchema = z.object({
   weightKg: optionalNumber,
   heightCm: optionalNumber,
 });
+
+export const needleStickIncidentSchema = z
+  .object({
+    employeeId: z.string().min(1),
+    department: optionalString,
+    nature: z.enum(["NEEDLE_STICK", "CUT", "SPLASH", "OTHER"]),
+    otherNature: optionalString,
+    incidentAt: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((v) => Number.isFinite(new Date(v).getTime()), {
+        message: "invalid_date",
+      }),
+    staffSignature: optionalString,
+    sourcePatientName: optionalString,
+    sourcePatientFileNo: optionalString,
+    sourceWard: optionalString,
+    sourceBloodBorneHistory: z
+      .enum(["UNKNOWN", "NO", "YES"])
+      .default("UNKNOWN"),
+    sourceBloodBorneDetails: optionalLongString,
+    actionWashing: checkbox,
+    actionIrrigation: checkbox,
+    actionEmployeeClinic: checkbox,
+    actionImmunoglobulin: checkbox,
+    headOfDepartmentName: optionalString,
+    headOfDepartmentSignature: optionalString,
+    headOfDepartmentSignedAt: optionalDateTime,
+    reportReceivedAt: optionalDateTime,
+    patientHivResult: optionalString,
+    patientHbvResult: optionalString,
+    patientHcvResult: optionalString,
+    patientOtherResult: optionalString,
+    staffHivResult: optionalString,
+    staffHbvResult: optionalString,
+    staffHcvResult: optionalString,
+    staffOtherResult: optionalString,
+    recommendation: optionalLongString,
+    physicianName: optionalString,
+    physicianSignature: optionalString,
+    physicianSignedAt: optionalDateTime,
+    complete: checkbox,
+    amendReason: optionalLongString,
+  })
+  .refine((value) => value.nature !== "OTHER" || !!value.otherNature, {
+    path: ["otherNature"],
+    message: "required",
+  });
 
 export const labSchema = z.object({
   employeeId: z.string().min(1),
