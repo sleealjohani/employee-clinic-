@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { Alert, Chip } from "@/components/ui";
 import { FileField } from "@/components/ui/FileField";
+import { useSubmitChoice } from "@/components/ui/SubmitChoice";
 import {
   importEmployeesAction,
   type EmployeeImportState,
@@ -18,12 +19,15 @@ import {
 function Actions() {
   const t = useT();
   const { pending } = useFormStatus();
+  // Defaults to preview: if the choice were ever lost again, the run that
+  // happens is the one that writes nothing.
+  const { field, choose } = useSubmitChoice("mode", "preview");
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {field}
       <button
         type="submit"
-        name="mode"
-        value="preview"
+        onClick={choose("preview")}
         className="btn btn-ghost"
         disabled={pending}
       >
@@ -31,8 +35,7 @@ function Actions() {
       </button>
       <button
         type="submit"
-        name="mode"
-        value="commit"
+        onClick={choose("commit")}
         className="btn btn-primary"
         disabled={pending}
       >

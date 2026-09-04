@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/client";
 import { Chip, Field } from "@/components/ui";
+import { useSubmitChoice } from "@/components/ui/SubmitChoice";
 import { commitBatchAction, reviewItemAction } from "@/server/actions/import";
 import type { ActionState } from "@/server/actions/employees";
 import { CATEGORY_LABEL, TESTS, type TestCategory } from "@/lib/catalog/tests";
@@ -49,12 +50,13 @@ const MATCH_TONE = {
 function Buttons() {
   const t = useT();
   const { pending } = useFormStatus();
+  const { field, choose } = useSubmitChoice("decision");
   return (
     <div className="mt-3 flex items-center gap-2">
+      {field}
       <button
         type="submit"
-        name="decision"
-        value="approve"
+        onClick={choose("approve")}
         className="btn btn-primary btn-sm"
         disabled={pending}
       >
@@ -62,8 +64,7 @@ function Buttons() {
       </button>
       <button
         type="submit"
-        name="decision"
-        value="reject"
+        onClick={choose("reject")}
         className="btn btn-ghost btn-sm"
         disabled={pending}
         formNoValidate

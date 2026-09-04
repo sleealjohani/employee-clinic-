@@ -84,6 +84,35 @@ await check(
       assert.equal(employeeReturnPath(value), "/portal");
   },
 );
+await check(
+  "no Server Action form reads a value only a submit button carries",
+  async () => {
+    // React builds the FormData for a `useActionState` action itself, and the
+    // pressed submitter is not part of it, so `<button type="submit" name=...>`
+    // arrives as null. That silently broke three flows at once: lab review
+    // rejected every approval as invalid, and the employee and OHC imports took
+    // the preview branch on every run while reporting rows they never wrote.
+    // Nothing here may go back to reading the choice off the button.
+    const { readdir, readFile } = await import("node:fs/promises");
+    const walk = async (dir: string): Promise<string[]> => {
+      const out: string[] = [];
+      for (const e of await readdir(dir, { withFileTypes: true })) {
+        const full = `${dir}/${e.name}`;
+        if (e.isDirectory()) out.push(...(await walk(full)));
+        else if (e.name.endsWith(".tsx")) out.push(full);
+      }
+      return out;
+    };
+    const offenders: string[] = [];
+    for (const file of await walk("src")) {
+      const source = await readFile(file, "utf8");
+      for (const tag of source.match(/<button\b[^>]*>/gs) ?? [])
+        if (/\bname\s*=/.test(tag))
+          offenders.push(`${file}: ${tag.replace(/\s+/g, " ").slice(0, 70)}`);
+    }
+    assert.deepEqual(offenders, []);
+  },
+);
 await check("needle-stick form validation and clinical route access", () => {
   const base = {
     employeeId: "employee_1",

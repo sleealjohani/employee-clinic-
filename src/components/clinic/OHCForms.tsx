@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useState } from "react";
 import { useT } from "@/lib/i18n/client";
+import { useSubmitChoice } from "@/components/ui/SubmitChoice";
 import {
   importOHCAction,
   linkOHCRowAction,
@@ -21,8 +22,12 @@ export function OHCImportForm() {
     {},
   );
   const preview = file === reviewed ? state.preview : undefined;
+  // Defaults to preview: the branch that writes nothing is the safe one to
+  // fall back to if the pressed button's value is ever lost again.
+  const { field: modeField, choose } = useSubmitChoice("mode", "preview");
   return (
     <form action={action} className="space-y-4" aria-busy={pending}>
+      {modeField}
       <label className="field">
         <span>{t("ohc.chooseFile")}</span>
         <input
@@ -129,8 +134,7 @@ export function OHCImportForm() {
           </label>
           <button
             className="btn btn-primary"
-            name="mode"
-            value="commit"
+            onClick={choose("commit")}
             disabled={pending}
           >
             {pending ? t("action.saving") : t("ohc.attach")}
@@ -139,8 +143,7 @@ export function OHCImportForm() {
       ) : (
         <button
           className="btn btn-primary"
-          name="mode"
-          value="preview"
+          onClick={choose("preview")}
           disabled={pending || !file}
         >
           {pending ? t("action.saving") : t("ohc.preview")}
