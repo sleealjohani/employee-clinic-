@@ -5,9 +5,17 @@ Arabic-first (RTL), Next.js App Router, Prisma + PostgreSQL.
 
 ## Rules that must not be broken
 
-1. **No clinical record is ever deleted.** Archive an employee; mark a record
-   `ENTERED_IN_ERROR` with a reason. There is no delete path anywhere in
-   `src/server/actions` and none should be added.
+1. **No clinical record is ever deleted, with one exception.** Archive an
+   employee; mark a record `ENTERED_IN_ERROR` with a reason. Voiding stays the
+   correction for everything — labs, vaccinations, visits — and no delete path
+   may be added for them.
+   The exception, added at the clinic's explicit request: an exposure incident
+   can be deleted permanently by an ADMIN holding `clinical.delete`
+   (`deleteNeedleStickIncidentAction`). It writes the whole record into the
+   append-only `AuditLog` before removing the row, because that entry then
+   becomes the only evidence the incident was reported. Do not widen this to
+   other record types, and do not grant `clinical.delete` to another role,
+   without the clinic asking for it in the same explicit terms.
 2. **The model extracts, the system interprets.** `src/lib/ai/extract.ts` returns
    values, units and ranges verbatim. Flags, criticality, immunity and due dates
    are computed in `src/lib/clinical/*` from those values. Never let an extracted

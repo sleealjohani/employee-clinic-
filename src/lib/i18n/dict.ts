@@ -107,6 +107,7 @@ export const ar = {
   "action.archive": "أرشفة",
   "action.restore": "إعادة تنشيط",
   "action.void": "تعليم كإدخال خاطئ",
+  "action.delete": "حذف نهائي",
   "action.approve": "اعتماد",
   "action.reject": "رفض",
   "action.back": "رجوع",
@@ -328,6 +329,8 @@ export const ar = {
     "تُطبع هذه الصفحة على مقاس A4 فوق النموذج المرفق الأصلي. اختر المقياس 100% دون هوامش إضافية.",
   "needle.voidHint":
     "لن يُحذف السجل. سيُعلّم كإدخال خاطئ مع حفظ السبب في سجل التدقيق.",
+  "needle.deleteHint":
+    "سيُحذف السجل نهائياً ولا يمكن استرجاعه. يُحفظ محتواه والسبب في سجل التدقيق فقط. إن كان الهدف تصحيح إدخال خاطئ فاستخدم «تعليم كإدخال خاطئ».",
   "needle.recordDetails": "بيانات السجل",
   "needle.lastUpdatedBy": "آخر تحديث بواسطة",
   "needle.createdAt": "تاريخ الإنشاء",
@@ -780,6 +783,7 @@ export const en: Record<DictKey, string> = {
   "action.archive": "Archive",
   "action.restore": "Reactivate",
   "action.void": "Mark entered-in-error",
+  "action.delete": "Delete permanently",
   "action.approve": "Approve",
   "action.reject": "Reject",
   "action.back": "Back",
@@ -1005,6 +1009,8 @@ export const en: Record<DictKey, string> = {
     "This A4 page prints over the exact attached form. Use 100% scale with no extra margins.",
   "needle.voidHint":
     "The record will not be deleted. It will be marked entered in error and the reason retained in the audit trail.",
+  "needle.deleteHint":
+    "This removes the record permanently and it cannot be recovered. Only its contents and your reason are kept, in the audit trail. To correct a mistaken entry instead, use “Mark entered-in-error”.",
   "needle.recordDetails": "Record details",
   "needle.lastUpdatedBy": "Last updated by",
   "needle.createdAt": "Created at",

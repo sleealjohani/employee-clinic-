@@ -113,6 +113,17 @@ await check(
     assert.deepEqual(offenders, []);
   },
 );
+await check("only ADMIN may permanently delete an exposure incident", () => {
+  // Deleting an incident destroys the record; voiding keeps it. The delete
+  // permission is deliberately separate so that being able to correct a record
+  // never carries the ability to erase one.
+  assert.equal(can("ADMIN", "clinical.delete"), true);
+  for (const role of ["STAFF", "VIEWER", "EMPLOYEE"] as const) {
+    assert.equal(can(role, "clinical.delete"), false, role);
+    // STAFF can still write and correct clinical records.
+    if (role === "STAFF") assert.equal(can(role, "clinical.write"), true);
+  }
+});
 await check("needle-stick form validation and clinical route access", () => {
   const base = {
     employeeId: "employee_1",
