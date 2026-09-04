@@ -70,6 +70,13 @@
   font-size: 1.72cqw;
   font-weight: 400;
   line-height: 1.15;
+  /* Every field's `top` places the text about 0.45% of page height above the
+     leader it belongs on, so values floated over their dotted lines instead of
+     sitting on them. Measured against the dots of each field in the template:
+     the clean rows want +0.36% to +0.52%, so one shift corrects them all to
+     within a third of a millimetre. */
+  margin-top: 3.8pt;
+  margin-top: 0.64cqw;
   padding: 0 0.6%;
   unicode-bidi: plaintext;
   white-space: nowrap;
@@ -110,17 +117,19 @@
   top: 26.7%;
   width: 19%;
 }
+/* Tick tops are the measured centre of each printed box in the template,
+   less half a line box. They previously sat above the squares entirely. */
 .needleCheck {
   left: 42.1%;
-  top: 29.6%;
+  top: 30.08%;
 }
 .cutCheck {
   left: 52.4%;
-  top: 29.6%;
+  top: 30.08%;
 }
 .splashCheck {
   left: 67.2%;
-  top: 29.6%;
+  top: 30.08%;
 }
 .otherNature {
   left: 81.6%;
@@ -174,19 +183,24 @@
 
 .washingCheck {
   left: 64.6%;
-  top: 43.7%;
+  top: 44.27%;
 }
 .irrigationCheck {
   left: 88.8%;
-  top: 43.7%;
+  top: 44.27%;
 }
+/* "Go to Employee clinic" and "Immunoglobulin" have no printed box, so their
+   ticks belong immediately after the label. At 89% and 84% they sat about
+   13% of the page to the right of the words they answer — under the Irrigation
+   checkbox, which read as a different post-exposure action having been taken.
+   The labels end at 75.9% and 70.7% in the template. */
 .clinicCheck {
-  left: 89%;
-  top: 46.4%;
+  left: 77.5%;
+  top: 47.09%;
 }
 .immunoglobulinCheck {
-  left: 84%;
-  top: 49%;
+  left: 72.3%;
+  top: 49.77%;
 }
 
 .headName {
@@ -338,6 +352,7 @@
   .value,
   .signature {
     font-size: 10.2pt;
+    margin-top: 3.8pt;
   }
 
   .check {
