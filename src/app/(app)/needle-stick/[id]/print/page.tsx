@@ -60,7 +60,14 @@ export default async function NeedleStickPrintPage({
   const user = await requirePermission("clinical.read");
   const { id } = await params;
   const [incident, t] = await Promise.all([
-    db.needleStickIncident.findUnique({ where: { id } }),
+    db.needleStickIncident.findUnique({
+      where: { id },
+      // The sheet is an English form, so it wants the employee's English name.
+      // The stored staffName is the snapshot taken when the incident was
+      // reported and stays the record of what was filed; it is the fallback
+      // for anyone whose English name has not been entered yet.
+      include: { employee: { select: { nameEn: true } } },
+    }),
     getT(),
   ]);
   if (!incident) notFound();
@@ -105,7 +112,10 @@ export default async function NeedleStickPrintPage({
           unoptimized
         />
 
-        <Value value={incident.staffName} className={styles.staffName} />
+        <Value
+          value={incident.employee.nameEn || incident.staffName}
+          className={styles.staffName}
+        />
         <Value value={incident.department} className={styles.department} />
         <Check
           show={incident.nature === "NEEDLE_STICK"}
