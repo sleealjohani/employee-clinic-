@@ -70,6 +70,7 @@ export function allowedPaths(role: Role): string[] {
         "/visits",
         "/labs",
         "/vaccinations",
+        "/needle-stick",
         "/due",
         "/reports",
         "/account",

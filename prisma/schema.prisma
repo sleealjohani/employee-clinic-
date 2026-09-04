@@ -6,7 +6,7 @@
 //  - Interpretation (flags, immunity, due dates) is computed by src/lib/clinical, never stored blindly.
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "client"
 }
 
@@ -50,18 +50,20 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdEmployees Employee[]        @relation("EmployeeCreatedBy")
-  createdVisits    Visit[]
-  createdLabs      LabResult[]       @relation("LabCreatedBy")
-  reviewedLabs     LabResult[]       @relation("LabReviewedBy")
-  allergies        Allergy[]
-  vaccinations     Vaccination[]
-  educations       HealthEducation[]
-  notes            ClinicalNote[]
-  attachments      Attachment[]
-  importBatches    LabImportBatch[]
-  importReviews    LabImportItem[]   @relation("ImportReviewedBy")
-  notifications    Notification[]
+  createdEmployees            Employee[]            @relation("EmployeeCreatedBy")
+  createdVisits               Visit[]
+  createdLabs                 LabResult[]           @relation("LabCreatedBy")
+  reviewedLabs                LabResult[]           @relation("LabReviewedBy")
+  allergies                   Allergy[]
+  vaccinations                Vaccination[]
+  educations                  HealthEducation[]
+  notes                       ClinicalNote[]
+  attachments                 Attachment[]
+  importBatches               LabImportBatch[]
+  importReviews               LabImportItem[]       @relation("ImportReviewedBy")
+  notifications               Notification[]
+  createdNeedleStickIncidents NeedleStickIncident[] @relation("NeedleStickCreatedBy")
+  updatedNeedleStickIncidents NeedleStickIncident[] @relation("NeedleStickUpdatedBy")
 
   @@index([role])
 }
@@ -144,18 +146,19 @@ model Employee {
   createdById String?
   createdBy   User?    @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
 
-  employmentHistory EmploymentHistory[]
-  visits            Visit[]
-  labResults        LabResult[]
-  allergies         Allergy[]
-  vaccinations      Vaccination[]
-  educations        HealthEducation[]
-  notes             ClinicalNote[]
-  attachments       Attachment[]
-  importItems       LabImportItem[]
-  account           User?               @relation("EmployeeAccount")
-  appointments      Appointment[]
-  serviceRequests   ServiceRequest[]
+  employmentHistory    EmploymentHistory[]
+  visits               Visit[]
+  labResults           LabResult[]
+  allergies            Allergy[]
+  vaccinations         Vaccination[]
+  educations           HealthEducation[]
+  notes                ClinicalNote[]
+  attachments          Attachment[]
+  importItems          LabImportItem[]
+  account              User?                 @relation("EmployeeAccount")
+  appointments         Appointment[]
+  serviceRequests      ServiceRequest[]
+  needleStickIncidents NeedleStickIncident[]
 
   @@index([department])
   @@index([isArchived])
@@ -230,6 +233,80 @@ model Visit {
   @@index([createdById])
 }
 
+// ---------------------------------------------------------------- sharps / splash exposure
+
+enum ExposureNature {
+  NEEDLE_STICK
+  CUT
+  SPLASH
+  OTHER
+}
+
+/// Occupational sharp-injury / infectious-splash report.
+/// The staff name and department are snapshotted so the signed form remains
+/// historically accurate even if the employee's profile changes later.
+model NeedleStickIncident {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  staffName      String
+  department     String?
+  nature         ExposureNature
+  otherNature    String?
+  incidentAt     DateTime
+  staffSignature String?
+
+  sourcePatientName       String?
+  sourcePatientFileNo     String?
+  sourceWard              String?
+  sourceBloodBorneHistory Boolean?
+  sourceBloodBorneDetails String?
+
+  actionWashing        Boolean @default(false)
+  actionIrrigation     Boolean @default(false)
+  actionEmployeeClinic Boolean @default(false)
+  actionImmunoglobulin Boolean @default(false)
+
+  headOfDepartmentName      String?
+  headOfDepartmentSignature String?
+  headOfDepartmentSignedAt  DateTime?
+
+  reportReceivedAt DateTime?
+
+  patientHivResult   String?
+  patientHbvResult   String?
+  patientHcvResult   String?
+  patientOtherResult String?
+  staffHivResult     String?
+  staffHbvResult     String?
+  staffHcvResult     String?
+  staffOtherResult   String?
+
+  recommendation     String?
+  physicianName      String?
+  physicianSignature String?
+  physicianSignedAt  DateTime?
+
+  completedAt DateTime?
+  revision    Int          @default(0)
+  status      RecordStatus @default(ACTIVE)
+  voidReason  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("NeedleStickCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?    @relation("NeedleStickUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([employeeId, incidentAt])
+  @@index([incidentAt])
+  @@index([completedAt])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
 // ---------------------------------------------------------------- laboratory
 
 enum ResultType {
@@ -302,7 +379,7 @@ model LabResult {
 
   // provenance when the row came from an imported report
   sourceAttachmentId   String?
-  sourceFingerprint    String? @unique
+  sourceFingerprint    String?     @unique
   sourceAttachment     Attachment? @relation(fields: [sourceAttachmentId], references: [id])
   sourcePage           Int?
   extractionConfidence Float?

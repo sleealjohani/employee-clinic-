@@ -1,6 +1,9 @@
 import type { Locale } from "./i18n/dict";
 
-const GREGORIAN_LOCALE: Record<Locale, string> = { ar: "ar-SA-u-ca-gregory-nu-latn", en: "en-GB" };
+const GREGORIAN_LOCALE: Record<Locale, string> = {
+  ar: "ar-SA-u-ca-gregory-nu-latn",
+  en: "en-GB",
+};
 
 /**
  * Intl inserts RIGHT-TO-LEFT MARKs between the parts of an Arabic-locale date.
@@ -13,7 +16,10 @@ function stripBidiMarks(value: string): string {
 }
 
 /** Gregorian is what we store and display. Hijri is a secondary label only. */
-export function formatDate(d: Date | string | null | undefined, locale: Locale = "ar"): string {
+export function formatDate(
+  d: Date | string | null | undefined,
+  locale: Locale = "ar",
+): string {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;
   if (Number.isNaN(date.getTime())) return "—";
@@ -27,7 +33,10 @@ export function formatDate(d: Date | string | null | undefined, locale: Locale =
   );
 }
 
-export function formatDateTime(d: Date | string | null | undefined, locale: Locale = "ar"): string {
+export function formatDateTime(
+  d: Date | string | null | undefined,
+  locale: Locale = "ar",
+): string {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;
   if (Number.isNaN(date.getTime())) return "—";
@@ -90,6 +99,26 @@ export function toDateInput(d: Date | string | null | undefined): string {
   return parts;
 }
 
+/** yyyy-mm-ddThh:mm for datetime-local, resolved in the clinic's Riyadh zone. */
+export function toDateTimeInput(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "Asia/Riyadh",
+  }).formatToParts(date);
+  const value = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  return `${value.year}-${value.month}-${value.day}T${value.hour}:${value.minute}`;
+}
+
 export function ageFrom(dob: Date | string | null | undefined): number | null {
   if (!dob) return null;
   const b = typeof dob === "string" ? new Date(dob) : dob;
@@ -136,7 +165,9 @@ export function formatValue(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
   const abs = Math.abs(n);
   const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(n);
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: digits,
+  }).format(n);
 }
 
 export function percent(part: number, whole: number): number {
@@ -144,7 +175,10 @@ export function percent(part: number, whole: number): number {
   return Math.round((part / whole) * 100);
 }
 
-export function bmi(weightKg?: number | null, heightCm?: number | null): number | null {
+export function bmi(
+  weightKg?: number | null,
+  heightCm?: number | null,
+): number | null {
   if (!weightKg || !heightCm || heightCm <= 0) return null;
   const m = heightCm / 100;
   return Math.round((weightKg / (m * m)) * 10) / 10;

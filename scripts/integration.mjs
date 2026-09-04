@@ -167,6 +167,152 @@ export async function runIntegration({ prisma, baseUrl, password }) {
       "ID-only sign-in: provisioning, Arabic digits, role isolation, account status, audit and throttling",
     );
 
+    assert.equal((await page("/needle-stick", staff)).response.status, 200);
+    assert.equal((await page("/needle-stick/new", staff)).response.status, 200);
+    assert.match(
+      (await page("/needle-stick", viewer)).response.headers.get("location") ||
+        "",
+      /denied/,
+    );
+    const exposureAt = new Date(Date.now() - 60_000);
+    const exposureLocal = new Date(exposureAt.getTime() + 3 * 3_600_000)
+      .toISOString()
+      .slice(0, 16);
+    const exposureFields = {
+      employeeId: "test_employee_1",
+      department: "قسم الاختبار",
+      nature: "NEEDLE_STICK",
+      incidentAt: exposureLocal,
+      staffSignature: "Synthetic staff signature",
+      sourcePatientName: "Synthetic source",
+      sourcePatientFileNo: "SOURCE-001",
+      sourceWard: "Synthetic ward",
+      sourceBloodBorneHistory: "NO",
+      actionWashing: "on",
+      actionEmployeeClinic: "on",
+      reportReceivedAt: exposureLocal,
+      patientHivResult: "Non-reactive",
+      patientHbvResult: "Non-reactive",
+      patientHcvResult: "Non-reactive",
+      staffHivResult: "Non-reactive",
+      staffHbvResult: "Immune",
+      staffHcvResult: "Non-reactive",
+      recommendation: "Synthetic follow-up",
+      physicianName: "Synthetic physician",
+    };
+    await action(
+      "/needle-stick/new",
+      "createNeedleStickIncidentAction",
+      staff,
+      exposureFields,
+    );
+    const exposure = await prisma.needleStickIncident.findFirstOrThrow({
+      where: { employeeId: "test_employee_1" },
+      orderBy: { createdAt: "desc" },
+    });
+    assert.equal(exposure.staffName, "موظف تجريبي أول");
+    assert.equal(exposure.actionWashing, true);
+    assert.equal(exposure.actionIrrigation, false);
+    assert.equal(exposure.sourceBloodBorneHistory, false);
+    assert.equal(exposure.completedAt, null);
+    const incidentPath = "/needle-stick/" + exposure.id;
+    assert.equal((await page(incidentPath, staff)).response.status, 200);
+    const employeeExposure = await page(
+      "/employees/test_employee_1?tab=needleStick",
+      staff,
+    );
+    assert.ok(employeeExposure.html.includes(exposure.id));
+    const printExposure = await page(incidentPath + "/print", staff);
+    assert.equal(printExposure.response.status, 200);
+    assert.ok(
+      printExposure.html.includes("/forms/needle-stick-template.png") &&
+        printExposure.html.includes("Synthetic source"),
+    );
+    assert.equal(
+      (await page(incidentPath + "/edit", staff)).response.status,
+      200,
+    );
+    await action(
+      incidentPath + "/edit",
+      "updateNeedleStickIncidentAction",
+      staff,
+      {
+        ...exposureFields,
+        id: exposure.id,
+        revision: exposure.revision,
+        complete: "on",
+      },
+    );
+    const completedExposure =
+      await prisma.needleStickIncident.findUniqueOrThrow({
+        where: { id: exposure.id },
+      });
+    assert.ok(completedExposure.completedAt);
+    assert.equal(completedExposure.revision, 1);
+    await action(
+      incidentPath + "/edit",
+      "updateNeedleStickIncidentAction",
+      staff,
+      {
+        ...exposureFields,
+        id: exposure.id,
+        revision: 0,
+        complete: "on",
+        amendReason: "Synthetic stale amendment",
+        recommendation: "Stale overwrite",
+      },
+    );
+    assert.equal(
+      (
+        await prisma.needleStickIncident.findUniqueOrThrow({
+          where: { id: exposure.id },
+        })
+      ).recommendation,
+      "Synthetic follow-up",
+    );
+    await action(incidentPath, "voidNeedleStickIncidentAction", staff, {
+      id: exposure.id,
+      reason: "Unauthorised void",
+    });
+    assert.equal(
+      (
+        await prisma.needleStickIncident.findUniqueOrThrow({
+          where: { id: exposure.id },
+        })
+      ).status,
+      "ACTIVE",
+    );
+    await action(incidentPath, "voidNeedleStickIncidentAction", admin, {
+      id: exposure.id,
+      reason: "Synthetic correction",
+    });
+    assert.equal(
+      (
+        await prisma.needleStickIncident.findUniqueOrThrow({
+          where: { id: exposure.id },
+        })
+      ).status,
+      "ENTERED_IN_ERROR",
+    );
+    const exposureAudit = await prisma.auditLog.groupBy({
+      by: ["action"],
+      where: { entity: "NeedleStickIncident", entityId: exposure.id },
+      _count: { _all: true },
+    });
+    const exposureAuditCounts = Object.fromEntries(
+      exposureAudit.map((entry) => [entry.action, entry._count._all]),
+    );
+    assert.deepEqual(exposureAuditCounts, {
+      CREATE: 1,
+      EXPORT: 1,
+      UPDATE: 1,
+      VIEW_SENSITIVE: 2,
+      VOID: 1,
+    });
+    pass(
+      "needle-stick incidents: role isolation, employee linkage, revisions, exact print template, audit and no-delete correction",
+    );
+
     await page("/settings", admin);
     const settings = {
       nameAr: "عيادة الاختبار",
@@ -1371,12 +1517,23 @@ export async function runIntegration({ prisma, baseUrl, password }) {
       { username: "test.admin", password },
       { username: "test.admin", password: "incorrect-password", otp: "123456" },
     ]) {
-      const rejected = await action("/login?mode=staff", "loginAction", "", fields);
+      const rejected = await action(
+        "/login?mode=staff",
+        "loginAction",
+        "",
+        fields,
+      );
       assert.notEqual(rejected.response.status, 303);
-      assert.ok(!rejected.response.headers.getSetCookie().some(cookie => cookie.startsWith("clinic_session=")));
+      assert.ok(
+        !rejected.response.headers
+          .getSetCookie()
+          .some((cookie) => cookie.startsWith("clinic_session=")),
+      );
     }
     const mfaLogin = await action("/login?mode=staff", "loginAction", "", {
-      username: "test.admin", password, otp: otplib.authenticator.generate(secured.totpSecret),
+      username: "test.admin",
+      password,
+      otp: otplib.authenticator.generate(secured.totpSecret),
     });
     assert.equal(mfaLogin.response.status, 303);
     assert.equal(mfaLogin.response.headers.get("location"), "/dashboard");

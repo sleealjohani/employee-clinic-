@@ -58,6 +58,13 @@ export const IconVaccine = ({ size = 18 }: IconProps) => (
   </svg>
 );
 
+export const IconNeedleStick = ({ size = 18 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="m14.8 3.8 5.4 5.4M17.5 6.5l-7.7 7.7-3.1.8.8-3.1 7.7-7.7" />
+    <path d="m9.8 10.2 4 4M4 20l2.7-2.7M3.5 16.5l4 4" />
+  </svg>
+);
+
 export const IconDue = ({ size = 18 }: IconProps) => (
   <svg {...base(size)}>
     <circle cx="12" cy="12" r="8.5" />
