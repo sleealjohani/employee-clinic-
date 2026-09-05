@@ -8,6 +8,7 @@ import { CloseOnSuccess, FormError, SubmitRow } from "@/components/ui/Modal";
 import { useT } from "@/lib/i18n/client";
 import {
   createNeedleStickIncidentAction,
+  deleteNeedleStickIncidentAction,
   updateNeedleStickIncidentAction,
   voidNeedleStickIncidentAction,
   type NeedleStickActionState,
@@ -510,6 +511,37 @@ export function NeedleStickIncidentForm({
         </p>
         <SaveButton edit={edit} />
       </div>
+    </form>
+  );
+}
+
+/**
+ * Deleting is irreversible and the record does not come back, so this asks for
+ * a reason like voiding does and says plainly what it is about to do.
+ */
+export function DeleteNeedleStickIncidentForm({
+  incidentId,
+}: {
+  incidentId: string;
+}) {
+  const t = useT();
+  // No success handling here: the action redirects to the list once the record
+  // is gone, since this page has nothing left to show.
+  const [state, formAction] = useActionState<NeedleStickActionState, FormData>(
+    deleteNeedleStickIncidentAction,
+    {},
+  );
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="id" value={incidentId} />
+      <p className="mb-3 text-xs" style={{ color: "var(--danger)" }}>
+        {t("needle.deleteHint")}
+      </p>
+      <Field label={t("common.reason")} required>
+        <textarea className="textarea" name="reason" rows={3} required />
+      </Field>
+      <FormError error={state.error} />
+      <SubmitRow submitLabel={t("action.delete")} danger />
     </form>
   );
 }

@@ -15,6 +15,11 @@ export type Permission =
   | "clinical.read" // visits, labs, allergies, notes — the confidential layer
   | "clinical.write"
   | "clinical.void"
+  // Permanent removal of an exposure incident, at the clinic's explicit
+  // request. Kept separate from clinical.void so it can be withdrawn on its
+  // own, and so granting the ability to correct a record never silently grants
+  // the ability to erase one.
+  | "clinical.delete"
   | "sensitive.read" // HIV / hepatitis serology
   | "import.run"
   | "reports.aggregate"
@@ -30,6 +35,7 @@ const MATRIX: Record<Role, Permission[]> = {
     "clinical.read",
     "clinical.write",
     "clinical.void",
+    "clinical.delete",
     "sensitive.read",
     "import.run",
     "reports.aggregate",

@@ -16,7 +16,10 @@ import {
   SectionTitle,
 } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
-import { VoidNeedleStickIncidentForm } from "@/components/forms/NeedleStickIncidentForm";
+import {
+  DeleteNeedleStickIncidentForm,
+  VoidNeedleStickIncidentForm,
+} from "@/components/forms/NeedleStickIncidentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +129,18 @@ export default async function NeedleStickIncidentPage({
                   <VoidNeedleStickIncidentForm incidentId={incident.id} />
                 </Modal>
               )}
+            {can(user.role, "clinical.delete") && (
+              <Modal
+                title={t("action.delete")}
+                trigger={
+                  <button className="btn btn-ghost" style={{ color: "var(--danger)" }}>
+                    {t("action.delete")}
+                  </button>
+                }
+              >
+                <DeleteNeedleStickIncidentForm incidentId={incident.id} />
+              </Modal>
+            )}
           </>
         }
       />

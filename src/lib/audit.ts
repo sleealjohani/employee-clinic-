@@ -11,6 +11,9 @@ export type AuditAction =
   | "ARCHIVE"
   | "RESTORE"
   | "VOID"
+  // Permanent removal of an exposure incident. The entry carries the deleted
+  // record, so it is the only surviving evidence that it existed.
+  | "DELETE"
   | "VIEW_SENSITIVE"
   | "EXPORT"
   | "IMPORT_UPLOAD"

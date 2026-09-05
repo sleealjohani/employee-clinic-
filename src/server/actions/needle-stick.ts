@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
@@ -224,6 +225,62 @@ export async function updateNeedleStickIncidentAction(
   } catch (error) {
     return actionError(error);
   }
+}
+
+/**
+ * Permanently remove an exposure incident.
+ *
+ * Voiding is the safer correction and stays the default: it keeps the record,
+ * marks it ENTERED_IN_ERROR and prints VOID across the sheet. This erases the
+ * row outright, which the clinic asked for knowing that. Two things make it
+ * accountable rather than silent: it is ADMIN-only through its own permission,
+ * and the whole record is copied into the append-only audit log before the
+ * delete, because once the row is gone that entry is the only evidence the
+ * incident was ever reported.
+ */
+export async function deleteNeedleStickIncidentAction(
+  _previous: NeedleStickActionState,
+  form: FormData,
+): Promise<NeedleStickActionState> {
+  const user = await requirePermission("clinical.delete");
+  const id = String(form.get("id") ?? "");
+  const reason = String(form.get("reason") ?? "").trim();
+  if (!id || reason.length < 3 || reason.length > 2_000)
+    return { error: "common.required" };
+
+  let employeeId: string;
+  try {
+    employeeId = await db.$transaction(
+      async (tx) => {
+        const before = await tx.needleStickIncident.findUnique({
+          where: { id },
+        });
+        if (!before) throw new ClinicError("v2.invalid");
+        await writeAudit(
+          {
+            user,
+            action: "DELETE",
+            entity: "NeedleStickIncident",
+            entityId: id,
+            summary: `حذف نهائي لحادثة تعرض مهني: ${before.staffName}`,
+            meta: { reason, deleted: before },
+          },
+          tx,
+        );
+        await tx.needleStickIncident.delete({ where: { id } });
+        return before.employeeId;
+      },
+      { timeout: 20_000 },
+    );
+  } catch (error) {
+    return actionError(error);
+  }
+  refresh(employeeId);
+  // The page the caller is on no longer has a record behind it, so leave it
+  // from the server. redirect() signals by throwing, which is why it sits
+  // outside the try — actionError would otherwise swallow it and strand the
+  // user on a deleted incident.
+  redirect("/needle-stick");
 }
 
 export async function voidNeedleStickIncidentAction(
