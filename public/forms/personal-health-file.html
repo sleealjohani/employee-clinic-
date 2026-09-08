@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الملف الصحي — Personal Health File</title>
+<style>
+/* ==========================================================================
+   1. TOKENS
+   ========================================================================== */
+:root{
+  --moh-green:#008556;
+  --moh-green-d:#006a45;
+  --moh-gold:#9e925e;
+  --ink:#12100e;
+  --pen:#16233f;            /* colour of data printed into the form */
+  --rule:#161616;           /* table rules */
+  --paper:#fbfaf6;          /* warm off-white, screen only */
+  --desk:#23272c;
+  --desk-2:#2c3138;
+  --chrome:#c8cdd3;
+  --focus:#7fd3a5;
+  /* Janna LT first: if the clinic workstation has it installed it is used,
+     otherwise we fall back to system Arabic faces. No web fonts are loaded. */
+  --ar:"Janna LT","Noto Naskh Arabic","Segoe UI",Tahoma,"Geeza Pro","Arabic Typesetting",Arial,sans-serif;
+  --en:"Segoe UI",Tahoma,Arial,Helvetica,sans-serif;
+}
+
+.svg-defs{position:absolute;width:0;height:0;overflow:hidden}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--desk);
+  color:var(--chrome);
+  font-family:var(--ar);
+  -webkit-text-size-adjust:100%;
+  overscroll-behavior:contain;
+}
+
+/* ==========================================================================
+   2. SHELL / CHROME
+   ========================================================================== */
+#shell{display:flex;flex-direction:column;height:100%;min-height:0}
+
+#toolbar{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));
+  background:var(--desk-2);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  flex:0 0 auto;overflow-x:auto;scrollbar-width:none;
+}
+#toolbar::-webkit-scrollbar{display:none}
+#toolbar .title{
+  font-size:13px;letter-spacing:.01em;color:#e8ecef;font-weight:600;
+  white-space:nowrap;margin-inline-end:4px;
+}
+#toolbar .sub{font-size:11px;color:#8a939c;white-space:nowrap;margin-inline-end:auto}
+.btn{
+  appearance:none;border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.04);color:var(--chrome);
+  font-family:inherit;font-size:12.5px;line-height:1;
+  padding:8px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;
+  transition:background .14s ease,border-color .14s ease;
+}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn:active{background:rgba(255,255,255,.16)}
+.btn[aria-pressed="true"]{background:rgba(127,211,165,.16);border-color:rgba(127,211,165,.45);color:#dff5e8}
+.btn:focus-visible,#book:focus-visible,.thumb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.counter{font-size:12px;color:#9aa3ac;min-width:56px;text-align:center;white-space:nowrap}
+.dirty-indicator{font-size:11px;color:#e7dca9;white-space:nowrap;padding:4px 7px;border:1px solid rgba(231,220,169,.28);border-radius:99px;background:rgba(158,146,94,.10)}
+
+#viewport{
+  position:relative;flex:1 1 auto;min-height:0;
+  overflow:auto;display:grid;place-content:center;
+  padding:14px;
+  background:
+    radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.045),transparent 60%),
+    var(--desk);
+  touch-action:pan-y;
+}
+#stageWrap{position:relative}
+#stage{position:absolute;top:0;left:0;transform-origin:0 0}
+
+/* ==========================================================================
+   3. BOOK BODY
+   ========================================================================== */
+#book{
+  position:relative;height:297mm;touch-action:pan-y;
+  perspective:2400px;perspective-origin:50% 42%;
+  outline:none;
+}
+.slot{position:absolute;top:0;width:210mm;height:297mm;overflow:hidden}
+.slot.left{left:0}
+.slot.right{left:210mm}
+#book.single .slot.right{display:none}
+.slot .page{box-shadow:0 10px 26px rgba(0,0,0,.42),0 2px 6px rgba(0,0,0,.3)}
+
+/* stack of page edges either side of the spine */
+.stack{position:absolute;top:2mm;height:calc(297mm - 4mm);width:5mm;pointer-events:none;
+  background:repeating-linear-gradient(90deg,#efece4 0 .55mm,#cfcabb .55mm 1.05mm);
+  transform-origin:50% 50%;box-shadow:0 6px 16px rgba(0,0,0,.35);border-radius:.6mm;}
+.stack.l{left:-4.4mm;transform-origin:100% 50%;border-radius:1mm 0 0 1mm}
+.stack.r{left:calc(420mm - .6mm);transform-origin:0 50%;border-radius:0 1mm 1mm 0}
+#book.single .stack.r{left:calc(210mm - .6mm)}
+#book.single .stack.l{display:none}
+
+/* permanent gutter shadow at the spine */
+.gutter{position:absolute;top:0;height:297mm;width:22mm;pointer-events:none;z-index:6}
+.gutter.l{left:calc(210mm - 22mm);background:linear-gradient(to right,rgba(0,0,0,0),rgba(0,0,0,.20))}
+.gutter.r{left:210mm;background:linear-gradient(to right,rgba(0,0,0,.20),rgba(0,0,0,0))}
+#book.single .gutter.r{display:none}
+#book.single .gutter.l{opacity:.55}
+
+/* shadow the turning leaf casts on the sheets underneath */
+.cast{position:absolute;top:0;height:297mm;width:210mm;pointer-events:none;opacity:0;z-index:7}
+.cast.l{left:0;transform-origin:100% 50%;
+  background:linear-gradient(to left,rgba(0,0,0,.42),rgba(0,0,0,.16) 32%,rgba(0,0,0,0) 76%)}
+.cast.r{left:210mm;transform-origin:0% 50%;
+  background:linear-gradient(to right,rgba(0,0,0,.42),rgba(0,0,0,.16) 32%,rgba(0,0,0,0) 76%)}
+
+/* ==========================================================================
+   4. TURNING LEAF (strip curl)
+   ========================================================================== */
+.turning{
+  position:absolute;top:0;left:0;width:210mm;height:297mm;
+  transform-style:preserve-3d;z-index:20;will-change:transform;
+}
+.strip{
+  position:absolute;top:0;height:297mm;
+  transform-style:preserve-3d;transform-origin:100% 50%;
+  will-change:transform;
+}
+.face{
+  position:absolute;inset:0;overflow:hidden;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--paper);
+}
+.face.back{transform:rotateY(180deg)}
+.face .holder{position:absolute;top:0;left:0;transform-origin:0 0;width:210mm;height:297mm}
+.face .bleed{opacity:.06}
+.face .shade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.face .sheen{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+
+/* corner peel hit area (free edge = the outer edge, away from the spine) */
+.peel{position:absolute;left:0;width:34mm;height:34mm;z-index:25;cursor:grab}
+.peel.tl{top:0}
+.peel.bl{bottom:0}
+.peel:active{cursor:grabbing}
+
+/* reduced-motion / no-3d fallback */
+#book.flat .slot .page{transition:opacity .2s ease}
+#book.flat .fade{opacity:0}
+
+/* ==========================================================================
+   5. THUMBNAIL RAIL
+   ========================================================================== */
+#rail{
+  flex:0 0 auto;display:none;gap:8px;padding:10px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  overflow-x:auto;background:var(--desk-2);
+  border-top:1px solid rgba(255,255,255,.07);
+}
+#rail.open{display:flex}
+.thumb{
+  position:relative;flex:0 0 auto;border:1px solid rgba(255,255,255,.16);
+  border-radius:4px;overflow:hidden;background:#fff;padding:0;cursor:pointer;
+}
+.thumb .mini{position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none}
+.thumb .num{
+  position:absolute;inset-inline-end:3px;bottom:2px;font-size:10px;color:#333;
+  background:rgba(255,255,255,.85);border-radius:3px;padding:0 3px;
+}
+.thumb[aria-current="true"]{border-color:var(--focus);box-shadow:0 0 0 2px rgba(127,211,165,.35)}
+
+/* ==========================================================================
+   6. THE PAPER — A4 pages, millimetre geometry
+   ========================================================================== */
+.page{
+  position:relative;width:210mm;height:297mm;
+  padding:11mm 12mm 9mm;
+  background:var(--paper);
+  color:var(--ink);
+  direction:rtl;
+  font-family:var(--ar);
+  font-size:9pt;line-height:1.35;
+  overflow:hidden;contain:layout paint;
+  --tex:1;
+}
+/* faint paper texture, screen only */
+.page::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:calc(.5 * var(--tex));
+  background:
+    repeating-linear-gradient(0deg,rgba(120,110,90,.045) 0 .18mm,rgba(0,0,0,0) .18mm .9mm),
+    radial-gradient(90% 60% at 25% 12%,rgba(255,255,255,.5),rgba(0,0,0,0) 70%),
+    radial-gradient(80% 70% at 80% 95%,rgba(120,110,80,.05),rgba(0,0,0,0) 70%);
+  mix-blend-mode:multiply;
+}
+.face .page::after,.thumb .page::after{display:none}
+.page > *{position:relative;z-index:1}
+
+/* --- letterhead --- */
+.lh{display:flex;direction:ltr;align-items:flex-start;justify-content:space-between;gap:6mm}
+.lh .col{font-size:7.6pt;line-height:1.5;color:var(--moh-green-d);font-weight:600;white-space:nowrap}
+.lh .en{text-align:left;font-family:var(--en);letter-spacing:.01em}
+.lh .ar{text-align:right;direction:rtl}
+.lh.cover .col{font-size:8.6pt}
+.lh .mark{flex:0 0 auto}
+.lh.inner{align-items:flex-start}
+.lh.inner .ar{margin-inline-start:auto}
+
+/* --- pill title --- */
+.pill{
+  display:flex;align-items:center;justify-content:center;gap:6mm;
+  background:var(--moh-green);color:#fff;border-radius:99mm;
+  padding:1.6mm 9mm;margin:0 auto;width:max-content;max-width:100%;
+  font-weight:700;letter-spacing:.005em;
+  box-shadow:inset 0 -0.6mm 0 rgba(0,0,0,.08);
+}
+.pill .e{font-family:var(--en);font-size:11.5pt}
+.pill .a{font-size:12pt}
+.pill.big .e{font-size:13.5pt}
+.pill.big .a{font-size:14pt}
+.pill.solo{gap:0}
+
+/* --- character boxes --- */
+.boxes{display:flex;direction:ltr;flex:0 0 auto}
+.box{
+  width:7.4mm;height:7.6mm;border:.32mm solid var(--rule);
+  margin-left:-.32mm;display:flex;align-items:center;justify-content:center;
+  font-family:var(--en);font-size:10pt;font-weight:600;color:var(--pen);background:transparent;
+}
+.box:first-child{margin-left:0}
+.boxes.sm .box{width:6.2mm;height:6.6mm;font-size:9pt}
+.row{display:flex;align-items:center;gap:3mm}
+.row.rtl{direction:rtl}
+.row.center{justify-content:center}
+.lab{font-weight:700;white-space:nowrap}
+.sep{font-family:var(--en);font-weight:700;padding:0 1mm}
+
+/* --- data values --- */
+.v{color:var(--pen);font-weight:600}
+.v.en{font-family:var(--en)}
+
+/* --- in-place field editing --------------------------------------------- */
+.page [data-bind]{
+  min-width:0;
+  caret-color:var(--pen);
+}
+.page [data-bind][contenteditable="true"],
+.page [data-bind][contenteditable="plaintext-only"]{
+  cursor:text;
+}
+body.is-editable .page [data-bind]:hover{
+  background-color:rgba(158,146,94,.07);
+}
+body.is-editable .page [data-bind]:focus,
+body.is-editable .page [data-bind]:focus-visible{
+  outline:.3mm solid var(--moh-green);
+  outline-offset:-.15mm;
+}
+.page .v[data-bind]{display:block;min-height:1em}
+.dline .v[data-bind]{display:block}
+.box[data-bind]{
+  padding:0;
+  white-space:pre;
+  overflow:hidden;
+  text-align:center;
+}
+.chk[data-bind]{
+  border-radius:.6mm;
+}
+.multiline-row{align-items:flex-start}
+.mfield{
+  position:relative;
+  display:block;
+  flex:1 1 auto;
+  width:100%;
+  min-width:0;
+  height:calc(var(--lines) * 8.6mm);
+  overflow:hidden;
+  padding:0 1.5mm;
+  color:var(--pen);
+  font-weight:600;
+  line-height:8.6mm;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  background-image:radial-gradient(circle,#2a2a2a 0 .16mm,transparent .18mm);
+  background-size:1.2mm 8.6mm;
+  background-position:0 8.25mm;
+  background-repeat:repeat;
+}
+.mfield.en{font-family:var(--en);direction:ltr;text-align:left}
+.turning [data-bind],.thumb [data-bind]{pointer-events:none}
+
+/* --- tables --- */
+table.t{width:100%;border-collapse:collapse;table-layout:fixed;background:transparent}
+table.t th,table.t td{
+  border:.3mm solid var(--rule);
+  padding:.9mm 1.4mm;height:7mm;
+  font-size:8.2pt;font-weight:400;vertical-align:middle;text-align:center;
+  word-break:break-word;
+}
+table.t th,table.t td.g{
+  background:var(--moh-green);color:#fff;font-weight:700;font-size:8.4pt;
+}
+table.t.en{direction:ltr;font-family:var(--en)}
+table.t.en td.name{text-align:left;padding-inline-start:2mm}
+table.t td.hdw{font-weight:700;font-size:8pt}
+table.t td.tall{height:11mm}
+table.t td.blank{height:8mm}
+table.t .v{display:block;min-height:1em}
+
+/* --- framed blocks --- */
+.frame{border:.32mm solid var(--rule);padding:4mm 5mm}
+.fld{display:flex;align-items:flex-end;gap:2mm;margin-bottom:3.2mm}
+.fld .lbl{white-space:nowrap;font-weight:600;font-size:9pt}
+.fld.en{direction:ltr;font-family:var(--en)}
+.dline{position:relative;flex:1 1 auto;height:5.4mm;border-bottom:.32mm dotted #2a2a2a}
+.dline .v{position:absolute;inset-inline:1.5mm;bottom:.9mm;font-size:8.6pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dline.solid{border-bottom-style:solid;border-bottom-width:.25mm}
+
+/* --- misc page furniture --- */
+.warn{text-align:center;font-weight:700}
+.warn .a{font-size:13.5pt;letter-spacing:.005em}
+.warn .e{font-family:var(--en);font-size:12pt;margin-top:1.5mm}
+.cap{display:flex;direction:ltr;justify-content:space-between;align-items:flex-end;font-weight:700;font-size:10pt;margin-bottom:1.5mm}
+.cap .e{font-family:var(--en);color:var(--ink)}
+.allergy{
+  border:.32mm solid var(--moh-green);display:flex;direction:ltr;align-items:center;
+  gap:4mm;padding:3mm 4mm;min-height:13mm;
+}
+.allergy .e{font-family:var(--en);color:var(--moh-green-d);font-weight:700;font-size:11pt}
+.allergy .a{color:var(--moh-green-d);font-weight:700;font-size:11pt;margin-inline-start:auto}
+.allergy .v{flex:1 1 auto;text-align:center}
+.conf{display:flex;direction:ltr;justify-content:center;gap:4mm;color:var(--moh-green-d);font-weight:700;margin-top:2.5mm}
+.conf .e{font-family:var(--en);font-size:11pt}
+.conf .a{font-size:11.5pt}
+.badge{
+  position:absolute;bottom:6mm;left:50%;transform:translateX(-50%);
+  border:.3mm solid var(--rule);border-radius:99mm;
+  min-width:11mm;padding:.4mm 3mm;text-align:center;font-size:9.5pt;font-weight:600;
+}
+.note{font-size:8pt;font-family:var(--en);margin-top:1.5mm}
+.chk{display:inline-flex;align-items:center;gap:1.5mm;margin-inline-start:4mm}
+.chk i{width:4.2mm;height:4.2mm;border:.3mm solid var(--rule);display:inline-block;
+  font-style:normal;text-align:center;line-height:3.8mm;font-size:8pt;color:var(--pen);font-weight:700}
+.page.flow{display:flex;flex-direction:column}
+.page.flow>*{flex:0 0 auto}
+.spacer{flex:1 1 auto;min-height:3mm}
+.spacer.g2{flex-grow:2}
+.stack-v{display:flex;flex-direction:column;height:100%}
+.gap-s{height:4mm}.gap-m{height:8mm}.gap-l{height:14mm}
+.cover-mark{display:flex;justify-content:center;margin:2mm 0 3mm}
+.back-mark{display:flex;align-items:center;justify-content:center;height:100%}
+
+/* ==========================================================================
+   7. PRINT — eight flat A4 sheets, full-strength ink
+   ========================================================================== */
+#printRoot{display:none}
+
+@media print{
+  @page{size:A4 portrait;margin:0}
+  html,body{height:auto;background:#fff}
+  #shell{display:none !important}
+  #printRoot{display:block}
+  #printRoot .page{
+    --tex:0;
+    background:#fff;box-shadow:none;margin:0;
+    break-after:page;page-break-after:always;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  #printRoot .page::after{display:none}
+  #printRoot .page:last-child{break-after:auto;page-break-after:auto}
+  [contenteditable]{outline:none !important}
+  #printRoot [contenteditable],
+  #printRoot [data-bind]{
+    outline:none !important;
+    background-color:transparent !important;
+    caret-color:transparent !important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .btn{transition:none}
+}
+</style>
+</head>
+<body>
+<svg class="svg-defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><g id="mohMark">
+    <g id="moh-green" fill="#008556" fill-rule="evenodd" clip-rule="evenodd">
+    <path d="M 680 580 L 674 580 L 674 628 L 673 629 L 673 631 L 669 635 L 667 635 L 666 636 L 659 636 L 659 639 L 658 640 L 658 641 L 668 641 L 669 640 L 672 640 L 673 639 L 674 639 L 676 637 L 677 637 L 677 636 L 679 634 L 679 632 L 680 631 Z M 626 580 L 619 580 L 619 629 L 618 630 L 618 631 L 614 635 L 612 635 L 611 636 L 604 636 L 604 641 L 613 641 L 614 640 L 617 640 L 618 639 L 621 638 L 623 636 L 623 635 L 625 632 L 625 629 L 626 628 Z M 729 575 L 718 575 L 717 576 L 715 576 L 714 577 L 712 577 L 711 578 L 710 578 L 709 579 L 706 580 L 699 587 L 699 588 L 697 590 L 697 592 L 696 593 L 696 595 L 695 596 L 695 605 L 696 606 L 696 608 L 697 609 L 697 611 L 702 616 L 703 616 L 705 618 L 707 618 L 708 619 L 712 619 L 713 620 L 718 620 L 722 616 L 723 617 L 723 627 L 722 628 L 722 630 L 717 635 L 715 635 L 714 636 L 708 636 L 708 637 L 707 638 L 707 640 L 708 640 L 709 641 L 717 641 L 718 640 L 720 640 L 721 639 L 724 638 L 727 635 L 727 634 L 728 633 L 728 631 L 729 630 Z M 722 580 L 723 581 L 723 614 L 722 615 L 715 615 L 714 614 L 711 614 L 710 613 L 709 613 L 704 608 L 704 607 L 702 604 L 702 596 L 703 595 L 703 593 L 704 592 L 704 591 L 712 583 L 713 583 L 716 581 L 719 581 L 720 580 Z M 596 573 L 589 573 L 588 574 L 583 574 L 582 575 L 579 575 L 578 576 L 575 577 L 573 579 L 572 579 L 566 585 L 565 588 L 563 590 L 563 592 L 562 593 L 562 597 L 561 598 L 561 601 L 562 602 L 562 607 L 563 608 L 564 611 L 569 616 L 570 616 L 572 618 L 574 618 L 575 619 L 578 619 L 579 620 L 597 620 L 597 574 Z M 590 578 L 591 579 L 591 614 L 590 615 L 580 615 L 579 614 L 578 614 L 577 613 L 574 612 L 572 610 L 572 609 L 570 607 L 570 606 L 569 605 L 569 602 L 568 601 L 568 597 L 569 596 L 569 592 L 570 591 L 570 590 L 572 588 L 572 587 L 578 581 L 580 581 L 583 579 L 586 579 L 587 578 Z M 676 553 L 673 555 L 673 556 L 672 557 L 672 559 L 674 562 L 675 562 L 676 563 L 679 563 L 682 560 L 682 556 L 680 554 L 679 554 L 678 553 Z M 592 553 L 589 555 L 589 556 L 588 557 L 588 559 L 590 562 L 591 562 L 592 563 L 595 563 L 598 560 L 598 556 L 596 554 L 595 554 L 594 553 Z M 577 553 L 576 554 L 575 554 L 575 555 L 574 556 L 574 561 L 577 563 L 580 563 L 583 561 L 583 556 L 582 555 L 582 554 L 581 554 L 580 553 Z M 298 553 L 295 555 L 295 561 L 298 563 L 301 563 L 302 562 L 303 562 L 303 561 L 304 560 L 304 556 L 303 555 L 303 554 L 302 554 L 301 553 Z M 283 553 L 282 554 L 281 554 L 281 555 L 280 556 L 280 560 L 283 563 L 286 563 L 289 561 L 290 558 L 289 557 L 289 555 L 288 554 L 287 554 L 286 553 Z M 646 546 L 646 620 L 652 620 L 652 546 Z M 523 546 L 523 620 L 529 620 L 529 546 Z M 502 546 L 496 546 L 496 614 L 495 615 L 476 615 L 475 614 L 475 612 L 476 611 L 476 598 L 475 597 L 475 593 L 474 592 L 474 590 L 473 589 L 472 586 L 469 583 L 469 582 L 467 580 L 466 580 L 463 578 L 461 578 L 460 577 L 449 577 L 448 578 L 446 578 L 445 579 L 442 580 L 440 582 L 439 582 L 437 584 L 436 584 L 429 591 L 429 592 L 425 597 L 425 598 L 424 599 L 423 602 L 421 604 L 421 605 L 420 606 L 420 607 L 419 608 L 419 609 L 416 614 L 415 613 L 415 591 L 409 591 L 409 614 L 408 615 L 391 615 L 390 614 L 390 606 L 389 605 L 389 601 L 388 600 L 388 598 L 387 597 L 387 596 L 386 595 L 385 592 L 383 590 L 383 589 L 378 584 L 377 584 L 375 582 L 374 582 L 371 580 L 369 580 L 368 579 L 366 579 L 365 578 L 360 578 L 359 577 L 330 577 L 330 583 L 334 583 L 335 582 L 354 582 L 355 583 L 362 583 L 363 584 L 365 584 L 366 585 L 368 585 L 370 587 L 371 587 L 378 594 L 378 595 L 380 597 L 380 599 L 381 600 L 381 602 L 382 603 L 382 606 L 383 607 L 383 614 L 382 615 L 304 615 L 303 614 L 303 574 L 302 574 L 301 573 L 294 573 L 293 574 L 289 574 L 288 575 L 286 575 L 285 576 L 284 576 L 283 577 L 282 577 L 281 578 L 278 579 L 272 585 L 272 586 L 270 588 L 270 589 L 269 590 L 269 592 L 268 593 L 268 606 L 269 607 L 269 608 L 270 609 L 271 612 L 275 616 L 276 616 L 281 619 L 283 619 L 284 620 L 291 620 L 295 616 L 295 615 L 287 615 L 286 614 L 284 614 L 283 613 L 282 613 L 276 607 L 276 606 L 275 605 L 275 594 L 276 593 L 276 591 L 277 590 L 277 589 L 285 581 L 286 581 L 287 580 L 289 580 L 290 579 L 293 579 L 294 578 L 296 578 L 297 579 L 297 620 L 502 620 Z M 466 589 L 466 590 L 467 591 L 467 593 L 468 594 L 468 597 L 469 598 L 469 614 L 468 615 L 423 615 L 422 614 L 423 613 L 423 610 L 424 609 L 424 607 L 425 606 L 426 603 L 428 601 L 429 598 L 440 587 L 441 587 L 443 585 L 444 585 L 447 583 L 449 583 L 450 582 L 458 582 L 459 583 L 460 583 Z M 341 447 L 357 463 L 371 449 L 385 463 L 401 447 L 401 446 L 386 431 L 385 431 L 372 444 L 371 444 L 358 431 L 357 431 L 356 432 L 355 432 L 355 433 Z M 442 419 L 442 420 L 443 419 L 444 419 L 445 418 L 446 418 L 451 415 L 454 415 L 455 414 L 458 414 L 459 413 L 473 413 L 474 414 L 477 414 L 478 415 L 481 415 L 482 416 L 484 416 L 485 417 L 487 417 L 488 418 L 489 418 L 490 419 L 491 419 L 492 420 L 493 420 L 494 421 L 495 421 L 496 422 L 497 422 L 498 423 L 501 424 L 503 426 L 504 426 L 506 428 L 507 428 L 509 430 L 510 430 L 513 433 L 514 433 L 516 435 L 517 435 L 523 441 L 524 441 L 529 446 L 530 446 L 532 448 L 532 449 L 549 466 L 549 467 L 556 474 L 557 474 L 565 482 L 566 482 L 573 488 L 574 488 L 579 492 L 582 493 L 584 495 L 585 495 L 586 496 L 587 496 L 588 497 L 589 497 L 594 500 L 596 500 L 597 501 L 598 501 L 599 502 L 601 502 L 602 503 L 605 503 L 606 504 L 610 504 L 611 505 L 629 505 L 630 504 L 634 504 L 635 503 L 637 503 L 638 502 L 639 502 L 640 501 L 641 501 L 642 500 L 643 500 L 644 499 L 647 498 L 650 495 L 651 495 L 658 488 L 658 487 L 662 483 L 662 482 L 664 480 L 664 479 L 666 476 L 666 475 L 655 486 L 654 486 L 652 488 L 651 488 L 650 489 L 649 489 L 644 492 L 641 492 L 640 493 L 628 493 L 627 492 L 624 492 L 623 491 L 621 491 L 618 489 L 616 489 L 615 488 L 614 488 L 613 487 L 612 487 L 611 486 L 610 486 L 609 485 L 606 484 L 604 482 L 603 482 L 601 480 L 600 480 L 598 478 L 597 478 L 594 475 L 593 475 L 589 471 L 588 471 L 584 467 L 583 467 L 578 462 L 577 462 L 538 423 L 537 423 L 532 418 L 531 418 L 528 415 L 527 415 L 522 411 L 521 411 L 520 410 L 519 410 L 518 409 L 517 409 L 516 408 L 515 408 L 514 407 L 513 407 L 508 404 L 506 404 L 503 402 L 500 402 L 499 401 L 496 401 L 495 400 L 489 400 L 488 399 L 479 399 L 478 400 L 473 400 L 472 401 L 469 401 L 466 403 L 464 403 L 463 404 L 462 404 L 461 405 L 460 405 L 459 406 L 456 407 L 454 409 L 453 409 L 449 413 L 448 413 Z M 442 305 L 435 312 L 435 313 L 431 317 L 431 318 L 429 320 L 429 321 L 428 322 L 428 323 L 425 328 L 431 322 L 432 322 L 435 319 L 436 319 L 438 317 L 439 317 L 440 316 L 441 316 L 446 313 L 448 313 L 449 312 L 451 312 L 452 311 L 455 311 L 456 310 L 461 310 L 462 311 L 452 321 L 452 322 L 450 324 L 450 325 L 449 326 L 449 327 L 448 328 L 448 329 L 445 334 L 445 336 L 444 337 L 444 340 L 443 341 L 443 345 L 442 346 L 442 363 L 443 363 L 443 360 L 444 359 L 444 357 L 445 356 L 445 354 L 446 353 L 446 351 L 447 350 L 447 349 L 448 348 L 449 345 L 453 340 L 453 339 L 457 335 L 457 334 L 460 331 L 461 331 L 465 327 L 466 327 L 467 326 L 468 327 L 468 328 L 467 329 L 467 330 L 466 331 L 466 333 L 465 334 L 465 337 L 464 338 L 464 343 L 463 344 L 463 357 L 464 358 L 464 363 L 465 364 L 465 367 L 467 370 L 467 372 L 468 373 L 468 374 L 469 375 L 469 376 L 470 377 L 471 380 L 474 383 L 474 384 L 477 387 L 477 388 L 478 389 L 478 388 L 477 387 L 477 385 L 476 384 L 476 382 L 475 381 L 475 378 L 474 377 L 474 372 L 473 371 L 473 362 L 474 361 L 474 355 L 475 354 L 475 351 L 476 350 L 476 348 L 477 347 L 477 345 L 478 344 L 478 343 L 479 342 L 479 341 L 480 340 L 481 337 L 483 335 L 483 334 L 485 332 L 485 331 L 490 326 L 491 327 L 491 334 L 490 335 L 490 347 L 491 348 L 491 357 L 492 358 L 492 364 L 493 365 L 493 369 L 494 370 L 494 374 L 495 375 L 495 377 L 496 378 L 496 381 L 497 382 L 497 384 L 498 385 L 498 387 L 499 387 L 499 385 L 500 384 L 500 382 L 501 381 L 501 378 L 502 377 L 502 375 L 503 374 L 503 370 L 504 369 L 504 365 L 505 364 L 505 358 L 506 357 L 506 348 L 507 347 L 507 335 L 506 334 L 506 327 L 507 326 L 512 331 L 512 332 L 516 337 L 516 338 L 517 339 L 517 340 L 520 345 L 520 347 L 521 348 L 521 350 L 522 351 L 522 354 L 523 355 L 523 361 L 524 362 L 524 371 L 523 372 L 523 377 L 522 378 L 522 381 L 521 382 L 521 384 L 520 385 L 520 387 L 519 388 L 519 389 L 520 388 L 520 387 L 523 384 L 523 383 L 526 380 L 526 379 L 527 378 L 527 377 L 530 372 L 530 370 L 532 367 L 532 364 L 533 363 L 533 358 L 534 357 L 534 344 L 533 343 L 533 338 L 532 337 L 532 334 L 531 333 L 531 331 L 529 328 L 529 327 L 530 326 L 531 327 L 532 327 L 536 331 L 537 331 L 540 334 L 540 335 L 544 339 L 544 340 L 548 345 L 548 346 L 551 351 L 551 353 L 552 354 L 552 356 L 553 357 L 553 359 L 554 360 L 554 363 L 555 363 L 555 346 L 554 345 L 554 341 L 553 340 L 553 337 L 552 336 L 552 334 L 551 333 L 551 332 L 550 331 L 550 330 L 549 329 L 549 328 L 548 327 L 547 324 L 545 322 L 545 321 L 535 311 L 536 310 L 541 310 L 542 311 L 545 311 L 546 312 L 548 312 L 549 313 L 551 313 L 552 314 L 554 314 L 556 316 L 559 317 L 561 319 L 562 319 L 565 322 L 566 322 L 572 328 L 571 327 L 571 326 L 570 325 L 570 324 L 569 323 L 569 322 L 568 321 L 567 318 L 563 314 L 563 313 L 555 305 L 554 305 L 549 301 L 548 301 L 543 298 L 541 298 L 538 296 L 535 296 L 534 295 L 531 295 L 530 294 L 510 294 L 509 295 L 506 295 L 505 296 L 501 296 L 500 295 L 500 292 L 499 291 L 499 289 L 498 289 L 498 291 L 497 292 L 497 295 L 496 296 L 492 296 L 491 295 L 488 295 L 487 294 L 468 294 L 467 295 L 463 295 L 462 296 L 459 296 L 456 298 L 454 298 L 453 299 L 452 299 L 451 300 L 448 301 L 443 305 Z M 528 326 L 529 325 L 530 326 L 529 327 Z M 467 326 L 468 325 L 469 326 L 468 327 Z"/>
+    </g>
+    <g id="moh-gold" fill="#9E925E" fill-rule="evenodd" clip-rule="evenodd">
+    <path d="M 644 668 L 642 670 L 642 675 L 643 676 L 646 676 L 647 675 L 647 672 L 648 671 L 648 670 L 650 668 L 651 668 L 652 667 L 655 668 L 657 670 L 657 671 L 658 672 L 658 676 L 655 678 L 652 678 L 651 679 L 649 679 L 648 680 L 645 681 L 641 685 L 641 688 L 640 689 L 641 690 L 641 693 L 644 696 L 652 696 L 657 693 L 658 694 L 658 696 L 664 696 L 664 671 L 663 670 L 663 669 L 661 667 L 660 667 L 659 666 L 649 666 L 648 667 L 646 667 L 645 668 Z M 657 679 L 658 680 L 658 689 L 655 692 L 654 692 L 653 693 L 650 693 L 649 692 L 648 692 L 646 689 L 646 687 L 647 686 L 647 685 L 652 681 L 653 681 L 654 680 L 656 680 Z M 619 666 L 618 667 L 616 667 L 614 669 L 613 669 L 612 670 L 612 671 L 610 673 L 610 674 L 609 675 L 609 678 L 608 679 L 608 685 L 609 686 L 609 688 L 610 689 L 610 690 L 615 695 L 616 695 L 617 696 L 627 696 L 628 695 L 631 694 L 635 690 L 635 689 L 637 686 L 636 685 L 635 685 L 634 686 L 634 687 L 631 690 L 630 690 L 627 692 L 622 692 L 621 691 L 620 691 L 615 686 L 615 684 L 614 683 L 614 679 L 615 678 L 636 678 L 636 677 L 635 676 L 635 673 L 634 672 L 634 671 L 631 668 L 630 668 L 627 666 Z M 614 673 L 619 668 L 623 668 L 625 670 L 626 670 L 627 671 L 627 672 L 628 673 L 628 675 L 627 676 L 615 676 L 614 675 Z M 503 666 L 502 667 L 499 668 L 494 673 L 494 674 L 493 675 L 493 677 L 492 678 L 492 684 L 493 685 L 493 688 L 495 690 L 495 691 L 498 694 L 499 694 L 500 695 L 502 695 L 503 696 L 513 696 L 514 695 L 517 694 L 520 691 L 520 690 L 523 685 L 523 676 L 522 675 L 521 672 L 517 668 L 516 668 L 515 667 L 513 667 L 512 666 Z M 505 668 L 509 668 L 510 669 L 511 669 L 514 672 L 514 673 L 516 676 L 516 679 L 517 680 L 517 685 L 516 686 L 516 689 L 514 691 L 514 692 L 511 694 L 506 694 L 505 693 L 504 693 L 500 688 L 500 686 L 499 685 L 499 675 L 500 674 L 501 671 L 503 669 L 504 669 Z M 423 667 L 423 696 L 429 696 L 429 675 L 433 671 L 435 671 L 436 672 L 440 672 L 442 670 L 442 669 L 443 668 L 444 669 L 444 670 L 445 671 L 445 672 L 446 673 L 447 676 L 449 678 L 449 679 L 450 680 L 450 681 L 451 682 L 451 683 L 452 684 L 452 685 L 453 686 L 454 689 L 456 691 L 456 692 L 457 693 L 457 696 L 456 697 L 456 699 L 455 700 L 455 701 L 452 704 L 449 704 L 448 703 L 445 703 L 443 705 L 443 708 L 446 710 L 449 710 L 450 709 L 453 708 L 457 704 L 457 703 L 458 702 L 458 700 L 459 699 L 459 698 L 462 693 L 462 691 L 465 686 L 465 684 L 468 679 L 468 677 L 469 676 L 469 675 L 472 670 L 472 668 L 473 667 L 470 667 L 469 668 L 469 669 L 467 672 L 467 674 L 464 679 L 464 681 L 461 686 L 460 686 L 459 685 L 459 684 L 458 683 L 458 682 L 456 680 L 456 679 L 455 678 L 455 677 L 454 676 L 454 675 L 453 674 L 453 673 L 452 672 L 451 669 L 449 667 L 443 667 L 443 668 L 442 669 L 440 666 L 435 666 L 434 667 L 433 667 L 430 670 L 429 669 L 429 667 Z M 382 666 L 381 667 L 380 667 L 377 670 L 377 671 L 376 672 L 376 676 L 377 677 L 378 680 L 379 680 L 381 682 L 382 682 L 383 683 L 384 683 L 385 684 L 388 685 L 392 689 L 392 691 L 389 694 L 383 694 L 378 689 L 377 689 L 375 691 L 379 695 L 380 695 L 381 696 L 391 696 L 396 693 L 396 692 L 397 691 L 397 684 L 393 680 L 392 680 L 391 679 L 389 679 L 388 678 L 387 678 L 386 677 L 383 676 L 381 674 L 380 671 L 383 668 L 389 668 L 394 673 L 395 673 L 396 672 L 396 671 L 394 668 L 393 668 L 390 666 Z M 370 666 L 367 666 L 366 667 L 364 667 L 364 696 L 370 696 Z M 352 666 L 346 666 L 345 667 L 343 667 L 341 669 L 340 669 L 339 670 L 338 669 L 338 667 L 332 667 L 332 696 L 338 696 L 338 674 L 340 672 L 341 672 L 344 670 L 348 670 L 350 672 L 350 673 L 351 674 L 351 696 L 357 696 L 357 673 L 356 672 L 356 670 Z M 325 666 L 322 666 L 321 667 L 319 667 L 319 696 L 325 696 Z M 569 658 L 569 696 L 575 696 L 575 678 L 576 677 L 594 677 L 595 678 L 595 696 L 601 696 L 601 658 L 595 658 L 595 674 L 594 675 L 576 675 L 575 674 L 575 658 Z M 268 658 L 268 659 L 267 660 L 267 662 L 268 663 L 268 696 L 270 696 L 270 667 L 271 666 L 272 667 L 272 668 L 273 669 L 273 670 L 274 671 L 274 672 L 275 673 L 275 674 L 276 675 L 276 676 L 277 677 L 277 678 L 278 679 L 279 682 L 281 684 L 281 685 L 282 686 L 282 687 L 283 688 L 283 689 L 284 690 L 284 691 L 287 696 L 288 696 L 289 695 L 289 694 L 290 693 L 290 692 L 291 691 L 291 690 L 292 689 L 292 688 L 293 687 L 293 686 L 294 685 L 294 684 L 295 683 L 295 682 L 296 681 L 296 680 L 297 679 L 297 678 L 298 677 L 298 676 L 299 675 L 299 674 L 300 673 L 300 672 L 303 667 L 304 668 L 304 696 L 310 696 L 310 658 L 304 658 L 303 659 L 303 660 L 302 661 L 302 662 L 301 663 L 301 664 L 300 665 L 300 666 L 299 667 L 299 668 L 298 669 L 298 670 L 297 671 L 297 672 L 296 673 L 296 674 L 295 675 L 295 676 L 294 677 L 294 678 L 293 679 L 293 680 L 292 681 L 291 684 L 289 686 L 288 685 L 288 684 L 287 683 L 287 682 L 286 681 L 286 680 L 285 679 L 285 678 L 284 677 L 283 674 L 281 672 L 281 671 L 280 670 L 280 669 L 277 664 L 277 662 L 276 661 L 276 660 L 274 658 Z M 691 656 L 691 659 L 690 660 L 690 662 L 689 663 L 689 664 L 687 666 L 686 666 L 685 667 L 683 667 L 682 668 L 682 669 L 686 669 L 687 670 L 687 692 L 688 693 L 688 694 L 690 696 L 697 696 L 698 695 L 699 695 L 701 693 L 701 692 L 700 691 L 697 693 L 695 693 L 693 691 L 693 670 L 694 669 L 700 669 L 700 667 L 694 667 L 693 666 L 693 656 Z M 410 656 L 410 657 L 409 658 L 409 660 L 408 661 L 408 663 L 404 667 L 401 667 L 401 669 L 405 669 L 406 670 L 406 693 L 407 694 L 407 695 L 408 696 L 416 696 L 419 693 L 419 692 L 418 691 L 416 693 L 414 693 L 411 690 L 411 670 L 412 669 L 418 669 L 418 667 L 412 667 L 411 666 L 411 656 Z M 704 653 L 704 696 L 710 696 L 710 674 L 716 670 L 720 670 L 723 673 L 723 696 L 729 696 L 729 672 L 728 671 L 727 668 L 724 666 L 718 666 L 717 667 L 714 668 L 711 671 L 710 670 L 710 651 L 708 651 L 707 652 Z M 678 651 L 676 651 L 675 652 L 672 653 L 672 696 L 678 696 Z M 546 651 L 542 651 L 541 652 L 539 652 L 538 653 L 537 653 L 534 656 L 534 658 L 533 659 L 533 665 L 532 666 L 527 666 L 526 667 L 526 668 L 527 669 L 532 669 L 533 670 L 533 696 L 538 696 L 538 670 L 539 669 L 546 669 L 546 666 L 539 666 L 538 665 L 538 658 L 539 657 L 539 656 L 542 653 L 543 653 L 546 656 L 547 659 L 550 659 L 552 657 L 552 655 L 549 652 L 547 652 Z M 363 653 L 363 655 L 365 657 L 369 657 L 369 656 L 370 655 L 370 653 L 367 651 L 366 651 Z M 319 652 L 319 656 L 320 657 L 324 657 L 325 656 L 325 653 L 323 651 L 321 651 L 320 652 Z M 544 428 L 557 441 L 558 441 L 559 440 L 560 440 L 562 438 L 563 438 L 566 435 L 567 435 L 570 432 L 571 432 L 573 430 L 574 430 L 577 427 L 578 427 L 583 423 L 586 422 L 588 420 L 589 420 L 590 419 L 591 419 L 592 418 L 593 418 L 598 415 L 600 415 L 601 414 L 603 414 L 604 413 L 606 413 L 607 412 L 609 412 L 610 411 L 613 411 L 614 410 L 629 410 L 630 411 L 634 411 L 635 412 L 637 412 L 640 414 L 642 414 L 643 415 L 644 415 L 646 417 L 649 418 L 652 421 L 653 421 L 657 425 L 657 426 L 660 429 L 660 430 L 662 432 L 663 435 L 665 437 L 665 439 L 666 440 L 666 442 L 667 443 L 667 445 L 668 446 L 668 449 L 669 450 L 669 456 L 669 443 L 668 442 L 668 438 L 667 437 L 667 434 L 666 433 L 666 430 L 665 429 L 665 427 L 664 426 L 664 425 L 663 424 L 662 421 L 660 419 L 660 418 L 658 416 L 658 415 L 652 409 L 651 409 L 647 405 L 646 405 L 645 404 L 644 404 L 639 401 L 637 401 L 636 400 L 633 400 L 632 399 L 627 399 L 626 398 L 611 398 L 610 399 L 604 399 L 603 400 L 600 400 L 599 401 L 597 401 L 596 402 L 594 402 L 593 403 L 591 403 L 590 404 L 588 404 L 585 406 L 583 406 L 582 407 L 581 407 L 580 408 L 579 408 L 578 409 L 577 409 L 576 410 L 575 410 L 574 411 L 573 411 L 572 412 L 571 412 L 570 413 L 569 413 L 568 414 L 567 414 L 566 415 L 563 416 L 561 418 L 560 418 L 559 419 L 556 420 L 554 422 L 551 423 L 549 425 L 546 426 Z M 330 431 L 330 434 L 329 435 L 329 439 L 328 440 L 328 446 L 327 447 L 327 456 L 328 456 L 328 448 L 329 447 L 329 444 L 330 443 L 330 441 L 332 438 L 332 436 L 334 434 L 334 433 L 335 432 L 335 431 L 337 429 L 337 428 L 344 421 L 345 421 L 349 417 L 350 417 L 351 416 L 352 416 L 357 413 L 359 413 L 360 412 L 362 412 L 363 411 L 366 411 L 367 410 L 382 410 L 383 411 L 386 411 L 387 412 L 390 412 L 391 413 L 393 413 L 394 414 L 396 414 L 397 415 L 398 415 L 399 416 L 400 416 L 401 417 L 402 417 L 403 418 L 404 418 L 405 419 L 406 419 L 407 420 L 408 420 L 409 421 L 412 422 L 414 424 L 415 424 L 417 426 L 418 426 L 421 429 L 422 429 L 424 431 L 425 431 L 428 434 L 429 434 L 432 437 L 433 437 L 435 439 L 436 439 L 440 443 L 441 443 L 444 446 L 445 446 L 449 450 L 450 450 L 453 453 L 454 453 L 458 457 L 459 457 L 465 463 L 466 463 L 472 469 L 473 469 L 478 474 L 474 478 L 473 478 L 469 482 L 468 482 L 465 485 L 464 485 L 460 489 L 459 489 L 454 494 L 453 494 L 447 500 L 446 500 L 441 505 L 440 505 L 488 505 L 490 503 L 490 502 L 498 494 L 499 494 L 500 495 L 500 496 L 509 505 L 556 505 L 555 504 L 554 504 L 548 498 L 547 498 L 542 493 L 541 493 L 536 488 L 535 488 L 531 484 L 530 484 L 526 480 L 525 480 L 518 474 L 520 472 L 521 472 L 527 466 L 528 466 L 534 460 L 535 460 L 538 457 L 538 456 L 524 442 L 522 442 L 521 443 L 520 443 L 518 445 L 517 445 L 514 448 L 513 448 L 511 450 L 510 450 L 507 453 L 506 453 L 503 456 L 502 456 L 499 459 L 498 459 L 496 457 L 495 457 L 492 454 L 491 454 L 489 452 L 488 452 L 485 449 L 484 449 L 482 447 L 481 447 L 478 444 L 477 444 L 475 442 L 474 442 L 469 438 L 466 437 L 464 435 L 463 435 L 461 433 L 460 433 L 458 431 L 457 431 L 452 427 L 451 427 L 450 426 L 449 426 L 447 424 L 444 423 L 442 421 L 441 422 L 440 421 L 440 420 L 439 420 L 437 418 L 436 418 L 435 417 L 434 417 L 433 416 L 432 416 L 431 415 L 428 414 L 426 412 L 425 412 L 422 410 L 420 410 L 419 409 L 418 409 L 417 408 L 416 408 L 411 405 L 409 405 L 408 404 L 406 404 L 405 403 L 404 403 L 403 402 L 401 402 L 400 401 L 397 401 L 396 400 L 393 400 L 392 399 L 387 399 L 386 398 L 371 398 L 370 399 L 364 399 L 363 400 L 360 400 L 357 402 L 355 402 L 354 403 L 351 404 L 349 406 L 348 406 L 336 418 L 336 419 L 335 420 L 335 421 L 332 426 L 332 428 Z"/>
+    </g>
+</g></defs></svg>
+<div id="shell">
+  <div id="toolbar" role="toolbar" aria-label="أدوات الملف الصحي">
+    <span class="title">الملف الصحي</span>
+    <span class="sub">مستشفى الحديثة العام — عيادة صحة العاملين</span>
+    <span class="dirty-indicator" id="dirtyIndicator" hidden>تغييرات غير محفوظة</span>
+    <button class="btn" id="btnPrev" type="button">السابق</button>
+    <span class="counter" id="counter">١ / ٨</span>
+    <button class="btn" id="btnNext" type="button">التالي</button>
+    <button class="btn" id="btnThumbs" type="button" aria-pressed="false">الصفحات</button>
+    <button class="btn" id="btnZoomOut" type="button" aria-label="تصغير">−</button>
+    <button class="btn" id="btnZoomIn" type="button" aria-label="تكبير">+</button>
+    <button class="btn" id="btnSample" type="button">بيانات تجريبية</button>
+    <button class="btn" id="btnClear" type="button">نموذج فارغ</button>
+    <button class="btn" id="btnPrint" type="button">طباعة</button>
+  </div>
+
+  <div id="viewport">
+    <div id="stageWrap">
+      <div id="stage">
+        <div id="book" tabindex="0" role="application"
+             aria-label="تصفح الملف الصحي — استخدم الأسهم للتنقل بين الصفحات">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rail" role="tablist" aria-label="صفحات الملف"></div>
+</div>
+
+<div id="printRoot" aria-hidden="true"></div>
+
+<script>
+/*!
+ * الملف الصحي — Personal Health File
+ * Employee Health Clinic · Infection Control Dep
+ * Haditha General Hospital · Gurayat Health Affairs · Saudi Ministry of Health
+ *
+ * Self-contained: one HTML file, no build step, no CDN, no web fonts, no images.
+ * Works offline and inside an <iframe>.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THE CURL IS DONE WITH CSS STRIPS AND NOT WEBGL
+ * ---------------------------------------------------------------------------
+ * A WebGL page (PlaneGeometry + a cylindrical-bend vertex shader) needs the two
+ * faces of the leaf as *textures*. In a single offline file there is no
+ * Three.js to load, and the only way to turn this DOM into a texture is the
+ * SVG <foreignObject> trick, which (a) renders Arabic shaping inconsistently
+ * across engines, (b) taints the canvas in some of them — which then makes
+ * texImage2D throw — and (c) throws away the vector text that makes the printed
+ * A4 output identical to the clinic's original form.
+ *
+ * So the leaf is simulated in CSS instead. The sheet is sliced into N vertical
+ * strips; each strip is a real, cloned copy of the page clipped to its own
+ * slice, and the strips are laid out along a bend curve that is integrated
+ * strip by strip (position_{i+1} = position_i + w·(-cos a_i, sin a_i)). Because
+ * consecutive strips share an exact edge point, the surface is continuous — no
+ * gaps, no faceting seams — and the bend is a genuine curve rather than one
+ * rotateY. Per frame we only write `transform` and two custom properties used
+ * for shading: no layout, no repaint of the page content, compositor only.
+ * The pages stay live DOM, so RTL text, selection and vector printing all work.
+ *
+ * Degradation: if `prefers-reduced-motion` is set, or preserve-3d is
+ * unsupported, the engine switches to a cross-fade (see FLAT_MODE).
+ *
+ * ---------------------------------------------------------------------------
+ * BINDING DIRECTION
+ * ---------------------------------------------------------------------------
+ * This is an Arabic book: the spine is in the middle of the spread and the
+ * earlier page sits on the RIGHT. A leaf therefore travels left → right as you
+ * move forward (page 1 is on the left of the closed book; opening it puts page
+ * 2 on the right and page 3 on the left, exactly like the scan). Forward =
+ * drag rightwards, tap the left page, or press ←.
+ *
+ * ---------------------------------------------------------------------------
+ * CODE MAP: constants → SVG logo → page builders → turn engine → field binding → data API → boot
+ * ---------------------------------------------------------------------------
+ */
+(function () {
+  'use strict';
+
+  /* =======================================================================
+     1. CONSTANTS AND LETTERHEAD
+     ======================================================================= */
+
+  var MM = 96 / 25.4;                 // CSS px per millimetre (exact by spec)
+  var PAGE_W = 210 * MM;
+  var PAGE_H = 297 * MM;
+  var N_PAGES = 8;
+
+  var AR_LINES = [
+    'المملكة العربية السعودية',
+    'وزارة الصحة',
+    'شؤون صحة القريات',
+    'مستشفى الحديثة العام',
+    'قسم مكافحة العدوى',
+    'عيادة صحة العاملين'
+  ];
+  var EN_LINES = [
+    'Kingdom of Saudi Arabia',
+    'Ministry of Health',
+    'Gurayat Health Affairs',
+    'Haditha General Hospital',
+    'Infection Control Dep',
+    'Employee Health Clinic'
+  ];
+
+  var INVESTIGATIONS = ['Mammogram', 'Ray-Chest X', 'EKG', 'PapSmear', 'ECHO',
+    'DEXA', 'Ultrasound', 'Endoscopy', 'Sigmoidoscopy', 'Others/ specify'];
+
+  var SEROLOGY = ['HBsAG', 'anti-HBs', 'anti-HBc', 'HIV-Ab', 'HCV-Ab',
+    'Rubella', 'Chickenpox', 'Measles', 'Mumps'];
+
+  var IMMUNIZATION = [
+    { group: 'Hepatitis B:', span: 3, dose: '1-st dose', key: 'hbv1' },
+    { dose: '2-nd dose', key: 'hbv2' },
+    { dose: '3-rd dose', key: 'hbv3' },
+    { group: 'Influenza vaccine', span: 1, dose: '', key: 'flu' },
+    { group: 'Meningococcal vaccine', span: 1, dose: '', key: 'meningo' },
+    { group: 'Td', span: 1, dose: '', key: 'td' },
+    { group: 'MMR*', span: 1, dose: '', key: 'mmr' },
+    { group: 'VZ vaccine* :', span: 2, dose: '1-st dose', key: 'vz1' },
+    { dose: '2-nd dose', key: 'vz2' }
+  ];
+
+  var EXAM_ROWS = [
+    ['General Appearance', 'general'],
+    ['Eye :  RT', 'eyeRT'], ['        LT', 'eyeLT'],
+    ['Ear :  RT', 'earRT'], ['        LT', 'earLT'],
+    ['Nose', 'nose'],
+    ['Mouth and oral cavity', 'mouth'],
+    ['Neck', 'neck'],
+    ['Breast', 'breast'],
+    ['C.V.S', 'cvs'],
+    ['R.S', 'rs'],
+    ['G.I.T', 'git'],
+    ['C.N.S', 'cns'],
+    ['Musculoskeletal', 'musculoskeletal'],
+    ['Action Plan', 'actionPlan']
+  ];
+
+  var HISTORY_ROWS = [
+    ['Past Medical History :', 'pastMedical', 3],
+    ['Past Surgical History :', 'pastSurgical', 2],
+    ['Allergies', 'allergies', 2],
+    ['Smoking History', 'smoking', 2],
+    ['Habits', 'habits', 2],
+    ['Family History', 'family', 2],
+    ['Psychosocial History', 'psychosocial', 2]
+  ];
+
+  var AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+  function arNum(n) {
+    return String(n).replace(/[0-9]/g, function (d) { return AR_DIGITS.charAt(+d); });
+  }
+
+  /* ---- tiny DOM helpers ------------------------------------------------ */
+
+  function append(parent, kids) {
+    if (kids === null || kids === undefined || kids === false) return;
+    if (Array.isArray(kids)) { for (var i = 0; i < kids.length; i++) append(parent, kids[i]); return; }
+    if (kids.nodeType) { parent.appendChild(kids); return; }
+    parent.appendChild(document.createTextNode(String(kids)));
+  }
+
+  function h(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
+        var v = attrs[k];
+        if (v === null || v === undefined || v === false) continue;
+        if (k === 'class') e.className = v;
+        else e.setAttribute(k, v);
+      }
+    }
+    append(e, kids);
+    return e;
+  }
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function s(tag, attrs, kids) {
+    var e = document.createElementNS(SVGNS, tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
+        var v = attrs[k];
+        if (v === null || v === undefined || v === false) continue;
+        e.setAttribute(k, String(v));
+      }
+    }
+    if (kids) {
+      if (!Array.isArray(kids)) kids = [kids];
+      for (var i = 0; i < kids.length; i++) if (kids[i]) e.appendChild(kids[i]);
+    }
+    return e;
+  }
+
+  /** Printed data value. Returns null when there is nothing to print, so the
+   *  blank form keeps its empty field instead of showing "undefined". */
+  function V(value, cls) {
+    if (value === null || value === undefined) return null;
+    var t = String(value).trim();
+    if (!t) return null;
+    return h('span', { class: cls ? 'v ' + cls : 'v' }, t);
+  }
+
+  /**
+   * Tokenise DATA paths. Dot notation handles ordinary keys and bracket
+   * notation handles keys that contain spaces, dots, hyphens or punctuation:
+   * screening['anti-HBs'].date
+   */
+  function tokenizePath(path) {
+    var out = [], token = '', i = 0;
+    function push() {
+      if (token !== '') { out.push(token); token = ''; }
+    }
+    while (i < path.length) {
+      var c = path.charAt(i);
+      if (c === '.') { push(); i++; continue; }
+      if (c !== '[') { token += c; i++; continue; }
+
+      push(); i++;
+      while (i < path.length && /\s/.test(path.charAt(i))) i++;
+      if (i >= path.length) break;
+
+      var q = path.charAt(i), value = '';
+      if (q === "'" || q === '"') {
+        i++;
+        while (i < path.length) {
+          c = path.charAt(i++);
+          if (c === '\\' && i < path.length) { value += path.charAt(i++); continue; }
+          if (c === q) break;
+          value += c;
+        }
+        while (i < path.length && /\s/.test(path.charAt(i))) i++;
+        if (path.charAt(i) === ']') i++;
+        out.push(value);
+      } else {
+        while (i < path.length && path.charAt(i) !== ']') value += path.charAt(i++);
+        if (path.charAt(i) === ']') i++;
+        value = value.trim();
+        out.push(/^\d+$/.test(value) ? Number(value) : value);
+      }
+    }
+    push();
+    return out;
+  }
+
+  function getByPath(obj, path) {
+    if (!obj || !path) return undefined;
+    var parts = tokenizePath(path), cur = obj;
+    for (var i = 0; i < parts.length; i++) {
+      if (cur === null || cur === undefined) return undefined;
+      cur = cur[parts[i]];
+    }
+    return cur;
+  }
+
+  /** Set a bound value, creating objects/arrays on the way. Empty values delete
+   *  the final key so an erased field round-trips as absent, never as "". */
+  function setByPath(obj, path, value) {
+    var parts = tokenizePath(path);
+    if (!parts.length) return;
+    var cur = obj;
+    for (var i = 0; i < parts.length - 1; i++) {
+      var key = parts[i], next = parts[i + 1];
+      if (!cur[key] || typeof cur[key] !== 'object') cur[key] = typeof next === 'number' ? [] : {};
+      cur = cur[key];
+    }
+    var last = parts[parts.length - 1];
+    var empty = value === null || value === undefined ||
+      (typeof value === 'string' && value.replace(/\u00a0/g, ' ').trim() === '');
+    if (empty) delete cur[last];
+    else cur[last] = value;
+  }
+
+  function pathKey(base, key, tail) {
+    return base + '[' + JSON.stringify(String(key)) + ']' + (tail ? '.' + tail : '');
+  }
+
+  function get(obj, key) {
+    if (!obj) return undefined;
+    return obj[key];
+  }
+
+  /** Editable printed value. It always returns a node, even when blank, so
+   *  the paper geometry is identical in blank, partial and full records. */
+  function F(path, cls, label, fallback) {
+    var value = getByPath(DATA, path);
+    if ((value === null || value === undefined || String(value) === '') && fallback !== undefined) value = fallback;
+    var attrs = {
+      class: cls ? 'v ' + cls : 'v',
+      'data-bind': path,
+      'data-label': label || path,
+      'data-field': 'single',
+      role: 'textbox',
+      'aria-label': label || path
+    };
+    if (cls && /(^|\s)en(\s|$)/.test(cls)) attrs.dir = 'ltr';
+    return h('span', attrs, value === null || value === undefined ? '' : String(value));
+  }
+
+  /** One clipped editable block spanning several printed dotted lines. */
+  function MULTI(path, label, lines, cls) {
+    var value = getByPath(DATA, path);
+    return h('span', {
+      class: 'mfield' + (cls ? ' ' + cls : ''),
+      style: '--lines:' + lines,
+      'data-bind': path,
+      'data-label': label || path,
+      'data-field': 'multi',
+      role: 'textbox',
+      'aria-multiline': 'true',
+      'aria-label': label || path
+    }, value === null || value === undefined ? '' : String(value));
+  }
+
+
+  /* =======================================================================
+     2. MOH LOGO — inline SVG, drawn (no image files)
+     ======================================================================= */
+
+  /**
+   * Ministry of Health lockup. The artwork itself lives once in the document
+   * (<g id="mohMark">, traced from the supplied vector); every instance here is
+   * a <use> reference, so the eight pages — and the ~20 clones a turning leaf
+   * needs — stay small and rasterise cheaply.
+   */
+  var MARK_VB = '259 281 479 438';
+  var MARK_RATIO = 438 / 479;
+
+  function mohLogo(widthMM) {
+    var svg = s('svg', {
+      viewBox: MARK_VB,
+      width: widthMM + 'mm',
+      height: (widthMM * MARK_RATIO).toFixed(2) + 'mm',
+      role: 'img',
+      'aria-label': 'وزارة الصحة Ministry of Health',
+      focusable: 'false'
+    });
+    svg.appendChild(s('use', { href: '#mohMark' }));
+    return svg;
+  }
+
+  /* =======================================================================
+     3. PAGE BUILDERS — one function per page
+     ======================================================================= */
+
+  function letterhead(kind) {
+    var arCol = h('div', { class: 'col ar' }, AR_LINES.map(function (l) { return h('div', null, l); }));
+    if (kind === 'cover') {
+      var enCol = h('div', { class: 'col en' }, EN_LINES.map(function (l) { return h('div', null, l); }));
+      return h('div', { class: 'lh cover' }, [enCol, h('div', { class: 'mark' }, mohLogo(40)), arCol]);
+    }
+    return h('div', { class: 'lh inner' }, [h('div', { class: 'mark' }, mohLogo(22)), arCol]);
+  }
+
+  function pill(en, ar, big) {
+    var kids = [];
+    if (en) kids.push(h('span', { class: 'e' }, en));
+    if (ar) kids.push(h('span', { class: 'a' }, ar));
+    return h('div', { class: 'pill' + (big ? ' big' : '') + (kids.length < 2 ? ' solo' : '') }, kids);
+  }
+
+  /** n character boxes, bound as one DATA value but individually editable. */
+  function BOXES(n, path, small, label, options) {
+    options = options || {};
+    var value = options.value;
+    if (value === undefined) value = getByPath(DATA, path);
+    var chars = (value === null || value === undefined) ? [] : String(value).replace(/\s/g, '').split('');
+    var row = h('div', {
+      class: 'boxes' + (small ? ' sm' : ''),
+      dir: 'ltr',
+      'data-box-group': path
+    });
+    for (var i = 0; i < n; i++) {
+      var attrs = {
+        class: 'box',
+        'data-bind': path,
+        'data-label': (label || path) + ' ' + (i + 1),
+        'data-field': 'box',
+        'data-box-index': i,
+        role: 'textbox',
+        'aria-label': (label || path) + ' ' + (i + 1)
+      };
+      if (options.numeric) attrs.inputmode = 'numeric';
+      if (options.datePart !== undefined) attrs['data-date-part'] = options.datePart;
+      row.appendChild(h('span', attrs, chars[i] || ''));
+    }
+    return row;
+  }
+
+  function labelledBoxes(label, n, path, gapMM, small) {
+    return h('div', { class: 'row rtl' }, [
+      h('span', { class: 'lab' }, label),
+      h('span', { style: 'width:' + (gapMM || 4) + 'mm' }),
+      BOXES(n, path, small, label, { numeric: true })
+    ]);
+  }
+
+  function choiceMatches(path, choice, current) {
+    current = String(current || '').trim();
+    if (current === choice) return true;
+    if (path === 'gender') {
+      if (choice === 'ذكر') return /^(ذكر|m|male)$/i.test(current);
+      if (choice === 'أنثى') return /^(أنثى|انثى|f|female)$/i.test(current);
+    }
+    if (path === 'educationBarrier') {
+      if (choice === 'نعم') return /^(نعم|yes)$/i.test(current);
+      if (choice === 'لا') return /^(لا|no)$/i.test(current);
+    }
+    return false;
+  }
+
+  function CHECK(path, choice, groupLabel) {
+    var on = choiceMatches(path, choice, getByPath(DATA, path));
+    return h('span', {
+      class: 'chk',
+      'data-bind': path,
+      'data-label': (groupLabel || path) + ' — ' + choice,
+      'data-field': 'choice',
+      'data-choice': choice,
+      role: 'radio',
+      'aria-checked': String(on),
+      'aria-label': (groupLabel || path) + ' — ' + choice
+    }, [h('i', null, on ? '✓' : ''), h('span', null, choice)]);
+  }
+
+
+  function th(text, o) {
+    o = o || {};
+    return h('th', { colspan: o.cs || null, rowspan: o.rs || null, style: o.style || null, class: o.cls || null }, text);
+  }
+  function td(content, o) {
+    o = o || {};
+    return h('td', {
+      colspan: o.cs || null, rowspan: o.rs || null,
+      style: o.style || null, class: o.cls || null
+    }, content);
+  }
+  function tr(cells) { return h('tr', null, cells); }
+  function tbl(cls, rows) { return h('table', { class: 't ' + (cls || '') }, h('tbody', null, rows)); }
+
+  function badge(n) { return h('div', { class: 'badge' }, arNum(n)); }
+
+  function pageEl(index, cls) {
+    return h('div', {
+      class: 'page' + (cls ? ' ' + cls : ''),
+      'data-page': index,
+      role: 'region',
+      'aria-label': 'صفحة ' + arNum(index + 1)
+    });
+  }
+
+  /** Split a date string into day / month / year digit groups without
+   *  reformatting it: Hijri or Gregorian, whatever order it arrives in. */
+  function dateParts(str) {
+    if (!str) return ['', '', ''];
+    var parts = String(str).trim().split(/[^0-9\u0660-\u0669]+/).filter(Boolean);
+    if (parts.length < 3) return ['', '', ''];
+    if (parts[0].length === 4) return [parts[2], parts[1], parts[0]];
+    return [parts[0], parts[1], parts[2]];
+  }
+
+  /** Reassemble day/month/year groups without converting calendars or changing
+   *  the order/separator of a date that was supplied by the host. */
+  function joinDateParts(parts, original) {
+    var raw = original === null || original === undefined ? '' : String(original).trim();
+    var rawParts = raw.split(/[^0-9\u0660-\u0669]+/).filter(Boolean);
+    var sepMatch = raw.match(/[^0-9\u0660-\u0669]+/);
+    var sep = sepMatch ? sepMatch[0] : '/';
+    if (rawParts.length >= 3 && rawParts[0].length === 4) return [parts[2], parts[1], parts[0]].join(sep);
+    return [parts[0], parts[1], parts[2]].join(sep);
+  }
+
+  /* ---- page 1 — cover -------------------------------------------------- */
+  function buildPage1(D) {
+    var p = pageEl(0, 'p-cover flow');
+    var activity = D.activity || [];
+
+    var yearCells = [td('السنة', { cls: 'g', style: 'width:24mm' })];
+    var stateCells = [td('حالة الملف', { cls: 'g', style: 'width:24mm' })];
+    for (var i = 0; i < 14; i++) {
+      yearCells.push(td(F('activity.' + i + '.year', 'en', 'سنة نشاط السجل')));
+      stateCells.push(td(F('activity.' + i + '.status', null, 'حالة الملف')));
+    }
+
+    append(p, [
+      letterhead('cover'),
+      pill('Personal Health File', 'الملف الصحي', true),
+      h('div', { class: 'conf' }, [h('span', { class: 'e' }, 'Confidential'), h('span', { class: 'a' }, 'سري')]),
+      h('div', { class: 'spacer' }),
+      h('div', { class: 'row rtl', style: 'justify-content:flex-start' }, [
+        h('span', { class: 'lab' }, 'رقم الملف الصحي'),
+        h('span', { style: 'width:34mm' }),
+        BOXES(6, 'fileNo', false, 'رقم الملف الصحي', { numeric: true })
+      ]),
+      h('div', { class: 'spacer g2' }),
+      h('div', { class: 'warn' }, [
+        h('div', { class: 'a' }, 'لا يسمح بإعطاء هذا السجل للمريض'),
+        h('div', { class: 'e' }, 'NOT TO BE HANDLED BY PATIENT')
+      ]),
+      h('div', { class: 'spacer g2' }),
+      h('div', { class: 'cap' }, [
+        h('span', { class: 'e' }, 'ACTIVITY YEAR'),
+        h('span', { class: 'a' }, 'سنوات نشاط السجل')
+      ]),
+      tbl('', [tr(yearCells), tr(stateCells)]),
+      h('div', { class: 'spacer g2' }),
+      h('div', { class: 'allergy' }, [
+        h('span', { class: 'e' }, 'Allergy :'),
+        F('allergy', null, 'الحساسية'),
+        h('span', { class: 'a' }, 'الحساسية')
+      ])
+    ]);
+    return p;
+  }
+
+  /* ---- page 2 — personal information ----------------------------------- */
+  function buildPage2(D) {
+    var p = pageEl(1, 'flow');
+    var dob = dateParts(D.birthDate);
+
+    function nameCell(en, ar) {
+      return td([h('span', { class: 'en' }, en + ' '), h('span', null, ar)], { cls: 'hdw' });
+    }
+    var nameTable = tbl('en', [
+      tr([nameCell('Family Name', 'اسم العائلة'), nameCell('Middle Name', 'اسم الجد'),
+        nameCell('Father Name', 'اسم الأب'), nameCell('First Name', 'الاسم الأول')]),
+      tr([
+        td(F('familyName', null, 'اسم العائلة'), { cls: 'tall' }),
+        td(F('middleName', null, 'اسم الجد'), { cls: 'tall' }),
+        td(F('fatherName', null, 'اسم الأب'), { cls: 'tall' }),
+        td(F('firstName', null, 'الاسم الأول'), { cls: 'tall' })
+      ])
+    ]);
+
+    function infoTable(pairs) {
+      return tbl('', [
+        tr(pairs.map(function (x) { return td(x[0], { cls: 'g' }); })),
+        tr(pairs.map(function (x) { return td(F(x[1], x[2] || null, x[0]), { cls: 'tall' }); }))
+      ]);
+    }
+
+    append(p, [
+      letterhead('inner'),
+      h('div', { class: 'gap-s' }),
+      pill('Personal Informations', 'المعلومات الشخصية'),
+      h('div', { class: 'gap-m' }),
+      labelledBoxes('رقم الملف الصحي', 6, 'fileNo', 6),
+      h('div', { class: 'gap-s' }),
+      labelledBoxes('رقم الهوية / الإقامة', 10, 'nationalId', 6, true),
+      h('div', { class: 'gap-m' }),
+      nameTable,
+      h('div', { class: 'gap-m' }),
+      h('div', { class: 'row rtl' }, [
+        h('span', { class: 'lab' }, 'تاريخ الميلاد'),
+        h('span', { style: 'width:4mm' }),
+        BOXES(2, 'birthDate', true, 'تاريخ الميلاد — اليوم', { numeric: true, datePart: 0, value: dob[0] }),
+        h('span', { class: 'sep' }, '/'),
+        BOXES(2, 'birthDate', true, 'تاريخ الميلاد — الشهر', { numeric: true, datePart: 1, value: dob[1] }),
+        h('span', { class: 'sep' }, '/'),
+        BOXES(4, 'birthDate', true, 'تاريخ الميلاد — السنة', { numeric: true, datePart: 2, value: dob[2] })
+      ]),
+      h('div', { class: 'spacer' }),
+      infoTable([['الجنسية', 'nationality'], ['الجنس', 'gender'],
+        ['الحالة الاجتماعية', 'maritalStatus'], ['فصيلة الدم', 'bloodGroup', 'en']]),
+      h('div', { class: 'spacer' }),
+      infoTable([['رقم الوظيفة', 'employeeNo', 'en'], ['المسمى الوظيفي', 'jobTitle'],
+        ['القسم', 'department'], ['تاريخ التعيين', 'hireDate', 'en']]),
+      h('div', { class: 'spacer' }),
+      infoTable([['رقم الجوال', 'mobile', 'en'], ['العنوان', 'address'],
+        ['رقم الطوارئ', 'emergencyNo', 'en'], ['صلة القرابة', 'emergencyRelation']]),
+      h('div', { class: 'spacer' }),
+      badge(2)
+    ]);
+    return p;
+  }
+
+  /* ---- page 3 — chronic illnesses and investigations ------------------- */
+  function buildPage3(D) {
+    var p = pageEl(2);
+    var chronic = D.chronic || [];
+    var inv = D.investigations || {};
+
+    var chronicRows = [tr([
+      th('No.', { style: 'width:12mm' }), th('Chronic illnesses'), th('Date of diagnosis'),
+      th('Medications'), th('Start', { style: 'width:20mm' }), th('Stop', { style: 'width:20mm' })
+    ])];
+    for (var i = 0; i < 8; i++) {
+      chronicRows.push(tr([
+        td(arNum(i + 1)),
+        td(F('chronic.' + i + '.illness', null, 'Chronic illnesses'), { cls: 'name' }),
+        td(F('chronic.' + i + '.diagnosedOn', 'en', 'Date of diagnosis')),
+        td(F('chronic.' + i + '.medication', null, 'Medications'), { cls: 'name' }),
+        td(F('chronic.' + i + '.start', 'en', 'Medication start')),
+        td(F('chronic.' + i + '.stop', 'en', 'Medication stop'))
+      ]));
+    }
+
+    var invRows = [tr([
+      th('Investigation', { style: 'width:46mm' }), th('Date of last test', { style: 'width:38mm' }), th('Comments')
+    ])];
+    INVESTIGATIONS.forEach(function (name) {
+      invRows.push(tr([
+        td(name, { cls: 'name' }),
+        td(F(pathKey('investigations', name, 'date'), 'en', name + ' — Date of last test')),
+        td(F(pathKey('investigations', name, 'comment'), null, name + ' — Comments'), { cls: 'name' })
+      ]));
+    });
+
+    append(p, [
+      letterhead('inner'),
+      h('div', { class: 'gap-s' }),
+      h('div', { class: 'row rtl' }, [
+        h('span', { class: 'lab' }, 'رقم الملف الصحي'),
+        h('span', { style: 'width:3mm' }),
+        BOXES(6, 'fileNo', true, 'رقم الملف الصحي', { numeric: true }),
+        h('span', { style: 'width:10mm' }),
+        h('span', { class: 'lab' }, 'الاسم'),
+        h('span', { class: 'dline', style: 'min-width:70mm' },
+          F('fullName', null, 'الاسم', D.fullName || fullNameOf(D)))
+      ]),
+      h('div', { class: 'gap-m' }),
+      tbl('en', chronicRows),
+      h('div', { class: 'gap-m' }),
+      tbl('en', invRows),
+      badge(3)
+    ]);
+    return p;
+  }
+
+  function fullNameOf(D) {
+    var parts = [D.firstName, D.fatherName, D.middleName, D.familyName].filter(function (x) {
+      return x !== null && x !== undefined && String(x).trim();
+    });
+    return parts.length ? parts.join(' ') : '';
+  }
+
+  /* ---- page 4 — medical history ---------------------------------------- */
+  function buildPage4(D) {
+    var p = pageEl(3);
+
+    function historyField(label, key, lines) {
+      return h('div', { class: 'fld en multiline-row' }, [
+        h('span', { class: 'lbl', style: 'padding-top:2.6mm' }, label),
+        MULTI('history.' + key, label, lines, 'en')
+      ]);
+    }
+
+    var block = h('div', { class: 'frame' });
+    HISTORY_ROWS.forEach(function (row) { append(block, historyField(row[0], row[1], row[2])); });
+    append(block, h('div', { class: 'fld en multiline-row', style: 'margin-bottom:0' }, [
+      h('span', { class: 'lbl', style: 'padding-top:2.6mm' }, 'Vaccination'),
+      h('span', { style: 'width:18mm' }),
+      h('span', { class: 'lbl', style: 'padding-top:2.6mm' }, 'Status :'),
+      MULTI('history.vaccinationStatus', 'Vaccination Status', 3, 'en')
+    ]));
+
+    append(p, [
+      letterhead('inner'),
+      h('div', { class: 'gap-s' }),
+      pill(null, 'التاريخ المرضي'),
+      h('div', { class: 'gap-m' }),
+      labelledBoxes('رقم الملف الصحي', 6, 'fileNo', 6, true),
+      h('div', { class: 'gap-m' }),
+      block,
+      badge(4)
+    ]);
+    return p;
+  }
+
+  /* ---- page 5 — physical examination ----------------------------------- */
+  function buildPage5(D) {
+    var p = pageEl(4);
+
+    var cols = [
+      ['BP', 'mmHg', 'bp'], ['Pulse', 'min/', 'pulse'], ['WT', 'Kg', 'weight'],
+      ['Resp.rate', 'min/', 'resp'], ['HT', 'M', 'height'], ['Temp', 'c', 'temp'], ['BMI', '', 'bmi']
+    ];
+    var vitals = tbl('en', [
+      tr([th('Vital Signs', { rs: 2, style: 'width:26mm' })].concat(cols.map(function (c) { return th(c[0]); }))),
+      tr(cols.map(function (c) { return th(c[1] || ' '); })),
+      tr([td('')].concat(cols.map(function (c) {
+        return td(F('vitals.' + c[2], 'en', c[0]), { cls: 'tall' });
+      })))
+    ]);
+
+    var block = h('div', { class: 'frame' });
+    EXAM_ROWS.forEach(function (row) {
+      append(block, h('div', { class: 'fld en' }, [
+        h('span', { class: 'lbl', style: 'min-width:44mm' }, row[0]),
+        h('span', { class: 'dline' }, F('exam.' + row[1], null, row[0]))
+      ]));
+    });
+    append(block, h('div', { class: 'fld en' }, [h('span', { class: 'dline' })]));
+    append(block, h('div', { class: 'fld en', style: 'gap:4mm;margin-bottom:0' }, [
+      h('span', { class: 'lbl' }, 'Examining Doctor :'),
+      h('span', { class: 'dline' }, F('exam.doctor', null, 'Examining Doctor')),
+      h('span', { class: 'lbl' }, 'Signature :'),
+      h('span', { class: 'dline' }),
+      h('span', { class: 'lbl' }, 'Date:'),
+      h('span', { class: 'dline' }, F('exam.date', 'en', 'Examination Date'))
+    ]));
+
+    append(p, [
+      letterhead('inner'),
+      h('div', { class: 'gap-s' }),
+      pill('Physical Examination', 'الفحص الطبي'),
+      h('div', { class: 'gap-m' }),
+      vitals,
+      h('div', { class: 'gap-m' }),
+      block,
+      badge(5)
+    ]);
+    return p;
+  }
+
+  /* ---- page 6 — screening and immunization ----------------------------- */
+  function buildPage6(D) {
+    var p = pageEl(5);
+    var ppd = D.ppd || [];
+
+    var seroRows = [
+      tr([th('Serology & History', { cs: 4 })]),
+      tr([th('Screening', { style: 'width:44mm' }), th('Date', { style: 'width:32mm' }),
+        th('Results', { style: 'width:34mm' }), th('Comments')])
+    ];
+    SEROLOGY.forEach(function (name) {
+      seroRows.push(tr([
+        td(name, { cls: 'name' }),
+        td(F(pathKey('screening', name, 'date'), 'en', name + ' — Date')),
+        td(F(pathKey('screening', name, 'result'), null, name + ' — Results')),
+        td(F(pathKey('screening', name, 'comment'), null, name + ' — Comments'), { cls: 'name' })
+      ]));
+    });
+
+    var ppdRows = [tr([
+      th('PPD Skin Test', { style: 'width:44mm' }), th('Date', { style: 'width:32mm' }),
+      th('Results', { style: 'width:34mm' }), th('Comments')
+    ])];
+    for (var i = 0; i < 3; i++) {
+      ppdRows.push(tr([
+        td(''),
+        td(F('ppd.' + i + '.date', 'en', 'PPD Skin Test ' + (i + 1) + ' — Date')),
+        td(F('ppd.' + i + '.result', null, 'PPD Skin Test ' + (i + 1) + ' — Results')),
+        td(F('ppd.' + i + '.comment', null, 'PPD Skin Test ' + (i + 1) + ' — Comments'), { cls: 'name' })
+      ]));
+    }
+
+    var imRows = [tr([
+      th('Immunization', { cs: 2, style: 'width:44mm' }), th('Date', { style: 'width:32mm' }),
+      th('Signature', { style: 'width:34mm' }), th('Comments')
+    ])];
+    IMMUNIZATION.forEach(function (row) {
+      var cells = [];
+      if (row.group !== undefined) cells.push(td(row.group, { cls: 'name', rs: row.span, style: 'width:30mm' }));
+      cells.push(td(row.dose || '', { cls: 'name', style: 'width:16mm' }));
+      cells.push(td(F('immunization.' + row.key + '.date', 'en', (row.group || row.dose || row.key) + ' — Date')));
+      cells.push(td(F('immunization.' + row.key + '.signature', null, (row.group || row.dose || row.key) + ' — Signature')));
+      cells.push(td(F('immunization.' + row.key + '.comment', null, (row.group || row.dose || row.key) + ' — Comments'), { cls: 'name' }));
+      imRows.push(tr(cells));
+    });
+
+    var hbRows = [
+      tr([th('Hep. B Vaccine Response :', { cs: 2, style: 'width:44mm' }), th('Date', { style: 'width:32mm' }),
+        th('Results', { style: 'width:34mm' }), th('Comments')]),
+      tr([
+        td('anti-HBs', { cs: 2, cls: 'name' }),
+        td(F('immunization.antiHBs.date', 'en', 'anti-HBs response — Date')),
+        td(F('immunization.antiHBs.result', null, 'anti-HBs response — Results')),
+        td(F('immunization.antiHBs.comment', null, 'anti-HBs response — Comments'), { cls: 'name' })
+      ])
+    ];
+
+    append(p, [
+      letterhead('inner'),
+      h('div', { class: 'gap-s' }),
+      pill('Screening & Immunization Sheet', null),
+      h('div', { class: 'gap-s' }),
+      h('div', { class: 'row rtl' }, [
+        h('span', { class: 'lab' }, 'رقم الملف الصحي'),
+        h('span', { style: 'width:3mm' }),
+        BOXES(6, 'fileNo', true, 'رقم الملف الصحي', { numeric: true }),
+        h('span', { style: 'width:8mm' }),
+        h('span', { class: 'lab' }, 'الاسم'),
+        h('span', { class: 'dline', style: 'min-width:64mm' },
+          F('fullName', null, 'الاسم', D.fullName || fullNameOf(D)))
+      ]),
+      h('div', { class: 'gap-s' }),
+      tbl('en', seroRows),
+      h('div', { class: 'gap-s' }),
+      tbl('en', ppdRows),
+      h('div', { class: 'gap-s' }),
+      tbl('en', imRows),
+      h('div', { class: 'gap-s' }),
+      tbl('en', hbRows),
+      h('div', { class: 'note' }, '* Avoid pregnancy within 3 months post vaccination'),
+      badge(6)
+    ]);
+    return p;
+  }
+
+  /* ---- page 7 — health education form ---------------------------------- */
+  function buildPage7(D) {
+    var p = pageEl(6);
+    var edu = D.education || [];
+
+    var rows = [tr([
+      th('م', { style: 'width:10mm' }), th('التاريخ', { style: 'width:26mm' }), th('موضوع التثقيف'),
+      th('اسم المثقف الصحي', { style: 'width:40mm' }), th('التقييم', { style: 'width:24mm' }), th('التوقيع', { style: 'width:26mm' })
+    ])];
+    for (var i = 0; i < 10; i++) {
+      rows.push(tr([
+        td(arNum(i + 1)),
+        td(F('education.' + i + '.date', 'en', 'تاريخ التثقيف')),
+        td(F('education.' + i + '.topic', null, 'موضوع التثقيف')),
+        td(F('education.' + i + '.educator', null, 'اسم المثقف الصحي')),
+        td(F('education.' + i + '.evaluation', null, 'التقييم')),
+        td(F('education.' + i + '.signature', null, 'التوقيع'))
+      ]));
+    }
+
+    var block = h('div', { class: 'frame' }, [
+      h('div', { class: 'fld multiline-row' }, [
+        h('span', { class: 'lbl', style: 'padding-top:2.6mm' }, 'ما هي الاحتياجات التثقيفية للموظف؟'),
+        MULTI('educationNeeds', 'الاحتياجات التثقيفية للموظف', 2)
+      ]),
+      h('div', { class: 'gap-s' }),
+      h('div', { class: 'fld', role: 'radiogroup', 'aria-label': 'هل توجد معوقات تحد من استيعاب الموظف للتثقيف؟' }, [
+        h('span', { class: 'lbl' }, 'هل توجد معوقات تحد من استيعاب الموظف للتثقيف؟'),
+        CHECK('educationBarrier', 'نعم', 'معوقات التثقيف'),
+        CHECK('educationBarrier', 'لا', 'معوقات التثقيف')
+      ]),
+      h('div', { class: 'fld multiline-row', style: 'margin-bottom:0' }, [
+        MULTI('educationBarrierDetails', 'تفاصيل معوقات التثقيف', 1)
+      ])
+    ]);
+
+    append(p, [
+      letterhead('inner'),
+      h('div', { class: 'gap-s' }),
+      pill('Health Education Form', 'استمارة التثقيف الصحي'),
+      h('div', { class: 'gap-s' }),
+      h('div', { class: 'row rtl' }, [
+        h('span', { class: 'lab' }, 'رقم الملف الصحي'),
+        h('span', { style: 'width:3mm' }),
+        BOXES(6, 'fileNo', true, 'رقم الملف الصحي', { numeric: true }),
+        h('span', { style: 'width:8mm' }),
+        h('span', { class: 'lab' }, 'الاسم'),
+        h('span', { class: 'dline', style: 'min-width:62mm' },
+          F('fullName', null, 'الاسم', D.fullName || fullNameOf(D)))
+      ]),
+      h('div', { class: 'gap-s' }),
+      h('div', { class: 'row rtl' }, [
+        h('span', { class: 'lab' }, 'الجنس'),
+        h('span', { role: 'radiogroup', 'aria-label': 'الجنس' }, [
+          CHECK('gender', 'ذكر', 'الجنس'),
+          CHECK('gender', 'أنثى', 'الجنس')
+        ]),
+        h('span', { style: 'width:8mm' }),
+        h('span', { class: 'lab' }, 'القسم'),
+        h('span', { class: 'dline', style: 'min-width:46mm' }, F('department', null, 'القسم')),
+        h('span', { style: 'width:6mm' }),
+        h('span', { class: 'lab' }, 'التاريخ'),
+        h('span', { class: 'dline', style: 'min-width:34mm' }, F('educationDate', 'en', 'تاريخ التثقيف'))
+      ]),
+      h('div', { class: 'gap-s' }),
+      block,
+      h('div', { class: 'gap-s' }),
+      tbl('', rows),
+      badge(7)
+    ]);
+    return p;
+  }
+
+  /* ---- page 8 — back cover --------------------------------------------- */
+  function buildPage8() {
+    var p = pageEl(7, 'p-back');
+    append(p, h('div', { class: 'back-mark' }, mohLogo(66)));
+    return p;
+  }
+
+  var BUILDERS = [buildPage1, buildPage2, buildPage3, buildPage4,
+    buildPage5, buildPage6, buildPage7, buildPage8];
+
+  /* =======================================================================
+     4. TURN ENGINE
+     ======================================================================= */
+
+  var DATA = {};
+  var pages = [];                 // the eight live page elements
+  var book, stage, stageWrap, viewport, printRoot, rail, counterEl;
+  var slotL, slotR, castL, castR, stackL, stackR;
+  var peelTop, peelBottom;
+
+  var mode = 'spread';            // 'spread' (>=900px) | 'single'
+  var leafState = 0;              // leaves turned, 0..4
+  var pageState = 0;              // pages turned, 0..7 (single mode)
+  var zoom = 1, fitScale = 1, scale = 1;
+
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var HAS3D = !!(window.CSS && CSS.supports && CSS.supports('transform-style', 'preserve-3d'));
+  var FLAT = REDUCED || !HAS3D;
+  var CAN_HOVER = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
+  var COARSE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+  var N_STRIPS = COARSE ? 8 : 11;         // strips across the leaf
+  var BLEED = !COARSE;                    // show-through of the recto on a blank verso
+  var LAG = 0.44;                         // how much the outer edge trails the hinge
+  var leafCache = Object.create(null);
+  var cacheOrder = [];
+  var turn = null;
+
+  function leafCount() { return mode === 'spread' ? 4 : 8; }
+  function stateVal() { return mode === 'spread' ? leafState : pageState; }
+  function setStateVal(v) { if (mode === 'spread') leafState = v; else pageState = v; }
+  function frontIndex(k) { return mode === 'spread' ? 2 * k : k; }
+  function backIndex(k) { return mode === 'spread' ? 2 * k + 1 : -1; }
+  function underLeftIndex(k) { return mode === 'spread' ? 2 * k + 2 : k + 1; }
+  function underRightIndex(k) { return mode === 'spread' ? 2 * k - 1 : -1; }
+
+  /* ---- static spread --------------------------------------------------- */
+
+  function mount(slot, index) {
+    while (slot.firstChild) slot.removeChild(slot.firstChild);
+    if (index >= 0 && index < N_PAGES && pages[index]) slot.appendChild(pages[index]);
+  }
+
+  function renderStatic() {
+    var st = stateVal();
+    if (mode === 'spread') {
+      mount(slotL, st < 4 ? 2 * st : -1);
+      mount(slotR, st > 0 ? 2 * st - 1 : -1);
+    } else {
+      mount(slotL, st);
+      mount(slotR, -1);
+    }
+    updateStacks();
+    updateChrome();
+  }
+
+  function updateStacks() {
+    var total = leafCount(), st = stateVal();
+    var left = (total - st) / total, right = st / total;
+    if (mode === 'single') { left = 0; right = (total - st) / total; }
+    stackL.style.transform = 'scaleX(' + (0.12 + 0.88 * left) + ')';
+    stackL.style.opacity = left > 0.02 ? '1' : '0';
+    stackR.style.transform = 'scaleX(' + (0.12 + 0.88 * right) + ')';
+    stackR.style.opacity = right > 0.02 ? '1' : '0';
+  }
+
+  /* ---- building a turning leaf ---------------------------------------- */
+
+  function stripWidth() { return PAGE_W / N_STRIPS; }
+
+  function faceHolder(pageNode, offsetPx, extraCls) {
+    var holder = h('div', { class: 'holder' + (extraCls ? ' ' + extraCls : '') });
+    holder.style.transform = 'translateX(' + (-offsetPx) + 'px)';
+    holder.appendChild(pageNode.cloneNode(true));
+    return holder;
+  }
+
+  /** Mirrored holder: shows the recto through the back of the sheet. */
+  function bleedHolder(pageNode, i, sw) {
+    var holder = h('div', { class: 'holder bleed' });
+    holder.style.transform =
+      'translateX(' + (-(i * sw)) + 'px) scaleX(-1) translateX(' + (-PAGE_W) + 'px)';
+    holder.appendChild(pageNode.cloneNode(true));
+    return holder;
+  }
+
+  function buildLeaf(k) {
+    var key = mode + ':' + k;
+    if (leafCache[key]) return leafCache[key];
+
+    var sw = stripWidth();
+    var front = pages[frontIndex(k)];
+    var bi = backIndex(k);
+    var back = bi >= 0 ? pages[bi] : null;
+
+    var wrap = h('div', { class: 'turning' });
+    var strips = [];
+
+    for (var i = 0; i < N_STRIPS; i++) {
+      /* the 0.6px of extra width sits on the free-edge side so that the
+         hinge-side edge of every strip stays exactly on the bend curve */
+      var left = PAGE_W - (i + 1) * sw - 0.6;
+      var strip = h('div', { class: 'strip' });
+      strip.style.left = left + 'px';
+      strip.style.width = (sw + 0.6) + 'px';
+
+      var sf = h('div', { class: 'shade' }), hf = h('div', { class: 'sheen' });
+      var sb = h('div', { class: 'shade' }), hb = h('div', { class: 'sheen' });
+
+      var ff = h('div', { class: 'face front' });
+      ff.appendChild(faceHolder(front, left));
+      ff.appendChild(sf);
+      ff.appendChild(hf);
+
+      /* At most two page clones per strip: the recto, plus either the real
+         verso or — when the verso is blank — a mirrored show-through of the
+         recto. A third layer is not worth the rasterisation. */
+      var bf = h('div', { class: 'face back' });
+      if (back) bf.appendChild(faceHolder(back, i * sw));
+      else if (BLEED) bf.appendChild(bleedHolder(front, i, sw));
+      bf.appendChild(sb);
+      bf.appendChild(hb);
+
+      strip.appendChild(ff);
+      strip.appendChild(bf);
+      wrap.appendChild(strip);
+      strips.push({ el: strip, sf: sf, hf: hf, sb: sb, hb: hb });
+    }
+
+    var leaf = { el: wrap, strips: strips, sw: sw };
+    leafCache[key] = leaf;
+    cacheOrder.push(key);
+    while (cacheOrder.length > 3) {
+      var drop = cacheOrder.shift();
+      if (drop !== key && leafCache[drop]) {
+        if (leafCache[drop].el.parentNode) leafCache[drop].el.parentNode.removeChild(leafCache[drop].el);
+        delete leafCache[drop];
+      }
+    }
+    return leaf;
+  }
+
+  function clearLeafCache() {
+    for (var key in leafCache) {
+      var el = leafCache[key].el;
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+    leafCache = Object.create(null);
+    cacheOrder = [];
+  }
+
+  /* ---- the curl -------------------------------------------------------- */
+
+  /**
+   * Place every strip along the bend. The angle profile lags towards the free
+   * edge (strongest at mid-turn), which is what makes the sheet bow instead of
+   * pivoting like a card. Positions are integrated strip by strip so that
+   * neighbours share an exact edge.
+   */
+  function applyTurn() {
+    if (!turn) return;
+    var p = turn.p;
+    var strips = turn.leaf.strips, sw = turn.leaf.sw, n = strips.length;
+    var theta = Math.PI * p;
+    var lag = Math.sin(Math.PI * Math.max(0, Math.min(1, p))) * LAG;
+
+    var x = PAGE_W, z = 0;                     // hinge, at the spine
+    for (var i = 0; i < n; i++) {
+      var t = (i + 0.5) / n;
+      var a = theta * (1 - lag * Math.pow(t, 1.6));
+      var ca = Math.cos(a), sa = Math.sin(a);
+
+      var st = strips[i];
+      st.el.style.transform = 'translate3d(' + (x - (PAGE_W - i * sw)).toFixed(2) + 'px,0,' +
+        z.toFixed(2) + 'px) rotateY(' + a.toFixed(4) + 'rad)';
+
+      /* Light: darkens as the surface turns away, deepest in the trough.
+         Written straight onto the (empty) overlay divs and only for the face
+         that is actually pointing at the camera. */
+      if (ca > 0) {
+        st.sf.style.opacity = (0.30 * (1 - ca)).toFixed(3);
+        st.hf.style.opacity = (sa * ca * 0.42).toFixed(3);
+      } else {
+        st.sb.style.opacity = (0.34 * (1 + ca) + 0.05).toFixed(3);
+        st.hb.style.opacity = (sa * -ca * 0.26).toFixed(3);
+      }
+
+      x -= sw * ca; z += sw * sa;
+    }
+
+    /* corner grab: the whole leaf swings a little about the grabbed point */
+    var tilt = turn.tilt * Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
+    turn.leaf.el.style.transform = 'rotate(' + tilt.toFixed(3) + 'deg)';
+    if (mode === 'single') {
+      turn.leaf.el.style.opacity = p > 0.72 ? String(Math.max(0, (1 - p) / 0.28)) : '1';
+    }
+
+    /* shadow cast on the sheets underneath, tracking the fold */
+    var lead = x;                              // free edge, 0 → 2·PAGE_W
+    var lift = Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
+    var coverL = Math.max(0, Math.min(1, 1 - lead / PAGE_W));
+    var coverR = Math.max(0, Math.min(1, (lead - PAGE_W) / PAGE_W));
+    castL.style.opacity = (0.5 * lift * (coverL > 0 ? 1 : 0)).toFixed(3);
+    castL.style.transform = 'scaleX(' + coverL.toFixed(3) + ')';
+    castR.style.opacity = (0.5 * lift * (coverR > 0 ? 1 : 0)).toFixed(3);
+    castR.style.transform = 'scaleX(' + coverR.toFixed(3) + ')';
+  }
+
+  /* ---- begin / end a turn ---------------------------------------------- */
+
+  function beginTurn(k, from, originY, tilt) {
+    endTurn(true);
+    var leaf = buildLeaf(k);
+    mount(slotL, underLeftIndex(k));
+    mount(slotR, underRightIndex(k));
+    if (leaf.el.parentNode !== book) book.appendChild(leaf.el);
+    leaf.el.style.opacity = '1';
+    turn = {
+      k: k, leaf: leaf, p: from, v: 0, anim: false, raf: 0,
+      originY: originY === undefined ? 0.5 : originY,
+      tilt: tilt === undefined ? 0 : tilt
+    };
+    leaf.el.style.transformOrigin = '100% ' + (turn.originY * 100).toFixed(1) + '%';
+    applyTurn();
+    return turn;
+  }
+
+  function endTurn(silent) {
+    if (!turn) return;
+    if (turn.raf) cancelAnimationFrame(turn.raf);
+    if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; }
+    if (turn.leaf.el.parentNode) turn.leaf.el.parentNode.removeChild(turn.leaf.el);
+    turn = null;
+    castL.style.opacity = '0';
+    castR.style.opacity = '0';
+    if (!silent) renderStatic();
+  }
+
+  function settle(target, v0, done) {
+    if (!turn) return;
+    if (turn.raf) cancelAnimationFrame(turn.raf);
+    turn.anim = true;
+    turn.v = v0 || 0;
+    var last = 0;
+    var K = 210, C = 25;                       // spring: light overshoot, quick settle
+    function frame(now) {
+      if (!turn || !turn.anim) return;
+      if (!last) last = now;
+      var dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      var acc = -K * (turn.p - target) - C * turn.v;
+      turn.v += acc * dt;
+      turn.p += turn.v * dt;
+      if (Math.abs(turn.p - target) < 0.0015 && Math.abs(turn.v) < 0.03) {
+        turn.p = target;
+        applyTurn();
+        turn.anim = false;
+        if (done) done();
+        return;
+      }
+      applyTurn();
+      turn.raf = requestAnimationFrame(frame);
+    }
+    turn.raf = requestAnimationFrame(frame);
+  }
+
+  function finishTurn(k, target) {
+    setStateVal(target === 1 ? k + 1 : k);
+    endTurn(true);
+    renderStatic();
+    if (cacheDirty) flushCacheRefresh();
+    else prewarm();
+    consumePendingTabFocus();
+  }
+
+  function prewarm() {
+    var st = stateVal();
+    var idle = window.requestIdleCallback || function (f) { return setTimeout(f, 220); };
+    idle(function () {
+      if (turn) return;
+      if (st < leafCount()) buildLeaf(st);
+      if (st > 0) buildLeaf(st - 1);
+    });
+  }
+
+  /* ---- flat fallback --------------------------------------------------- */
+
+  function flatGo(delta) {
+    var st = stateVal() + delta;
+    if (st < 0 || st > leafCount()) return;
+    setStateVal(st);
+    renderStatic();
+    if (cacheDirty) flushCacheRefresh();
+    consumePendingTabFocus();
+    var kids = [slotL.firstChild, slotR.firstChild];
+    for (var i = 0; i < kids.length; i++) {
+      if (!kids[i]) continue;
+      kids[i].style.opacity = '0';
+      kids[i].style.transition = 'opacity .18s ease';
+      (function (el) { requestAnimationFrame(function () { el.style.opacity = '1'; }); })(kids[i]);
+    }
+  }
+
+  /* ---- pointer input --------------------------------------------------- */
+
+  function localX(clientX) {
+    var r = book.getBoundingClientRect();
+    return (clientX - r.left) / scale;
+  }
+  function localY(clientY) {
+    var r = book.getBoundingClientRect();
+    return (clientY - r.top) / scale;
+  }
+
+  function pick(x) {
+    var total = leafCount(), st = stateVal();
+    var wantFwd = mode === 'spread' ? (x < PAGE_W) : (x < PAGE_W * 0.62);
+    if (wantFwd && st < total) return { k: st, from: 0 };
+    if (st > 0) return { k: st - 1, from: 1 };
+    if (st < total) return { k: st, from: 0 };
+    return null;
+  }
+
+  var drag = null;
+  var peeking = false;
+  var moveRaf = 0;
+
+  /** Pointer events can outrun the display (120Hz+ digitisers). Fold them into
+   *  one paint per frame instead of transforming eleven strips per event. */
+  function scheduleFrame() {
+    if (moveRaf) return;
+    moveRaf = requestAnimationFrame(function () { moveRaf = 0; applyTurn(); });
+  }
+
+  function onDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+
+    var x = localX(e.clientX), y = localY(e.clientY);
+    var boundTarget = e.target && e.target.closest ? e.target.closest('[data-bind]') : null;
+    if (editableEnabled && boundTarget && !inOuterTurnMargin(x)) {
+      /* The press belongs to the caret/radio, not the page-turn engine. */
+      return;
+    }
+
+    /* Any real turn commits the focused field before cloning/curling the leaf. */
+    if (editableEnabled) blurActiveEditable();
+
+    if (FLAT) {
+      var fwd = mode === 'spread' ? (x < PAGE_W) : (x < PAGE_W * 0.62);
+      flatGo(fwd ? 1 : -1);
+      return;
+    }
+
+    var target = pick(x);
+    if (!target) return;
+
+    peeking = false;
+    var oy = Math.max(0.06, Math.min(0.94, y / PAGE_H));
+    var tilt = (0.5 - oy) * 14;                 // grab high → the corner sweeps down, and vice versa
+    var t = (turn && turn.k === target.k) ? turn : beginTurn(target.k, target.from, oy, tilt);
+    t.originY = oy; t.tilt = tilt;
+    t.leaf.el.style.transformOrigin = '100% ' + (oy * 100).toFixed(1) + '%';
+    if (t.raf) cancelAnimationFrame(t.raf);
+    t.anim = false;
+
+    drag = {
+      id: e.pointerId, x0: e.clientX, p0: t.p, k: target.k,
+      moved: 0, t0: (e.timeStamp || Date.now()),
+      lastX: e.clientX, lastT: (e.timeStamp || Date.now()), v: 0
+    };
+    try { book.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    book.focus({ preventScroll: true });
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!drag || e.pointerId !== drag.id || !turn) return;
+    var travel = (mode === 'spread' ? 2 : 1.35) * PAGE_W * scale;
+    var dx = e.clientX - drag.x0;
+    var p = drag.p0 + dx / travel;
+    p = Math.max(-0.03, Math.min(1.03, p));
+    var now = e.timeStamp || Date.now();
+    var dt = Math.max(8, now - drag.lastT);
+    drag.v = ((e.clientX - drag.lastX) / travel) / (dt / 1000);
+    drag.lastX = e.clientX; drag.lastT = now;
+    drag.moved = Math.max(drag.moved, Math.abs(dx));
+    turn.p = p;
+    scheduleFrame();
+    e.preventDefault();
+  }
+
+  function onUp(e) {
+    if (!drag || (e.pointerId !== undefined && e.pointerId !== drag.id)) return;
+    var d = drag; drag = null;
+    try { book.releasePointerCapture(d.id); } catch (err) { /* ignore */ }
+    if (!turn) return;
+
+    var k = turn.k, target;
+    var tap = d.moved < 8 && ((e.timeStamp || Date.now()) - d.t0) < 400;
+    if (tap) {
+      target = d.p0 < 0.5 ? 1 : 0;
+    } else if (d.v > 0.85) target = 1;
+    else if (d.v < -0.85) target = 0;
+    else target = turn.p > 0.45 ? 1 : 0;
+
+    settle(target, d.v, function () { finishTurn(k, target); });
+  }
+
+  /* corner peel: a mouse resting near the free corner lifts it slightly */
+  function onPeelEnter(which) {
+    return function () {
+      if (!CAN_HOVER || FLAT || drag || (turn && turn.anim)) return;
+      var st = stateVal();
+      if (st >= leafCount()) return;
+      if (turn && !peeking) return;
+      var oy = which === 'top' ? 0.14 : 0.86;
+      var t = beginTurn(st, turn ? turn.p : 0, oy, (0.5 - oy) * 16);
+      peeking = true;
+      settle(0.055, 0.4);
+      void t;
+    };
+  }
+  function onPeelLeave() {
+    if (!peeking || drag) return;
+    var k = turn ? turn.k : 0;
+    settle(0, -0.3, function () { peeking = false; finishTurn(k, 0); });
+  }
+
+  /* ---- public navigation ----------------------------------------------- */
+
+  function animateStep(forward) {
+    if (FLAT) { flatGo(forward ? 1 : -1); return; }
+    var st = stateVal();
+    if (forward && st >= leafCount()) return;
+    if (!forward && st <= 0) return;
+    var k = forward ? st : st - 1;
+    var target = forward ? 1 : 0;
+    beginTurn(k, forward ? 0 : 1, 0.62, forward ? -2.5 : 2.5);
+    settle(target, forward ? 1.1 : -1.1, function () { finishTurn(k, target); });
+  }
+
+  function goToPage(index) {
+    index = Math.max(0, Math.min(N_PAGES - 1, index | 0));
+    endTurn(true);
+    if (mode === 'spread') leafState = Math.max(0, Math.min(4, Math.round(index / 2)));
+    else pageState = index;
+    renderStatic();
+    prewarm();
+  }
+
+  function currentPageIndex() {
+    return mode === 'spread' ? Math.min(N_PAGES - 1, 2 * leafState) : pageState;
+  }
+
+  /* =======================================================================
+     5. FIELD BINDING AND IN-PLACE EDITING
+     ======================================================================= */
+
+  var editableEnabled = false;
+  var dirty = false;
+  var dirtyIndicator = null;
+  var changeConsumers = [];
+  var changeTimer = 0;
+  var pendingChangePath = null;
+  var cacheDirty = false;
+  var cacheTimer = 0;
+  var pendingTabFocus = null;
+  var draftGetter = null, draftSetter = null;
+
+  var SUPPORTS_PLAINTEXT_ONLY = (function () {
+    var probe = document.createElement('div');
+    probe.setAttribute('contenteditable', 'plaintext-only');
+    return probe.contentEditable === 'plaintext-only';
+  })();
+
+  function deepClone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function inOuterTurnMargin(x) {
+    var m = 12 * MM;
+    if (mode === 'spread') return x <= m || x >= (2 * PAGE_W - m);
+    return x <= m || x >= (PAGE_W - m);
+  }
+
+  function activeBound() {
+    var a = document.activeElement;
+    return a && a.dataset && a.dataset.bind ? a : null;
+  }
+
+  function blurActiveEditable() {
+    var a = activeBound();
+    if (a && typeof a.blur === 'function') a.blur();
+  }
+
+  function configureBoundNode(node) {
+    var kind = node.dataset.field;
+    node.setAttribute('spellcheck', 'false');
+    node.setAttribute('autocorrect', 'off');
+    node.setAttribute('autocapitalize', 'off');
+    node.setAttribute('aria-label', node.dataset.label || node.dataset.bind || '');
+
+    if (kind === 'choice') {
+      node.removeAttribute('contenteditable');
+      node.tabIndex = editableEnabled ? 0 : -1;
+      node.setAttribute('aria-disabled', String(!editableEnabled));
+      return;
+    }
+
+    if (editableEnabled) {
+      node.setAttribute('contenteditable', SUPPORTS_PLAINTEXT_ONLY ? 'plaintext-only' : 'true');
+      node.tabIndex = 0;
+      node.setAttribute('aria-readonly', 'false');
+    } else {
+      node.removeAttribute('contenteditable');
+      node.removeAttribute('tabindex');
+      node.setAttribute('aria-readonly', 'true');
+    }
+  }
+
+  function configureAllBoundNodes() {
+    document.body.classList.toggle('is-editable', editableEnabled);
+    for (var i = 0; i < pages.length; i++) {
+      var nodes = pages[i].querySelectorAll('[data-bind]');
+      for (var j = 0; j < nodes.length; j++) configureBoundNode(nodes[j]);
+    }
+  }
+
+  function textFromEditable(node) {
+    var raw = node.innerText !== undefined ? node.innerText : node.textContent;
+    raw = String(raw || '').replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ').replace(/\u200B/g, '');
+    if (node.dataset.field !== 'multi') raw = raw.replace(/\n+/g, ' ');
+    return raw;
+  }
+
+  function boxesForField(node) {
+    if (node.dataset.bind === 'birthDate') {
+      var page = node.closest('.page');
+      return page ? Array.prototype.slice.call(page.querySelectorAll('.box[data-bind="birthDate"]')) : [node];
+    }
+    var group = node.closest('.boxes');
+    return group ? Array.prototype.slice.call(group.querySelectorAll('.box[data-bind]')) : [node];
+  }
+
+  function datePartsFromBoxes(node) {
+    var page = node.closest('.page'), parts = ['', '', ''];
+    if (!page) return parts;
+    for (var p = 0; p < 3; p++) {
+      var list = page.querySelectorAll('.box[data-bind="birthDate"][data-date-part="' + p + '"]');
+      var s = '';
+      for (var i = 0; i < list.length; i++) s += (list[i].textContent || '').slice(0, 1);
+      parts[p] = s;
+    }
+    return parts;
+  }
+
+  function valueFromBoxes(node) {
+    var path = node.dataset.bind;
+    if (path === 'birthDate' && node.dataset.datePart !== undefined) {
+      var parts = datePartsFromBoxes(node);
+      if (!parts[0] && !parts[1] && !parts[2]) return '';
+      return joinDateParts(parts, getByPath(DATA, path));
+    }
+    var list = boxesForField(node), out = '';
+    for (var i = 0; i < list.length; i++) out += (list[i].textContent || '').slice(0, 1);
+    return out;
+  }
+
+  function setBoxDisplay(node, value) {
+    var idx = Number(node.dataset.boxIndex || 0), char = '';
+    if (node.dataset.bind === 'birthDate' && node.dataset.datePart !== undefined) {
+      var dp = dateParts(value), part = Number(node.dataset.datePart || 0);
+      char = (dp[part] || '').charAt(idx);
+    } else {
+      var chars = value === null || value === undefined ? [] : String(value).replace(/\s/g, '').split('');
+      char = chars[idx] || '';
+    }
+    if (document.activeElement !== node) node.textContent = char;
+  }
+
+  /** Mirror one DATA value to every live occurrence (file number appears on
+   *  six pages) without rebuilding any page or disturbing the active caret. */
+  function syncBoundPath(path, source) {
+    var value = getByPath(DATA, path);
+    for (var p = 0; p < pages.length; p++) {
+      var nodes = pages[p].querySelectorAll('[data-bind]');
+      for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i];
+        if (node.dataset.bind !== path || node === source) continue;
+        if (path === 'birthDate' && source && source.dataset.field === 'box' &&
+            source.closest('.page') === node.closest('.page')) continue;
+
+        if (node.dataset.field === 'box') {
+          setBoxDisplay(node, value);
+        } else if (node.dataset.field === 'choice') {
+          var on = choiceMatches(path, node.dataset.choice, value);
+          node.setAttribute('aria-checked', String(on));
+          var mark = node.querySelector('i');
+          if (mark) mark.textContent = on ? '✓' : '';
+        } else if (document.activeElement !== node) {
+          node.textContent = value === null || value === undefined ? '' : String(value);
+        }
+      }
+    }
+  }
+
+  function updateDirtyIndicator() {
+    if (!dirtyIndicator) return;
+    dirtyIndicator.hidden = !dirty;
+  }
+
+  function emitChange() {
+    changeTimer = 0;
+    var path = pendingChangePath;
+    pendingChangePath = null;
+    if (path === null) return;
+
+    var detail = {
+      path: path,
+      value: path ? getByPath(DATA, path) : undefined,
+      data: deepClone(DATA)
+    };
+    for (var i = 0; i < changeConsumers.length; i++) {
+      try { changeConsumers[i](detail); } catch (err) { setTimeout(function () { throw err; }, 0); }
+    }
+    try { window.dispatchEvent(new CustomEvent('phf:change', { detail: detail })); } catch (err) { /* old engines */ }
+    if (draftSetter) {
+      try { draftSetter(detail.data); } catch (err) { /* host-owned draft store */ }
+    }
+  }
+
+  function scheduleChange(path) {
+    pendingChangePath = path;
+    if (changeTimer) clearTimeout(changeTimer);
+    changeTimer = setTimeout(emitChange, 400);
+  }
+
+  function scheduleCacheRefresh() {
+    cacheDirty = true;
+    if (cacheTimer) clearTimeout(cacheTimer);
+    cacheTimer = setTimeout(flushCacheRefresh, 500);
+  }
+
+  function flushCacheRefresh() {
+    if (cacheTimer) { clearTimeout(cacheTimer); cacheTimer = 0; }
+    if (!cacheDirty) return;
+    if (turn) {
+      cacheTimer = setTimeout(flushCacheRefresh, 120);
+      return;
+    }
+    cacheDirty = false;
+    clearLeafCache();
+    railDirty = true;
+    if (rail && rail.classList.contains('open')) buildRail();
+    prewarm();
+  }
+
+  function registerUserChange(path) {
+    dirty = true;
+    updateDirtyIndicator();
+    scheduleChange(path);
+    scheduleCacheRefresh();
+  }
+
+  function commitBoxField(node) {
+    var path = node.dataset.bind, value = valueFromBoxes(node);
+    setByPath(DATA, path, value);
+    syncBoundPath(path, node);
+    registerUserChange(path);
+  }
+
+  function focusNode(node) {
+    if (!node) return;
+    try { node.focus({ preventScroll: true }); } catch (err) { node.focus(); }
+    if (node.dataset.field !== 'choice') placeCaretEnd(node);
+  }
+
+  function placeCaretEnd(node) {
+    var sel = window.getSelection && window.getSelection();
+    if (!sel || !document.createRange) return;
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function distributeBoxText(node, text) {
+    var list = boxesForField(node), start = list.indexOf(node);
+    if (start < 0) start = 0;
+
+    if (node.dataset.bind === 'birthDate') {
+      var parsed = String(text || '').trim().split(/[^0-9\u0660-\u0669]+/).filter(Boolean);
+      if (parsed.length >= 3) {
+        var parts = parsed[0].length === 4 ? [parsed[2], parsed[1], parsed[0]] : [parsed[0], parsed[1], parsed[2]];
+        var page = node.closest('.page');
+        for (var p = 0; p < 3; p++) {
+          var group = page.querySelectorAll('.box[data-bind="birthDate"][data-date-part="' + p + '"]');
+          for (var g = 0; g < group.length; g++) group[g].textContent = Array.from(parts[p] || '')[g] || '';
+        }
+        /* A pasted DOB already tells us its component order and separator.
+           Seed DATA with that exact spelling before the normal box commit so
+           joinDateParts() reverses dateParts() back into the supplied order. */
+        setByPath(DATA, 'birthDate', String(text || '').trim());
+        commitBoxField(node);
+        focusNode(list[list.length - 1]);
+        return;
+      }
+    }
+
+    var chars = Array.from(String(text || '').replace(/\r?\n/g, ''));
+    for (var i = start; i < list.length; i++) list[i].textContent = chars[i - start] || '';
+    commitBoxField(node);
+    var next = Math.min(list.length - 1, start + Math.max(0, chars.length - 1));
+    focusNode(list[next]);
+  }
+
+  function onFieldInput(e) {
+    if (!editableEnabled) return;
+    var node = e.target && e.target.closest ? e.target.closest('[data-bind]') : null;
+    if (!node || node.dataset.field === 'choice') return;
+
+    if (node.dataset.field === 'box') {
+      var chars = Array.from((node.textContent || '').replace(/\r?\n/g, ''));
+      if (chars.length > 1) {
+        distributeBoxText(node, chars.join(''));
+        return;
+      }
+      node.textContent = chars[0] || '';
+      commitBoxField(node);
+      if (chars.length) {
+        var list = boxesForField(node), idx = list.indexOf(node);
+        if (idx >= 0 && idx < list.length - 1) focusNode(list[idx + 1]);
+      }
+      return;
+    }
+
+    var path = node.dataset.bind;
+    setByPath(DATA, path, textFromEditable(node));
+    syncBoundPath(path, node);
+    registerUserChange(path);
+  }
+
+  function insertPlainText(node, text) {
+    if (node.dataset.field !== 'multi') text = text.replace(/\r?\n/g, ' ');
+    else text = text.replace(/\r\n?/g, '\n');
+
+    var ok = false;
+    try { ok = document.execCommand && document.execCommand('insertText', false, text); } catch (err) { ok = false; }
+    if (ok) return;
+
+    var sel = window.getSelection && window.getSelection();
+    if (!sel || !sel.rangeCount) { node.textContent += text; }
+    else {
+      var range = sel.getRangeAt(0);
+      range.deleteContents();
+      var tn = document.createTextNode(text);
+      range.insertNode(tn);
+      range.setStartAfter(tn);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function onFieldPaste(e) {
+    if (!editableEnabled) return;
+    var node = e.target && e.target.closest ? e.target.closest('[data-bind]') : null;
+    if (!node || node.dataset.field === 'choice') return;
+    var text = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+
+    if (node.dataset.field === 'box') {
+      e.preventDefault();
+      distributeBoxText(node, text);
+      return;
+    }
+
+    if (!SUPPORTS_PLAINTEXT_ONLY) {
+      e.preventDefault();
+      insertPlainText(node, text);
+    }
+  }
+
+  function activateChoice(node) {
+    if (!editableEnabled || !node || node.dataset.field !== 'choice') return;
+    var path = node.dataset.bind, choice = node.dataset.choice;
+    var current = getByPath(DATA, path);
+    setByPath(DATA, path, choiceMatches(path, choice, current) ? '' : choice);
+    syncBoundPath(path, null);
+    registerUserChange(path);
+  }
+
+  function onFieldClick(e) {
+    var node = e.target && e.target.closest ? e.target.closest('[data-bind][data-field="choice"]') : null;
+    if (!node || !editableEnabled) return;
+    activateChoice(node);
+    e.preventDefault();
+  }
+
+  function focusableFieldsInBook() {
+    var out = [];
+    function addFrom(slot) {
+      if (!slot) return;
+      var list = slot.querySelectorAll('.page [data-bind]');
+      for (var i = 0; i < list.length; i++) if (list[i].tabIndex >= 0) out.push(list[i]);
+    }
+    /* Arabic reading order: right page, then left page. */
+    addFrom(slotR);
+    addFrom(slotL);
+    return out;
+  }
+
+  function consumePendingTabFocus() {
+    if (!pendingTabFocus) return;
+    var which = pendingTabFocus;
+    pendingTabFocus = null;
+    setTimeout(function () {
+      var list = focusableFieldsInBook();
+      if (!list.length) return;
+      focusNode(which === 'last' ? list[list.length - 1] : list[0]);
+    }, 0);
+  }
+
+  function moveFieldFocus(node, backwards) {
+    var list = focusableFieldsInBook(), idx = list.indexOf(node);
+    var next = idx + (backwards ? -1 : 1);
+    if (idx >= 0 && next >= 0 && next < list.length) {
+      focusNode(list[next]);
+      return true;
+    }
+
+    var st = stateVal(), canTurn = backwards ? st > 0 : st < leafCount();
+    if (!canTurn) return false;
+    pendingTabFocus = backwards ? 'last' : 'first';
+    animateStep(!backwards);
+    return true;
+  }
+
+  function onFieldKeyDown(e) {
+    if (!editableEnabled) return;
+    var node = e.target && e.target.closest ? e.target.closest('[data-bind]') : null;
+    if (!node) return;
+
+    if (e.key === 'Escape') {
+      node.blur();
+      e.preventDefault();
+      return;
+    }
+
+    if (node.dataset.field === 'choice') {
+      if (e.key === ' ' || e.key === 'Enter') {
+        activateChoice(node);
+        e.preventDefault();
+        return;
+      }
+    }
+
+    if (node.dataset.field === 'box') {
+      var list = boxesForField(node), idx = list.indexOf(node);
+      if (e.key === 'Backspace' && !(node.textContent || '')) {
+        if (idx > 0) {
+          list[idx - 1].textContent = '';
+          commitBoxField(list[idx - 1]);
+          focusNode(list[idx - 1]);
+          e.preventDefault();
+        }
+        return;
+      }
+      if (e.key === 'ArrowLeft' && idx > 0) {
+        focusNode(list[idx - 1]); e.preventDefault(); return;
+      }
+      if (e.key === 'ArrowRight' && idx >= 0 && idx < list.length - 1) {
+        focusNode(list[idx + 1]); e.preventDefault(); return;
+      }
+      if (e.key === 'Enter') {
+        if (moveFieldFocus(node, false)) e.preventDefault();
+        return;
+      }
+    }
+
+    if (e.key === 'Tab') {
+      if (moveFieldFocus(node, e.shiftKey)) e.preventDefault();
+      return;
+    }
+
+    if (e.key === 'Enter' && node.dataset.field === 'single') {
+      if (moveFieldFocus(node, false)) e.preventDefault();
+    }
+  }
+
+  function onFieldFocusOut(e) {
+    var node = e.target && e.target.closest ? e.target.closest('[data-bind]') : null;
+    if (!node) return;
+    var next = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('[data-bind]') : null;
+    if (node.dataset.field === 'box' && next && next.dataset.field === 'box' &&
+        next.dataset.bind === node.dataset.bind && next.closest('.page') === node.closest('.page')) return;
+    flushCacheRefresh();
+  }
+
+  function focusFieldInternal(path) {
+    if (!path) return false;
+    var pageIndex = -1;
+    for (var p = 0; p < pages.length; p++) {
+      var nodes = pages[p].querySelectorAll('[data-bind]');
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].dataset.bind === path) { pageIndex = p; break; }
+      }
+      if (pageIndex >= 0) break;
+    }
+    if (pageIndex < 0) return false;
+
+    goToPage(pageIndex);
+    setTimeout(function () {
+      var list = focusableFieldsInBook();
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].dataset.bind === path) { focusNode(list[i]); break; }
+      }
+    }, 0);
+    return true;
+  }
+
+  function bindEditingEvents(root) {
+    root.addEventListener('input', onFieldInput);
+    root.addEventListener('paste', onFieldPaste);
+    root.addEventListener('click', onFieldClick);
+    root.addEventListener('keydown', onFieldKeyDown);
+    root.addEventListener('focusout', onFieldFocusOut);
+  }
+
+  function beforeUnloadGuard(e) {
+    if (!dirty || changeConsumers.length) return;
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+
+  /* =======================================================================
+     6. DATA API
+     ======================================================================= */
+
+  function isPlainObject(o) {
+    return o && typeof o === 'object' && !Array.isArray(o) && !o.nodeType;
+  }
+
+  function mergeInto(base, patch) {
+    for (var k in patch) {
+      if (!Object.prototype.hasOwnProperty.call(patch, k)) continue;
+      var v = patch[k];
+      if (isPlainObject(v) && isPlainObject(base[k])) mergeInto(base[k], v);
+      else base[k] = v;
+    }
+    return base;
+  }
+
+  function rebuildPages() {
+    var wasPrinting = printRoot.firstChild;
+    pages = BUILDERS.map(function (fn) { return fn(DATA); });
+    configureAllBoundNodes();
+    clearLeafCache();
+    railDirty = true;
+    if (wasPrinting) fillPrintRoot();
+    renderStatic();
+    if (rail.classList.contains('open')) buildRail();
+    prewarm();
+  }
+
+  /* =======================================================================
+     7. PRINTING — eight flat sheets, in reading order
+     ======================================================================= */
+
+  var printing = false;
+
+  function fillPrintRoot() {
+    while (printRoot.firstChild) printRoot.removeChild(printRoot.firstChild);
+    for (var i = 0; i < pages.length; i++) printRoot.appendChild(pages[i]);
+  }
+
+  function enterPrint() {
+    if (printing) return;
+    printing = true;
+    endTurn(true);
+    fillPrintRoot();
+  }
+
+  function exitPrint() {
+    if (!printing) return;
+    printing = false;
+    while (printRoot.firstChild) printRoot.removeChild(printRoot.firstChild);
+    renderStatic();
+  }
+
+  function doPrint() {
+    enterPrint();
+    window.setTimeout(function () {
+      window.print();
+      window.setTimeout(exitPrint, 400);
+    }, 60);
+  }
+
+  /* =======================================================================
+     8. LAYOUT, CHROME, BOOT
+     ======================================================================= */
+
+  var railDirty = true;
+
+  function layout() {
+    var wide = window.matchMedia('(min-width: 900px)').matches;
+    var next = wide ? 'spread' : 'single';
+    if (next !== mode) {
+      var page = currentPageIndex();
+      endTurn(true);
+      mode = next;
+      clearLeafCache();
+      N_STRIPS = COARSE || !wide ? 8 : 11;
+      if (mode === 'spread') leafState = Math.max(0, Math.min(4, Math.round(page / 2)));
+      else pageState = Math.max(0, Math.min(7, page));
+      book.classList.toggle('single', mode === 'single');
+      renderStatic();
+      prewarm();
+    }
+
+    var bookW = (mode === 'spread' ? 2 : 1) * PAGE_W;
+    book.style.width = bookW + 'px';
+
+    var availW = Math.max(120, viewport.clientWidth - 28);
+    var availH = Math.max(120, viewport.clientHeight - 28);
+    fitScale = Math.min(availW / bookW, availH / PAGE_H);
+    scale = fitScale * zoom;
+
+    stage.style.transform = 'scale(' + scale + ')';
+    stage.style.width = bookW + 'px';
+    stage.style.height = PAGE_H + 'px';
+    stageWrap.style.width = (bookW * scale) + 'px';
+    stageWrap.style.height = (PAGE_H * scale) + 'px';
+  }
+
+  function updateChrome() {
+    var st = stateVal();
+    var label;
+    if (mode === 'spread') {
+      var r = st > 0 ? 2 * st : 0;              // right-hand page number
+      var l = st < 4 ? 2 * st + 1 : 0;          // left-hand page number
+      if (r && l) label = arNum(r) + '–' + arNum(l);
+      else label = arNum(r || l);
+    } else {
+      label = arNum(st + 1);
+    }
+    counterEl.textContent = label + ' / ' + arNum(N_PAGES);
+    var thumbs = rail.querySelectorAll('.thumb');
+    var cur = currentPageIndex();
+    for (var i = 0; i < thumbs.length; i++) {
+      thumbs[i].setAttribute('aria-current', String(i === cur || (mode === 'spread' && i === cur - 1)));
+    }
+  }
+
+  function buildRail() {
+    if (!railDirty) { updateChrome(); return; }
+    while (rail.firstChild) rail.removeChild(rail.firstChild);
+    var k = 0.085;
+    for (var i = 0; i < pages.length; i++) {
+      (function (i) {
+        var b = h('button', {
+          class: 'thumb', type: 'button',
+          style: 'width:' + (PAGE_W * k) + 'px;height:' + (PAGE_H * k) + 'px',
+          'aria-label': 'صفحة ' + arNum(i + 1)
+        });
+        var mini = h('div', { class: 'mini' });
+        mini.style.transform = 'scale(' + k + ')';
+        mini.appendChild(pages[i].cloneNode(true));
+        b.appendChild(mini);
+        b.appendChild(h('span', { class: 'num' }, arNum(i + 1)));
+        b.addEventListener('click', function () { goToPage(i); });
+        rail.appendChild(b);
+      })(i);
+    }
+    railDirty = false;
+    updateChrome();
+  }
+
+  function boot() {
+    stage = document.getElementById('stage');
+    stageWrap = document.getElementById('stageWrap');
+    viewport = document.getElementById('viewport');
+    book = document.getElementById('book');
+    printRoot = document.getElementById('printRoot');
+    rail = document.getElementById('rail');
+    counterEl = document.getElementById('counter');
+    dirtyIndicator = document.getElementById('dirtyIndicator');
+
+    slotR = h('div', { class: 'slot right' });
+    slotL = h('div', { class: 'slot left' });
+    castR = h('div', { class: 'cast r' });
+    castL = h('div', { class: 'cast l' });
+    stackL = h('div', { class: 'stack l' });
+    stackR = h('div', { class: 'stack r' });
+    peelTop = h('div', { class: 'peel tl' });
+    peelBottom = h('div', { class: 'peel bl' });
+    append(book, [
+      stackL, stackR, slotR, slotL,
+      h('div', { class: 'gutter r' }), h('div', { class: 'gutter l' }),
+      castR, castL, peelTop, peelBottom
+    ]);
+    if (FLAT) book.classList.add('flat');
+
+    pages = BUILDERS.map(function (fn) { return fn(DATA); });
+    configureAllBoundNodes();
+    book.classList.toggle('single', mode === 'single');
+    layout();
+    renderStatic();
+    prewarm();
+
+    /* input */
+    bindEditingEvents(book);
+    bindEditingEvents(printRoot);
+    book.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    peelTop.addEventListener('pointerenter', onPeelEnter('top'));
+    peelBottom.addEventListener('pointerenter', onPeelEnter('bottom'));
+    peelTop.addEventListener('pointerleave', onPeelLeave);
+    peelBottom.addEventListener('pointerleave', onPeelLeave);
+
+    book.addEventListener('keydown', function (e) {
+      /* Field keystrokes belong to the field. Book navigation only runs when
+         the application surface itself owns focus. */
+      if (e.target !== book) return;
+      if (e.key === 'ArrowLeft') { animateStep(true); e.preventDefault(); }
+      else if (e.key === 'ArrowRight') { animateStep(false); e.preventDefault(); }
+      else if (e.key === 'Home') { goToPage(0); e.preventDefault(); }
+      else if (e.key === 'End') { goToPage(N_PAGES - 1); e.preventDefault(); }
+    });
+
+    /* toolbar */
+    document.getElementById('btnNext').addEventListener('click', function () { animateStep(true); });
+    document.getElementById('btnPrev').addEventListener('click', function () { animateStep(false); });
+    document.getElementById('btnPrint').addEventListener('click', doPrint);
+    document.getElementById('btnClear').addEventListener('click', function () { API.clear(); });
+    document.getElementById('btnSample').addEventListener('click', function () { API.setData(SAMPLE); });
+    document.getElementById('btnThumbs').addEventListener('click', function () {
+      var open = rail.classList.toggle('open');
+      this.setAttribute('aria-pressed', String(open));
+      if (open) buildRail();
+      layout();
+    });
+    document.getElementById('btnZoomIn').addEventListener('click', function () {
+      zoom = Math.min(2.4, zoom * 1.25); layout();
+    });
+    document.getElementById('btnZoomOut').addEventListener('click', function () {
+      zoom = Math.max(0.6, zoom / 1.25); layout();
+    });
+
+    /* layout */
+    window.addEventListener('resize', layout);
+    if (window.ResizeObserver) new ResizeObserver(layout).observe(viewport);
+
+    /* printing from the browser's own menu */
+    window.addEventListener('beforeprint', enterPrint);
+    window.addEventListener('afterprint', exitPrint);
+    if (window.matchMedia) {
+      var mq = window.matchMedia('print');
+      var onMQ = function (m) { if (m.matches) enterPrint(); else exitPrint(); };
+      if (mq.addEventListener) mq.addEventListener('change', onMQ);
+      else if (mq.addListener) mq.addListener(onMQ);
+    }
+
+    window.addEventListener('beforeunload', beforeUnloadGuard);
+  }
+
+  /* =======================================================================
+     9. SAMPLE RECORD (for the "بيانات تجريبية" button only)
+     ======================================================================= */
+
+  var SAMPLE = {
+    fileNo: '104728', nationalId: '1098234517',
+    firstName: 'سلطان', fatherName: 'عبدالله', middleName: 'مرزوق', familyName: 'الرويلي',
+    birthDate: '1414/07/22', nationality: 'سعودي', gender: 'ذكر',
+    maritalStatus: 'متزوج', bloodGroup: 'O+',
+    employeeNo: '88214', jobTitle: 'فني مختبر', department: 'المختبر',
+    hireDate: '1440/03/01', mobile: '0555 123 456', address: 'الحديثة — القريات',
+    emergencyNo: '0555 987 654', emergencyRelation: 'الأخ', allergy: 'لا يوجد / None',
+    activity: [{ year: '1445', status: 'نشط' }, { year: '1446', status: 'نشط' }, { year: '1447', status: 'نشط' }],
+    chronic: [{ illness: 'Bronchial asthma', diagnosedOn: '2019', medication: 'Salbutamol inh.', start: '2019', stop: '—' }],
+    investigations: { 'EKG': { date: '2025-02-11', comment: 'Normal sinus rhythm' }, 'Ray-Chest X': { date: '2025-02-11', comment: 'Clear' } },
+    history: {
+      pastMedical: 'Bronchial asthma, well controlled', pastSurgical: 'Appendectomy 2016',
+      allergies: 'No known drug allergy', smoking: 'Non-smoker', habits: 'Regular exercise',
+      family: 'Father — hypertension', psychosocial: 'Married, lives with family',
+      vaccinationStatus: 'Up to date'
+    },
+    vitals: { bp: '118/76', pulse: '72', weight: '78', resp: '16', height: '1.74', temp: '36.8', bmi: '25.8' },
+    exam: {
+      general: 'Well, not in distress', eyeRT: 'Normal', eyeLT: 'Normal',
+      earRT: 'Normal', earLT: 'Normal', nose: 'Patent', mouth: 'Healthy',
+      neck: 'No lymphadenopathy', breast: 'N/A', cvs: 'S1 S2, no murmur',
+      rs: 'Clear, equal air entry', git: 'Soft, no organomegaly', cns: 'Intact',
+      musculoskeletal: 'Full range of movement', actionPlan: 'Fit for duty — review in 12 months',
+      doctor: 'د. نورة الشمري', date: '2025-03-04'
+    },
+    screening: {
+      'HBsAG': { date: '2025-03-02', result: 'Negative' },
+      'anti-HBs': { date: '2025-03-02', result: '> 100 mIU/mL', comment: 'Immune' },
+      'HIV-Ab': { date: '2025-03-02', result: 'Non-reactive' },
+      'HCV-Ab': { date: '2025-03-02', result: 'Non-reactive' }
+    },
+    ppd: [{ date: '2025-03-02', result: '0 mm', comment: 'Negative' }],
+    immunization: {
+      hbv1: { date: '2019-01-14', signature: 'ن.ش' },
+      hbv2: { date: '2019-02-18', signature: 'ن.ش' },
+      hbv3: { date: '2019-07-21', signature: 'ن.ش' },
+      flu: { date: '2024-10-06', signature: 'ن.ش' },
+      antiHBs: { date: '2025-03-02', result: 'Responder' }
+    },
+    education: [
+      { date: '2025-03-04', topic: 'غسل اليدين', educator: 'أ. هند العنزي', evaluation: 'ممتاز' },
+      { date: '2025-05-19', topic: 'التعامل مع الأدوات الحادة', educator: 'أ. هند العنزي', evaluation: 'جيد جدًا' }
+    ],
+    educationNeeds: 'مكافحة العدوى وسلامة المرضى',
+    educationBarrier: 'لا',
+    educationBarrierDetails: '',
+    educationDate: '2025-05-19'
+  };
+
+  /* =======================================================================
+     10. GLOBAL API
+     ======================================================================= */
+
+  var API = {
+    /**
+     * Merge an employee record into the form and re-render. During editing the
+     * active field wins over an incoming refresh, then focus is restored.
+     */
+    setData: function (employee) {
+      var active = editableEnabled ? activeBound() : null;
+      var activePath = active ? active.dataset.bind : null;
+      var activeValue;
+      if (activePath) {
+        if (active.dataset.field === 'box') activeValue = valueFromBoxes(active);
+        else if (active.dataset.field === 'choice') activeValue = getByPath(DATA, activePath);
+        else activeValue = textFromEditable(active);
+      }
+
+      if (employee && typeof employee === 'object') mergeInto(DATA, employee);
+      if (activePath) setByPath(DATA, activePath, activeValue);
+      rebuildPages();
+      if (activePath) focusFieldInternal(activePath);
+      return API;
+    },
+
+    /** Deep clone of the same DATA shape accepted by setData(). */
+    getData: function () { return deepClone(DATA); },
+
+    /** Back to a blank, printable form. In edit mode this is a real change. */
+    clear: function () {
+      blurActiveEditable();
+      DATA = {};
+      rebuildPages();
+      if (editableEnabled) {
+        dirty = true;
+        updateDirtyIndicator();
+        scheduleChange('');
+      } else {
+        dirty = false;
+        updateDirtyIndicator();
+      }
+      return API;
+    },
+
+    /** Enable/disable in-place editing. Read-only remains the default. */
+    setEditable: function (on) {
+      on = !!on;
+      if (!on) blurActiveEditable();
+      editableEnabled = on;
+      configureAllBoundNodes();
+      return API;
+    },
+
+    /**
+     * Register a debounced change consumer. Returns an unsubscribe function;
+     * registering a consumer also tells the iframe that the host owns saving.
+     */
+    onChange: function (fn) {
+      if (typeof fn !== 'function') return function () {};
+      if (changeConsumers.indexOf(fn) < 0) changeConsumers.push(fn);
+      return function () {
+        var i = changeConsumers.indexOf(fn);
+        if (i >= 0) changeConsumers.splice(i, 1);
+      };
+    },
+
+    isDirty: function () { return dirty; },
+
+    /** Acknowledge a successful host save without touching DATA. */
+    markSaved: function () {
+      dirty = false;
+      updateDirtyIndicator();
+      return API;
+    },
+
+    /** Open the page containing a path and place the caret in its first node. */
+    focusField: function (path) {
+      focusFieldInternal(String(path || ''));
+      return API;
+    },
+
+    /**
+     * Optional host-owned draft buffer. No localStorage is ever used here.
+     * getter may synchronously return a DATA-shaped object; setter receives a
+     * deep clone on the same debounce as onChange.
+     */
+    setDraftStore: function (getter, setter) {
+      draftGetter = typeof getter === 'function' ? getter : null;
+      draftSetter = typeof setter === 'function' ? setter : null;
+      if (draftGetter) {
+        try {
+          var draft = draftGetter();
+          if (draft && typeof draft === 'object') API.setData(draft);
+        } catch (err) { /* the draft store belongs to the host */ }
+      }
+      return API;
+    },
+
+    /** 0-based page index; in spread mode it opens the spread holding it. */
+    goTo: function (pageIndex) { goToPage(pageIndex); return API; },
+    next: function () { animateStep(true); return API; },
+    prev: function () { animateStep(false); return API; },
+    print: function () { doPrint(); return API; },
+
+    /** Hide the toolbar and the thumbnail rail when embedded in the platform. */
+    setChrome: function (on) {
+      document.getElementById('toolbar').style.display = on ? '' : 'none';
+      if (!on) rail.classList.remove('open');
+      layout();
+      return API;
+    },
+
+    get page() { return currentPageIndex(); }
+  };
+
+  window.PersonalHealthFile = API;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+</body>
+</html>
