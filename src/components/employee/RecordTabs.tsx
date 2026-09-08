@@ -34,6 +34,9 @@ export function RecordTabs({
           )}
         </Link>
       ))}
+      <Link href={"/employees/" + employeeId + "/health-file"}>
+        تصفح الملف الصحي
+      </Link>
     </nav>
   );
 }
