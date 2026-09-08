@@ -1,0 +1,51 @@
+name: Materialize Personal Health File
+
+on:
+  push:
+    branches:
+      - feature/fillable-personal-health-file
+    paths:
+      - '.phf-upload/**'
+      - '.github/workflows/materialize-phf.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/fillable-personal-health-file
+
+      - name: Rebuild exact HTML and verify fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/forms
+          cat .phf-upload/part00.b64 .phf-upload/part01.b64 .phf-upload/part02.b64 > /tmp/phf.br.b64
+          node <<'NODE'
+          const fs = require('fs');
+          const zlib = require('zlib');
+          const encoded = fs.readFileSync('/tmp/phf.br.b64', 'utf8');
+          const html = zlib.brotliDecompressSync(Buffer.from(encoded, 'base64'));
+          fs.writeFileSync('public/forms/personal-health-file.html', html);
+          NODE
+          actual="$(git hash-object public/forms/personal-health-file.html)"
+          expected="a4db3447130bd79adaba48d0ba5bf1a6002a9354"
+          echo "personal-health-file.html git-sha=$actual"
+          test "$actual" = "$expected"
+          test "$(wc -c < public/forms/personal-health-file.html)" -eq 120778
+
+      - name: Commit materialized file and remove transfer helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .phf-upload
+          rm -f .github/workflows/materialize-phf.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add fillable Personal Health File booklet"
+          git push origin HEAD:feature/fillable-personal-health-file
